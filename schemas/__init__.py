@@ -1,6 +1,1 @@
-class MoveRequest:
-    pass
-
-
-class SpeakRequest:
-    pass
+from .request_models import MoveRequest, SpeakRequest, HeadRequest, LiftRequest

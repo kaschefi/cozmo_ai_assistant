@@ -24,6 +24,10 @@ class SpeakRequest(BaseModel):
         default=True,
         description="If true, Cozmo will act out the speech with animations."
     )
+    language: str = Field(
+        default="en",
+        description="The language of the speech. Default is English."
+    )
 
 class HeadRequest(BaseModel):
     angle: float = Field(

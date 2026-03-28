@@ -2,7 +2,7 @@ import cozmo
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from core import cozmo_manager
-from actions import dock_with_charger
+from actions import dock_with_charger, speak_text
 import uvicorn
 from schemas import MoveRequest, SpeakRequest
 
@@ -22,6 +22,10 @@ app = FastAPI(title="Cozmo AI Bridge", lifespan=lifespan)
 @app.post("/actions/dock")
 async def handle_dock():
     return await dock_with_charger()
+
+@app.post("/actions/speak")
+async def handle_speak(req: SpeakRequest):
+    return await speak_text(req.text, req.play_animation, req.language)
 
 #@app.post("/actions/move")
 #async def move_robot(req: MoveRequest):
