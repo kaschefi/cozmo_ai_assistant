@@ -4,7 +4,7 @@ import os
 import asyncio
 import requests
 import uuid
-import subprocess
+import edge_tts
 from pydub import AudioSegment
 from core.connection import cozmo_manager
 from deep_translator import GoogleTranslator
@@ -38,71 +38,73 @@ def translate_to_persian_with_google(english_text: str) -> str:
         print(f"Translation failed: {e}")
         return english_text
 
-def _play_audio_blocking(text: str, play_animation: bool, language: str):
+
+def convert_to_cozmo_format(temp_mp3: str, temp_wav: str):
+    print("Converting to 22kHz WAV...")
+    audio = AudioSegment.from_mp3(temp_mp3)
+
+    silence = AudioSegment.silent(duration=500)
+    audio = silence + audio
+
+    audio = audio.set_frame_rate(22050).set_channels(1).set_sample_width(2)
+    audio.export(temp_wav, format="wav")
+    os.remove(temp_mp3)
+
+
+def _play_audio_blocking(wav_file: str, play_animation: bool):
     cli = cozmo_manager.get_robot()
     if not cli:
         raise Exception("Robot not connected")
-
-    if language == "fa":
-        text_to_speak = translate_to_persian_with_google(text)
-        voice = "fa-IR-FaridNeural"  # Male Persian Voice
-    else:
-        text_to_speak = text
-        voice = "en-US-ChristopherNeural"  # Male English Voice
-
-    file_id = str(uuid.uuid4())[:8]
-    temp_mp3 = f"speech_{file_id}.mp3"
-    temp_wav = f"speech_{file_id}.wav"
-
-    print(f"Step 1: Generating Edge-TTS for: {text_to_speak}")
-
-    # Generate the speech file using Edge-TTS
-    try:
-        subprocess.run(
-            ["edge-tts", "--voice", voice, "--text", text_to_speak, "--write-media", temp_mp3],
-            check=True
-        )
-    except Exception as e:
-        raise Exception(f"Edge-TTS failed: {e}")
-
-    if not os.path.exists(temp_mp3) or os.path.getsize(temp_mp3) == 0:
-        raise Exception("TTS failed to generate a valid audio file.")
-
-    print("Step 2: Converting audio to Cozmo's specific 22kHz format...")
-    audio = AudioSegment.from_mp3(temp_mp3)
-    audio = audio.set_frame_rate(22050).set_channels(1).set_sample_width(2)
-    audio.export(temp_wav, format="wav")
-
-    if not os.path.exists(temp_wav) or os.path.getsize(temp_wav) == 0:
-        raise Exception("FFmpeg failed to convert the file to WAV.")
-
-    print(f"Step 3: File ready! Size: {os.path.getsize(temp_wav)} bytes. Sending to Cozmo...")
 
     if play_animation:
         cli.move_head(1.0)
         time.sleep(0.5)
 
+    print("Streaming to Cozmo...")
     cli.set_volume(65535)
-    cli.play_audio(temp_wav)
-
-    print("Step 4: Streaming audio to robot...")
+    cli.play_audio(wav_file)
     cli.wait_for(pycozmo.event.EvtAudioCompleted)
-    print("Step 5: Audio playback complete!")
 
     if play_animation:
         cli.move_head(0.0)
         time.sleep(0.5)
 
-    # Clean up
-    if os.path.exists(temp_mp3):
-        os.remove(temp_mp3)
-    if os.path.exists(temp_wav):
-        os.remove(temp_wav)
+    # Delete the final WAV file only after Cozmo finishes talking
+    if os.path.exists(wav_file):
+        os.remove(wav_file)
+
 
 async def speak_text(text: str, play_animation: bool = True, language: str = "en"):
     try:
-        await asyncio.to_thread(_play_audio_blocking, text, play_animation, language)
+        start_time = time.time()
+
+        #Get Translation (Run in background thread)
+        if language == "fa":
+            text_to_speak = await asyncio.to_thread(translate_to_persian_with_google, text)
+            voice = "fa-IR-FaridNeural"
+        else:
+            text_to_speak = text
+            voice = "en-US-ChristopherNeural"
+
+        file_id = str(uuid.uuid4())[:8]
+        temp_mp3 = f"speech_{file_id}.mp3"
+        temp_wav = f"speech_{file_id}.wav"
+
+        print("Generating Edge-TTS audio...")
+        communicate = edge_tts.Communicate(text_to_speak, voice)
+        await communicate.save(temp_mp3)
+
+        # Convert Audio Format (Run in background thread)
+        await asyncio.to_thread(convert_to_cozmo_format, temp_mp3, temp_wav)
+
+        # Stream to Robot (Run in background thread)
+        await asyncio.to_thread(_play_audio_blocking, temp_wav, play_animation)
+
+        end_time = time.time()
+        print(f"Total processing time: {round(end_time - start_time, 2)} seconds")
+
         return {"status": "success", "message": "Cozmo successfully spoke."}
+
     except Exception as e:
         print(f"Error during speech: {e}")
         return {"status": "error", "message": str(e)}
