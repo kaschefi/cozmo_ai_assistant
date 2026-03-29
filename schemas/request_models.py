@@ -25,8 +25,8 @@ class SpeakRequest(BaseModel):
         description="If true, Cozmo will act out the speech with animations."
     )
     language: str = Field(
-        default="en",
-        description="The language of the speech. Default is English."
+        default="fa",
+        description="The language of the speech. Default is persian."
     )
 
 class HeadRequest(BaseModel):
