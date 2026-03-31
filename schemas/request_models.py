@@ -44,3 +44,6 @@ class LiftRequest(BaseModel):
         le=1,
         description="The height of the lift from 0.0 (bottom) to 1.0 (top)."
     )
+
+class TimerRequest(BaseModel):
+    seconds: int
