@@ -10,7 +10,7 @@ def call_n8n_calendar(user_input: str) -> str:
     """
     print("Routing to n8n ...")
 
-    url = "http://localhost:5678/webhook/cozmo-voice"
+    url = "http://localhost:5678/webhook/calendarTool"
 
     try:
         response = requests.post(url, json={"user_input": user_input}, timeout=30)

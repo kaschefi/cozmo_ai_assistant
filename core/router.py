@@ -33,7 +33,7 @@ def route_query(state: AgentState):
     """The Supervisor: decides where to send the message."""
     last_message = state["messages"][-1].content
     decision = router_chain.invoke({"user_input": last_message})
-    print(f"🔀 LangGraph Decision: {decision.route}")
+    print(f" LangGraph Decision: {decision.route}")
     return {"next_route": decision.route}
 
 
@@ -46,7 +46,7 @@ def calendar_node(state: AgentState):
 
 def chat_node(state: AgentState):
     """The Fallback: Standard local conversation."""
-    print("💬 Routing to local chat...")
+    print(" Routing to local chat...")
     response = chat_llm.invoke(state["messages"])
     return {"messages": [response]}
 
