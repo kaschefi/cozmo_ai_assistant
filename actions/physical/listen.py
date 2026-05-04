@@ -3,7 +3,6 @@ import requests
 import re
 from core.semantic_layer import check_layer_1, execute_reflex
 #from core.router import run_cozmo_agent
-from actions.speak import speak_text
 import asyncio
 
 WAKE_WORD = "hey buddy"

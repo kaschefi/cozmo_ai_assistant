@@ -1,12 +1,11 @@
-import cozmo
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from core import cozmo_manager
 from actions import dock_with_charger, speak_text
 import uvicorn
 from schemas import *
-from actions.face import FaceLibrary
-from actions.timer import run_timer_logic
+from actions.physical.face import FaceLibrary
+from actions.physical.timer import run_timer_logic
 import asyncio
 
 

@@ -65,12 +65,14 @@ cozmo_ai_assistant/
 │   └── terminal_brain.py   # Interactive terminal REPL (no robot required)
 │
 ├── actions/
-│   ├── charger.py           # Autonomous docking via ArUco marker vision
-│   ├── face.py              # Cozmo OLED face expression rendering
-│   ├── listen.py            # Wake-word mic listener → Layer 1 → n8n pipeline (runs standalone)
-│   ├── speak.py             # Edge TTS → audio conversion → Cozmo playback
-│   ├── timer.py             # Async countdown timer logic
-│   └── n8n_tools.py         # n8n webhook client for Google Calendar
+│   ├── physical/            # Physical robot interactions
+│   │   ├── charger.py       # Autonomous docking via ArUco marker vision
+│   │   ├── face.py          # Cozmo OLED face expression rendering
+│   │   ├── listen.py        # Wake-word mic listener → Layer 1 → n8n pipeline
+│   │   ├── speak.py         # Edge TTS → audio conversion → Cozmo playback
+│   │   └── timer.py         # Async countdown timer logic
+│   └── digital/             # Cloud/API integrations
+│       └── n8n_tools.py     # n8n webhook client for Google Calendar
 │
 ├── schemas/
 │   └── request_models.py    # Pydantic models & LangGraph AgentState
@@ -170,11 +172,11 @@ Available face acts: `timer`, `weather`, `thinking`, `reset`
 |---|---|---|
 | Ollama model | `qwen2.5:1.5b` | `core/router.py` |
 | Ollama base URL | `http://localhost:11434` | `core/router.py` |
-| n8n webhook URL | `http://localhost:5678/webhook/calendarTool` | `actions/n8n_tools.py` |
+| n8n webhook URL | `http://localhost:5678/webhook/calendarTool` | `actions/digital/n8n_tools.py` |
 | FastAPI host/port | `localhost:8000` | `main.py` |
-| TTS voice (EN) | `en-US-ChristopherNeural` | `actions/speak.py` |
-| TTS voice (FA) | `fa-IR-FaridNeural` | `actions/speak.py` |
-| ArUco target marker ID | `0` | `actions/charger.py` |
+| TTS voice (EN) | `en-US-ChristopherNeural` | `actions/physical/speak.py` |
+| TTS voice (FA) | `fa-IR-FaridNeural` | `actions/physical/speak.py` |
+| ArUco target marker ID | `0` | `actions/physical/charger.py` |
 
 
 ---

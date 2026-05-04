@@ -1,9 +1,8 @@
 from semantic_router import Route
 from semantic_router.encoders import FastEmbedEncoder
 from semantic_router.routers import SemanticRouter
-from actions.charger import dock_with_charger
-from actions.speak import speak_text
-import asyncio
+from actions.physical.charger import dock_with_charger
+from actions.physical.speak import speak_text
 
 dock_route = Route(
     name="dock_with_charger",

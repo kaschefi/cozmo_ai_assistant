@@ -2,7 +2,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, START, END
 from schemas.request_models import AgentState, RouteDecision
-from actions.n8n_tools import call_n8n_calendar
+from actions.digital.n8n_tools import call_n8n_calendar
 from langchain_core.messages import HumanMessage, AIMessage
 
 GRAY = "\033[90m"
