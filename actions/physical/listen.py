@@ -1,8 +1,6 @@
 import speech_recognition as sr
 import requests
 import re
-from core.semantic_layer import check_layer_1, execute_reflex
-#from core.router import run_cozmo_agent
 import asyncio
 
 WAKE_WORD = "hey buddy"
@@ -24,6 +22,9 @@ def extract_seconds(text):
 
 
 def start_listening():
+    # Local imports to avoid circular dependency
+    from core.semantic_layer import check_layer_1, execute_reflex
+
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         print("Cozmo is listening...")

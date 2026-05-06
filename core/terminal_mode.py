@@ -79,7 +79,7 @@ def animate_loading(done_event):
 
 def terminal_chat():
     print("\n=======================================")
-    print("            COZMO BRAIN")
+    print("            WELCOME TO MY BRAIN!         ")
     print("=======================================\n")
 
     # Check and start n8n before we allow user input
@@ -87,6 +87,7 @@ def terminal_chat():
 
     print(f"start the conversation down below.{RESET}")
     print(f"Type 'quit' to exit.{RESET}\n")
+    print(f"type 'back' to go back to the main page.{RESET}\n ")
 
     while True:
         # The prompt is invisible, but makes the user's typed text GREEN
@@ -95,10 +96,12 @@ def terminal_chat():
         # Immediately reset color so system text doesn't turn green
         print(f"{RESET}", end="")
 
-        if command.lower() in ['quit', 'exit']:
+        if command.lower() in ['quit', 'exit','q']:
             print(f"{GRAY}Shutting down brain...{RESET}")
             kill_n8n()
-            break
+            sys.exit(0)
+        if command.lower() in ['back','b']:
+            return
 
         print(f"{GRAY}Processing...{RESET}")
 
@@ -134,3 +137,12 @@ def terminal_chat():
 
 if __name__ == "__main__":
     terminal_chat()
+    import sys
+    import os
+
+    # Ensure the root folder is in the path so it can find main.py
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+    import main
+
+    main.main()

@@ -14,17 +14,62 @@ structured_router = router_llm.with_structured_output(RouteDecision)
 chat_llm = ChatOllama(model="qwen2.5:1.5b", temperature=0.6, base_url="http://localhost:11434")
 
 router_prompt = ChatPromptTemplate.from_messages([
-    ("system", """You are Cozmo, an intelligent routing supervisor.
-    Read the user's input and decide the correct route.
+    ("system", """You are Cozmo, a strict routing supervisor.
+Your ONLY job is to classify the user's request into exactly ONE route.
 
-    ROUTES:
-    - 'calendar': Use if the user asks to check their schedule, create a meeting, move/update an event, or delete an event.
-    - 'none': Use for general conversation, small talk, or questions about yourself.
+You MUST output a structured decision with one of these routes:
+- "calendar"
+- "web_search"
+- "none"
 
-    RULES:
-    1. NEVER answer calendar questions directly.
-    2. NEVER hallucinate schedule details. Always route to 'calendar'."""),
-    ("human", "{user_input}")
+---------------------
+ROUTE DEFINITIONS:
+
+1. "calendar"
+Use this if the user:
+- Mentions meetings, events, appointments, schedule
+- Wants to create, update, move, or delete an event
+- Asks what is on their calendar
+Examples:
+- "Do I have anything tomorrow?"
+- "Schedule a meeting at 3pm"
+- "Move my appointment to Friday"
+
+2. "web_search"
+Use this if the user:
+- Asks for current or real-world information
+- Mentions news, weather, sports, prices, or recent events
+- Asks factual questions that may change over time
+Examples:
+- "What's the weather today?"
+- "Latest news about AI"
+- "Who won the game last night?"
+
+3. "none"
+Use this for:
+- Casual conversation
+- Opinions or general knowledge
+- Questions about yourself
+Examples:
+- "Hi"
+- "Tell me a joke"
+- "Explain quantum physics"
+
+---------------------
+STRICT RULES:
+
+- You MUST choose exactly one route.
+- NEVER answer the question.
+- NEVER explain your reasoning.
+- NEVER hallucinate calendar data.
+- If there is ANY doubt about real-time info → use "web_search".
+- If there is ANY mention of scheduling → use "calendar".
+- Default to "none" only if clearly general conversation.
+
+---------------------
+User input:
+{user_input}
+"""),
 ])
 
 router_chain = router_prompt | structured_router
@@ -48,8 +93,13 @@ def calendar_node(state: AgentState):
 def web_search_node(state: AgentState):
     """The Worker: Executes the n8n webhook."""
     last_message = state["messages"][-1].content
+    print(f"{GRAY}Executing web search...")
     n8n_reply = call_web_search(last_message)
+    if not n8n_reply:
+        print(f"{GRAY}Warning: n8n returned None or empty string.")
+        n8n_reply = "I tried to search the web, but I couldn't get a response from the search service."
     return {"messages": [AIMessage(content=n8n_reply)]}
+
 
 
 def chat_node(state: AgentState):
@@ -63,6 +113,8 @@ def decide_next_step(state: AgentState) -> str:
     route = state.get("next_route", "none")
     if route == "calendar":
         return "calendar_node"
+    elif route == "web_search":
+        return "web_search_node"
     return "chat_node"
 
 
@@ -71,11 +123,13 @@ builder = StateGraph(AgentState)
 
 builder.add_node("route_query", route_query)
 builder.add_node("calendar_node", calendar_node)
+builder.add_node("web_search_node", web_search_node)
 builder.add_node("chat_node", chat_node)
 
 builder.add_edge(START, "route_query")
 builder.add_conditional_edges("route_query", decide_next_step)
 builder.add_edge("calendar_node", END)
+builder.add_edge("web_search_node", END)
 builder.add_edge("chat_node", END)
 
 cozmo_graph = builder.compile()

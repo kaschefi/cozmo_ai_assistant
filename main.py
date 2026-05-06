@@ -1,54 +1,44 @@
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-from core import cozmo_manager
-from actions import dock_with_charger, speak_text
+import sys
 import uvicorn
-from schemas import *
-from actions.physical.face import FaceLibrary
-from actions.physical.timer import run_timer_logic
-import asyncio
+from core.terminal_mode import terminal_chat
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    print("Initializing Cozmo connection...")
-    cozmo_manager.start()
-    app.state.face = FaceLibrary(cozmo_manager.robot)
-    yield
+def main():
+    # THIS LOOP IS THE SECRET!
+    # It ensures that whenever a mode finishes, the menu redraws itself.
+    while True:
+        print("\n=======================================")
+        print("           COZMO AI ASSISTANT          ")
+        print("=======================================")
+        print("1. Start Terminal Mode (No Robot Required)")
+        print("2. Start Cozmo Mode(Physical Robot)")
+        print("3. Exit")
 
-    print("Shutting down... releasing Cozmo.")
+        try:
+            choice = input("\nSelect a mode (1/2/3): ").strip()
+        except KeyboardInterrupt:
+            print("\nExiting...")
+            sys.exit(0)
 
-app = FastAPI(title="Cozmo AI Bridge", lifespan=lifespan)
+        if choice == '1':
+            print("\n[Launching Terminal Mode...]\n")
+            terminal_chat()
+
+        elif choice == '2':
+            print("\n[Launching Cozmo Mode on localhost:8000...]\n")
+            import cozmo_mode
+            try:
+                uvicorn.run(cozmo_mode.app, host="localhost", port=8000)
+            except KeyboardInterrupt:
+                print("\nShutting down Cozmo server...")
+
+        elif choice == '3' or choice.lower() in ['q', 'quit', 'exit']:
+            print("Exiting...")
+            sys.exit(0)
+
+        else:
+            print("Invalid choice. Please select 1, 2, or 3.")
 
 
-@app.post("/actions/dock")
-async def handle_dock():
-    return await dock_with_charger()
-
-@app.post("/actions/speak")
-async def handle_speak(req: SpeakRequest):
-    return await speak_text(req.text, req.play_animation, req.language)
-
-@app.post("/actions/face")
-async def trigger_face_act(data: dict):
-    face = app.state.face
-    act_type = data.get("act")
-    params = data.get("params", {})
-
-    if act_type == "timer":
-        face.act_timer(params.get("time_str"))
-    elif act_type == "weather":
-        face.act_weather(params.get("temp"), params.get("condition"))
-    elif act_type == "thinking":
-        face.act_thinking()
-    elif act_type == "reset":
-        face.act_reset()
-
-    @app.post("/actions/timer")
-    async def handle_timer(req: TimerRequest):
-        asyncio.create_task(run_timer_logic(req.seconds, app.state.face))
-        return {"status": "success", "message": f"Timer started for {req.seconds} seconds"}
-
-    return {"status": "Face updated"}
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000)
+    main()
