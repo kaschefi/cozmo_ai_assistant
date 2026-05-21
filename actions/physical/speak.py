@@ -51,10 +51,12 @@ def convert_to_cozmo_format(temp_mp3: str, temp_wav: str):
     os.remove(temp_mp3)
 
 
-def _play_audio_blocking(wav_file: str, play_animation: bool):
+def _play_audio_blocking(wav_file: str, play_animation: bool, text: str = None):
     cli = cozmo_manager.get_robot()
     if not cli:
-        raise Exception("Robot not connected")
+        if text:
+            print(f"Robot not connected. Cozmo would say: \"{text}\"")
+        return
 
     if play_animation:
         cli.move_head(1.0)
@@ -98,7 +100,7 @@ async def speak_text(text: str, play_animation: bool = True, language: str = "en
         await asyncio.to_thread(convert_to_cozmo_format, temp_mp3, temp_wav)
 
         # Stream to Robot (Run in background thread)
-        await asyncio.to_thread(_play_audio_blocking, temp_wav, play_animation)
+        await asyncio.to_thread(_play_audio_blocking, temp_wav, play_animation, text_to_speak)
 
         end_time = time.time()
         print(f"Total processing time: {round(end_time - start_time, 2)} seconds")

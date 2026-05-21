@@ -5,6 +5,7 @@ from schemas.request_models import AgentState, RouteDecision
 from actions.digital.n8n_agents import call_n8n_calendar, call_web_search
 from actions.digital.langchain_agents import weather_worker
 from langchain_core.messages import HumanMessage, AIMessage
+from actions.digital.MCPs import call_tavily_mcp_search
 GRAY = "\033[90m"
 
 router_llm = ChatOllama(model="qwen2.5:1.5b", temperature=0, base_url="http://localhost:11434")
@@ -109,11 +110,11 @@ def web_search_node(state: AgentState):
     """The Worker: Executes the n8n webhook."""
     last_message = state["messages"][-1].content
     print(f"{GRAY}Executing web search...")
-    n8n_reply = call_web_search(last_message)
-    if not n8n_reply:
+    reply = call_web_search(last_message)
+    if not reply:
         print(f"{GRAY}Warning: n8n returned None or empty string.")
-        n8n_reply = "I tried to search the web, but I couldn't get a response from the search service."
-    return {"messages": [AIMessage(content=n8n_reply)]}
+        reply = "I tried to search the web, but I couldn't get a response from the search service."
+    return {"messages": [AIMessage(content=reply)]}
 
 
 def weather_node(state: AgentState):
