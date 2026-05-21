@@ -2,8 +2,15 @@ import os
 import webbrowser
 import asyncio
 import glob
+from core.registry import reflex_registry
 
-
+@reflex_registry.reflex("setup_gaming", ["set my laptop for gaming",
+        "gaming mode",
+        "open steam and discord",
+        "time to game",
+        "prepare for gaming",
+        "setups game",
+        "gaming work",])
 async def setup_gaming():
     """Launches gaming applications like Steam and Discord."""
     print("Launching Gaming Setup...")
@@ -20,7 +27,13 @@ async def setup_gaming():
     except Exception as e:
         print(f"Error launching gaming setup: {e}")
 
-
+@reflex_registry.reflex("setup_study", ["set it for study",
+        "study mode",
+        "time to study",
+        "prepare my laptop for study",
+        "open my study tabs",
+        "study work",
+        "setups study",])
 async def setup_study():
     """Opens study-related websites."""
     print("Launching Study Setup...")
@@ -32,6 +45,13 @@ async def setup_study():
         webbrowser.open("https://moodle.hcw.ac.at/")
     except Exception as e:
         print(f"Error launching study setup: {e}")
+
+@reflex_registry.reflex("setup_coding", ["set it for coding",
+        "set my laptop for coding",
+        "coding mode",
+        "time to code",
+        "prepare for coding",
+        "setups code",])
 async def setup_coding():
     print("Launching Coding Setup...")
     try:
