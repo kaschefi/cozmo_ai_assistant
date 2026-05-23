@@ -124,8 +124,8 @@ def memory_extraction_node(state: AgentState):
     if not messages:
         return {}
 
-    # Grab up to the last 4 messages to preserve critical question-answer context (2 full exchanges)
-    recent_messages = messages[-4:]
+    # Grab the last 3 messages to preserve dialogue context and spelling corrections
+    recent_messages = messages[-3:]
     recent_exchange = ""
     for m in recent_messages:
         role = "User" if isinstance(m, HumanMessage) else "Assistant"
@@ -151,14 +151,24 @@ def memory_extraction_node(state: AgentState):
             {recent_exchange}
 
             INSTRUCTIONS:
-            1. Formulate facts as short, clear, declarative sentences starting with 'The user...' (e.g., 'The user is a student.', 'The user is studying computer science.', 'The user's favorite sports team is Barcelona.').
-            2. If no new permanent personal facts, traits, or preferences are revealed, return exactly 'NONE'.
-            3. Output ONLY the raw sentences separated by newlines, with no additional text or conversational formatting.
-            4. STRICT GUARDRAIL: Only extract facts that the USER explicitly shares, states, or confirms. Never extract facts or preferences from details that the ASSISTANT suggests, hallucinates, or introduces in conversation (e.g., if the Assistant says 'You probably like movies' but the User doesn't explicitly confirm it, DO NOT extract it).
+            1. Formulate facts as short, clear, declarative sentences starting with 'The user...'.
+            2. For each extracted fact, assign one of these category keys:
+               - 'user_name' (if the fact is about their name, nicknames, or identity)
+               - 'user_occupation' (if the fact is about being a student, their profession, job, major, or field of study)
+               - 'favorite_sports_team' (if it is their favorite sports team)
+               - 'favorite_programming_language' (if it is their favorite programming language)
+               - 'user_location' (if it's where they live or come from, e.g. Iran)
+               - 'general_preference' (for any other hobbies, interests, books, movies, or general facts)
+            3. Format each fact line EXACTLY as: Fact | Category_Key
+               Example: The user's name is Bob. | user_name
+               Example: The user is studying computer science. | user_occupation
+            4. If no new permanent personal facts, traits, or preferences are revealed, return exactly 'NONE'.
+            5. Output ONLY the raw pipe-separated lines, with no additional conversational text, numbers, or bullet points.
+            6. STRICT GUARDRAIL: Only extract facts that the USER explicitly shares, states, or confirms. Never extract facts or preferences from details that the ASSISTANT suggests, hallucinates, or introduces in conversation (e.g., if the Assistant says 'You probably like movies' but the User doesn't explicitly confirm it, DO NOT extract it).
             """
 
             response = router_llm.invoke([
-                SystemMessage(content="You are a precise fact filtering pipeline. Output facts or 'NONE'."),
+                SystemMessage(content="You are a precise fact filtering pipeline. Output Fact | Category or 'NONE'."),
                 HumanMessage(content=selective_extraction_prompt)
             ])
 
@@ -170,12 +180,19 @@ def memory_extraction_node(state: AgentState):
                     import re
                     clean_fact = re.sub(r'^[-*\d.\s]+', '', clean_fact).strip()
                     
+                    # Parse pipe separation
+                    category = "general_preference"
+                    if "|" in clean_fact:
+                        parts = clean_fact.split("|", 1)
+                        clean_fact = parts[0].strip()
+                        category = parts[1].strip()
+                    
                     if clean_fact.lower().startswith("the user"):
                         # Standardize prefix casing to "The user"
                         clean_fact = re.sub(r'^[Tt]he\s+[Uu]ser', 'The user', clean_fact)
                         
-                        long_term_memory.save_memory(clean_fact, user_id=user_id)
-                        print(f"\n{GRAY} [LONG-TERM MEMORY UPDATE]: Saved -> {clean_fact}{RESET}\n: ", end="")
+                        long_term_memory.save_memory(clean_fact, category=category, user_id=user_id)
+                        print(f"\n{GRAY} [LONG-TERM MEMORY UPDATE]: Saved -> {clean_fact} ({category}){RESET}\n: ", end="")
                         import sys
                         sys.stdout.flush()
         except Exception as e:
@@ -290,7 +307,11 @@ def chat_node(state: AgentState):
 
     system_instructions = (
         "You are Cozmo, an advanced personal robot assistant with a persistent long-term memory core. "
-        "Be highly conversational, friendly, and helpful. "
+        "Be friendly, highly conversational, and helpful.\n"
+        "CONVERSATIONAL HYGIENE RULES:\n"
+        "1. Never 'flex' or list all of your memory core facts unsolicited in a single response.\n"
+        "2. Keep your responses short, natural, and highly focused on the user's latest statement (1-2 sentences max).\n"
+        "3. Only mention a fact if it is directly and naturally relevant to the user's latest message. Treat your memories as silent background knowledge."
     )
     if existing_summary:
         system_instructions += f"Summary of the current chat session: {existing_summary} "
@@ -303,8 +324,7 @@ def chat_node(state: AgentState):
             f"{facts_str}\n\n"
             f"INSTRUCTIONS:\n"
             f"1. Treat these facts as absolute, undeniable truths from past interactions.\n"
-            f"2. Seamlessly integrate this knowledge into your responses (e.g. if the facts contain their name, greet them by their name).\n"
-            f"3. Never break character, and never explain technical AI limitations or state that you cannot remember things across sessions."
+            f"2. Never break character, and never explain technical AI limitations or state that you cannot remember things across sessions."
         )
 
     messages_payload.append(SystemMessage(content=system_instructions))
