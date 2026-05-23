@@ -38,7 +38,7 @@ def tool_retrieval_node(state: AgentState):
 def summarize_conversation_node(state: AgentState):
     """
     If our conversation gets long, condense older messages into a rolling summary
-    and remove them from active short-term memory memory to keep context windows tiny.
+    and remove them from active short-term memory to keep context windows tiny.
     """
     messages = state["messages"]
 
@@ -48,23 +48,40 @@ def summarize_conversation_node(state: AgentState):
 
     existing_summary = state.get("summary", "")
 
-    summary_prompt = f"""Progressively summarize the lines of conversation provided, 
-    incorporating them into the current summary if one exists.
+    # Format the conversation history as plain text to prevent model confusion
+    history_text = ""
+    # Keep the last 4 messages (2 full exchanges) in active short-term memory
+    messages_to_summarize = messages[:-4]
+    for m in messages_to_summarize:
+        role = "User" if isinstance(m, HumanMessage) else "Assistant"
+        history_text += f"{role}: {m.content}\n"
 
-    Current Summary: {existing_summary}
+    summary_prompt = f"""You are a precise conversation summarizer. Your job is to progressively update the summary of a conversation between a User and an Assistant.
+    
+    Here is the existing summary of the conversation so far:
+    "{existing_summary}"
+    
+    Here are the new lines of conversation that need to be incorporated into the summary:
+    {history_text}
+    
+    Please write a new, concise, updated summary that integrates the new conversation lines into the existing summary. 
+    Ensure you preserve key personal details (like the user's name, preferences, or important facts) and key topics discussed.
+    Output ONLY the updated summary, with no conversational filler, intros, or outros.
     """
+
     response = chat_llm.invoke([
-        SystemMessage(content=summary_prompt),
-        *messages[:-2]  # Summarize everything except the last 2 exchanges
+        SystemMessage(content="You are a precise conversation summarizer that only outputs the summary."),
+        HumanMessage(content=summary_prompt)
     ])
 
     # Create instructions to delete old messages from the Postgres Checkpointer
-    delete_messages_instructions = [RemoveMessage(id=m.id) for m in messages[:-2]]
+    delete_messages_instructions = [RemoveMessage(id=m.id) for m in messages_to_summarize]
 
     return {
-        "summary": response.content,
+        "summary": response.content.strip(),
         "messages": delete_messages_instructions
     }
+
 
 def route_query(state: AgentState):
     last_message = state["messages"][-1].content
