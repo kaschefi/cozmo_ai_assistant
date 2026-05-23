@@ -2,6 +2,8 @@
 from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, START, END
 import os
+
+from schemas.memory_db import long_term_memory
 from schemas.request_models import AgentState, RouteDecision
 from actions.digital.n8n_agents import call_n8n_calendar, call_web_search
 from actions.digital.langchain_agents import weather_worker
@@ -80,6 +82,55 @@ def summarize_conversation_node(state: AgentState):
         "messages": delete_messages_instructions
     }
 
+def memory_retrieval_node(state: AgentState):
+    """
+    Step 1: Runs a quick similarity check against the permanent database
+    using the user's latest input string.
+    """
+    last_message = state["messages"][-1].content
+    memories = long_term_memory.retrieve_relevant_memories(last_message, limit=3)
+    return {"retrieved_memories": memories}
+
+
+def memory_extraction_node(state: AgentState):
+    """
+    Step 2: Scans the final exchange for permanent profile traits.
+    Strictly discards time, weather, and calendar dates.
+    """
+    messages = state["messages"]
+    if len(messages) < 2:
+        return {}
+
+    recent_exchange = f"User: {messages[-2].content}\nAssistant: {messages[-1].content}"
+
+    selective_extraction_prompt = f"""You are a profile memory analyzer. Analyze the recent user message to see if they shared permanent personal information.
+
+    STRICT DATA FILTERS:
+    - IGNORE all temporary details: current weather conditions, the current time/day, and specific calendar appointment slots (e.g., "meeting at 4pm").
+    - EXTRACT only permanent biographical facts: identity/name, persistent preferences (e.g., favorite programming languages, software tools, game titles), project targets, or membership roles.
+
+    Exchanges:
+    {recent_exchange}
+
+    INSTRUCTIONS:
+    1. Formulate facts as short declarative sentences starting with 'The user...' (e.g., 'The user codes primarily in Kotlin.', 'The user is a computer science student.').
+    2. If no permanent personal traits or preferences are revealed, return exactly 'NONE'.
+    3. Output ONLY the raw sentences separated by newlines, with no additional text or conversational formatting.
+    """
+
+    response = chat_llm.invoke([
+        SystemMessage(content="You are a precise fact filtering pipeline. Output facts or 'NONE'."),
+        HumanMessage(content=selective_extraction_prompt)
+    ])
+
+    cleaned_result = response.content.strip()
+    if cleaned_result and cleaned_result != "NONE":
+        for fact in cleaned_result.split("\n"):
+            if fact.strip().startswith("The user"):
+                long_term_memory.save_memory(fact.strip())
+                print(f"{GRAY} [LONG-TERM MEMORY UPDATE]: Saved -> {fact.strip()}{RESET}")
+
+    return {}
 
 def route_query(state: AgentState):
     last_message = state["messages"][-1].content
@@ -180,14 +231,19 @@ def weather_node(state: AgentState):
 
 def chat_node(state: AgentState):
     existing_summary = state.get("summary", "")
+    retrieved_memories = state.get("retrieved_memories", [])
     messages_payload = []
 
+    system_instructions = "You are Cozmo, an advanced personal robot assistant. Be conversational and helpful. "
     if existing_summary:
-        messages_payload.append(
-            SystemMessage(
-                content=f"You are Cozmo. Here is a summary of the conversation history so far for context: {existing_summary}")
-        )
+        system_instructions += f"Summary of the current chat session: {existing_summary} "
+    if retrieved_memories:
+        facts_str = " ".join(retrieved_memories)
+        system_instructions += f"Historical facts you permanently remember about this user: {facts_str}"
+
+    messages_payload.append(SystemMessage(content=system_instructions))
     messages_payload.extend(state["messages"])
+
     response = chat_llm.invoke(messages_payload)
     return {"messages": [response]}
 
@@ -211,9 +267,12 @@ builder.add_node("calendar_node", calendar_node)
 builder.add_node("web_search_node", web_search_node)
 builder.add_node("weather_node", weather_node)
 builder.add_node("chat_node", chat_node)
+builder.add_node("memory_retrieval_node", memory_retrieval_node)
+builder.add_node("memory_extraction_node", memory_extraction_node)
 
 # Wire the transitions
-builder.add_edge(START, "tool_retrieval_node")
+builder.add_edge(START, "memory_retrieval_node")
+builder.add_edge("memory_retrieval_node", "tool_retrieval_node")
 builder.add_edge("tool_retrieval_node", "route_query")
 builder.add_conditional_edges("route_query", decide_next_step)
 
@@ -222,7 +281,9 @@ builder.add_edge("web_search_node", "summarize_conversation_node")
 builder.add_edge("weather_node", "summarize_conversation_node")
 builder.add_edge("chat_node", "summarize_conversation_node")
 
-builder.add_edge("summarize_conversation_node", END)
+builder.add_edge("summarize_conversation_node", "memory_extraction_node")
+builder.add_edge("memory_extraction_node", END)
+
 
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/cozmo_db")
