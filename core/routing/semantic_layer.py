@@ -44,7 +44,8 @@ def initialize_router():
     layer_1_router = SemanticRouter(
         encoder=encoder,
         routes=reflex_registry.routes,
-        auto_sync="local"
+        auto_sync="local",
+        aggregation="max"
     )
 
     # Build Layer 2 Tool RAG index exactly once after all actions are registered

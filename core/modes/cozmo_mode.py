@@ -12,6 +12,58 @@ import threading
 from actions.physical.listen import start_listening_loop
 
 
+def start_console_input_loop(loop: asyncio.AbstractEventLoop):
+    """
+    Console input loop for physical Cozmo Mode.
+    Allows the user to type commands in the terminal when they cannot speak.
+    """
+    # Local import to prevent circular dependencies
+    from core.routing.brain import process_user_intent
+    import sys
+    import time
+    import os
+
+    time.sleep(2.5)  # Let FastAPI and connection messages print first
+
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
+    GRAY = "\033[90m"
+    BLUE = "\033[94m"
+
+    sys.stdout.write(f"\n{BLUE}[Interactive Console Active]{RESET} Type your commands below when you cannot speak:\n")
+    sys.stdout.write(f"Type 'quit' or 'exit' to shut down the robot server.\n")
+    sys.stdout.flush()
+
+    session_thread_id = f"physical_console_{int(time.time())}"
+
+    while True:
+        try:
+            command = input(f"\n{GREEN}Type Command: {RESET}").strip()
+            
+            if not command:
+                continue
+
+            if command.lower() in ['quit', 'exit', 'q']:
+                print(f"{GRAY}Shutting down Cozmo server...{RESET}")
+                os._exit(0)
+
+            print(f"{GRAY}Processing typed command: \"{command}\"...{RESET}")
+
+            # Safely schedule the coroutine in the main loop
+            future = asyncio.run_coroutine_threadsafe(
+                process_user_intent(command, session_id=session_thread_id),
+                loop
+            )
+
+            # Wait for response completion
+            future.result()
+            print(f"{GRAY}Command processed.{RESET}")
+
+        except Exception as e:
+            print(f"[Console Error] {e}")
+            time.sleep(1)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Initializing Cozmo connection...")
@@ -21,7 +73,7 @@ async def lifespan(app: FastAPI):
     app.state.face = FaceLibrary(cozmo_manager.get_robot())
 
     # Start Cozmo's microphone voice listening loop in a background thread
-    print("🎙 [lifespan] Starting Cozmo Voice Listening thread...")
+    print("[lifespan] Starting Cozmo Voice Listening thread...")
     loop = asyncio.get_running_loop()
     listener_thread = threading.Thread(
         target=start_listening_loop,
@@ -29,7 +81,17 @@ async def lifespan(app: FastAPI):
         daemon=True
     )
     listener_thread.start()
-    print("🎙 [lifespan] Cozmo Voice Listening thread spawned.")
+    print("[lifespan] Cozmo Voice Listening thread spawned.")
+
+    # Start Cozmo's terminal input console in a background thread
+    print("[lifespan] Starting Cozmo Console Input thread...")
+    console_thread = threading.Thread(
+        target=start_console_input_loop,
+        args=(loop,),
+        daemon=True
+    )
+    console_thread.start()
+    print("[lifespan] Cozmo Console Input thread spawned.")
 
     yield
     print("Shutting down... releasing Cozmo.")

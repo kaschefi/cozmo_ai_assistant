@@ -17,7 +17,7 @@ An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a
 | **Local Laptop Automation Setups** | Instant laptop routines for **Gaming Mode** (launches Steam, CS2, Discord), **Study Mode** (opens Moodle, Gemini, NotebookLM), and **Coding Mode** (opens PyCharm, GitHub, Gemini) |
 | **Specialized Weather Agent** | A ReAct agent that queries the `wttr.in` API to provide real-time, conversational weather updates |
 | **Google Calendar Integration** | Multi-step calendar manager that queries, creates, moves, or deletes appointments using an **n8n** webhook connected to Gemini API |
-| **Autonomous Docking** | Visual ArUco marker navigation — Cozmo activates his camera, scans for the charger (Marker ID 0), steers toward it, and backs onto the charging pins |
+| **Autonomous Docking** | Visual color-based navigation — Cozmo activates his camera, scans for the charger's yellow-green marker (RGB 204, 255, 51) using HSV color filtering, steers toward it, and backs onto the charging pins |
 | **Face Expressions** | Dynamic rendering of graphics, countdown timers, and weather info directly onto Cozmo's 128×64 OLED face display |
 | **Timer** | Runs asynchronous countdown timers with real-time MM:SS face updates |
 | **FastAPI REST Bridge** | Exposes all physical actions (docking, speak, timer, face expressions) as HTTP endpoints for external triggers |
@@ -131,7 +131,7 @@ cozmo_ai_assistant/
 ├── actions/
 │   ├── physical/               # Robot hardware controls
 │   │   ├── __init__.py
-│   │   ├── charger.py          # Vision-guided docking using OpenCV ArUco detector (Marker ID 0)
+│   │   ├── charger.py          # Vision-guided docking using OpenCV HSV color filtering (Yellow-Green, RGB 204, 255, 51)
 │   │   ├── face.py             # OLED canvas draw actions (Timer MM:SS, weather details, thinking indicator)
 │   │   ├── listen.py           # Speech recognition wake-word parser ("hey buddy") and FastAPI/n8n forwarder
 │   │   ├── speak.py            # edge-tts engine + Persian Gemma translator + 22kHz wav converter

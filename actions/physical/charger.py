@@ -6,12 +6,14 @@ from core.hardware.connection import cozmo_manager
 from core.routing.registry import reflex_registry
 
 latest_image = None
+new_frame_available = False
 
 
 def on_camera_image(cli, image):
-    global latest_image
+    global latest_image, new_frame_available
     # Convert to BGR for OpenCV
     latest_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    new_frame_available = True
 
 @reflex_registry.reflex("dock_with_charger",[
         "go to sleep",
@@ -26,8 +28,9 @@ async def dock_with_charger():
     if not cli:
         return {"error": "Robot not connected"}
 
-    global latest_image
+    global latest_image, new_frame_available
     latest_image = None
+    new_frame_available = False
 
     print("Enabling Camera & Debug Window...")
     cli.enable_camera(enable=True, color=True)
@@ -46,10 +49,13 @@ async def dock_with_charger():
     cli.set_lift_height(pycozmo.robot.MIN_LIFT_HEIGHT.mm)
     time.sleep(1)
 
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    parameters = cv2.aruco.DetectorParameters()
-
-    TARGET_MARKER_ID = 0
+    # HSV range for target marker of color RGB(204, 255, 51) -> HSV(37, 204, 255)
+    # We use a robust range around Hue 37, Saturation 204, and Value 255
+    LOWER_YELLOW_GREEN = np.array([15, 30, 80])
+    UPPER_YELLOW_GREEN = np.array([60, 255, 255])
+    
+    # Minimum area in pixels to filter out noise
+    MIN_CONTOUR_AREA = 150
 
     print("Starting Radar Spin...")
     cli.drive_wheels(lwheel_speed=5.0, rwheel_speed=-5.0)
@@ -59,37 +65,61 @@ async def dock_with_charger():
 
     try:
         while time.time() < max_search_time:
-            if latest_image is not None:
+            if new_frame_available and latest_image is not None:
+                new_frame_available = False
                 # Make a copy of the image so we can draw on it without messing up the original
                 debug_image = latest_image.copy()
 
-                try:
-                    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-                    corners, ids, _ = detector.detectMarkers(debug_image)
-                except AttributeError:
-                    corners, ids, _ = cv2.aruco.detectMarkers(debug_image, aruco_dict, parameters=parameters)
+                # Convert to HSV color space
+                hsv = cv2.cvtColor(debug_image, cv2.COLOR_BGR2HSV)
 
-                # --- DEBUG VISION LOGIC ---
-                if ids is not None:
-                    # Draw a green square around anything it thinks is a marker
-                    cv2.aruco.drawDetectedMarkers(debug_image, corners, ids)
+                # Threshold the image to get only yellow-green color
+                mask = cv2.inRange(hsv, LOWER_YELLOW_GREEN, UPPER_YELLOW_GREEN)
+
+                # Clean up noise with morphological opening and closing
+                kernel = np.ones((3, 3), np.uint8)
+                mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+                # Find contours in the mask
+                contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                # Find the largest contour
+                largest_contour = None
+                max_area = 0
+                for cnt in contours:
+                    area = cv2.contourArea(cnt)
+                    if area > max_area:
+                        max_area = area
+                        largest_contour = cnt
+
+                marker_found = False
+                center_x = 0
+                marker_width = 0
+
+                if largest_contour is not None and max_area >= MIN_CONTOUR_AREA:
+                    marker_found = True
+                    x, y, w, h = cv2.boundingRect(largest_contour)
+                    marker_width = w
+                    center_x = x + w / 2.0
+                    center_y = y + h / 2.0
+
+                    # --- DEBUG VISION LOGIC ---
+                    # Draw a green bounding rectangle around the detected marker
+                    cv2.rectangle(debug_image, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                    # Draw the center point in red
+                    cv2.circle(debug_image, (int(center_x), int(center_y)), 5, (0, 0, 255), -1)
+                    # Add descriptive text showing width and area
+                    cv2.putText(debug_image, f"W: {w}px, Area: {int(max_area)}", (x, max(y - 10, 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 255, 0), 1)
 
                 # Show the live feed on your computer monitor!
                 cv2.imshow("Cozmo's Brain ", debug_image)
                 cv2.waitKey(1)  # Required for the window to actually update
                 # --------------------------
 
-                if ids is not None and TARGET_MARKER_ID in ids:
-
-                    # Find which index in the list belongs to our target ID
-                    target_idx = list(ids).index(TARGET_MARKER_ID)
-                    c = corners[target_idx][0]
-
-                    # 2. Calculate Center and Width
-                    center_x = (c[0][0] + c[1][0] + c[2][0] + c[3][0]) / 4
-                    marker_width = abs(c[1][0] - c[0][0])
-
-                    if marker_width > 90:
+                if marker_found:
+                    if marker_width > 50:
                         print(f"Close enough! Marker width: {marker_width}px.")
                         cli.stop_all_motors()
                         reached_target = True
@@ -101,11 +131,13 @@ async def dock_with_charger():
                     elif center_x > 180:
                         cli.drive_wheels(lwheel_speed=15.0, rwheel_speed=-10.0)
                     else:
-                        cli.drive_wheels(lwheel_speed=35.0, rwheel_speed=35.0)
+                        # Lower speed (15.0) to prevent motion blur and keep the green marker in focus
+                        cli.drive_wheels(lwheel_speed=15.0, rwheel_speed=15.0)
                 else:
-                    cli.drive_wheels(lwheel_speed=15.0, rwheel_speed=-15.0)
+                    # Slow, smooth spin (8.0) to search without motion blur
+                    cli.drive_wheels(lwheel_speed=8.0, rwheel_speed=-8.0)
 
-            time.sleep(0.05)  # Sped up the loop slightly for smoother video
+            time.sleep(0.01)  # Minimal sleep to keep the loop highly responsive
 
     finally:
         #clean up
@@ -115,14 +147,14 @@ async def dock_with_charger():
         cv2.destroyAllWindows()
 
     if not reached_target:
-        return {"status": "error", "message": "Could not find the specific ArUco marker."}
+        return {"status": "error", "message": "Could not find the color marker for the charger."}
 
     # The Final Docking Turn
     print("Target Reached. Executing 180 turn...")
-    cli.drive_wheels(lwheel_speed=-40.0, rwheel_speed=40.0, duration=3.8)
+    cli.drive_wheels(lwheel_speed=-38.0, rwheel_speed=38.0, duration=3.8)
     time.sleep(2.0)
     print("Backing onto charger pins...")
-    cli.drive_wheels(lwheel_speed=-40.0, rwheel_speed=-40.0, duration=5.5)
+    cli.drive_wheels(lwheel_speed=-40.0, rwheel_speed=-40.0, duration=5.0)
     time.sleep(3.0)
 
     return {"status": "success", "message": "Visual docking sequence complete."}

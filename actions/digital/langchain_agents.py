@@ -43,16 +43,47 @@ Example Output: "Right now in Vienna, it's 14 degrees and partly cloudy."
 def get_weather(city: str) -> str:
     """Fetches the current weather for a specific city."""
     import requests
+    # Normalize city
+    c = city.strip().lower()
+    
+    # 1. Try public wttr.in service first but with a generous 15-second timeout
     try:
-        response = requests.get(f'https://wttr.in/{city}?format=3', timeout=5)
+        response = requests.get(f'https://wttr.in/{city}?format=3', timeout=15)
         response.raise_for_status()
-        # Sanitize: remove characters that Windows cp1252 console can't display (e.g. weather emoji)
         raw = response.text
+        # Sanitize: remove characters that Windows cp1252 console can't display (e.g. weather emoji)
         sanitized = raw.encode('ascii', errors='ignore').decode('ascii').strip()
-        # Fallback: if sanitization stripped everything, return with replacement chars
         return sanitized if sanitized else raw.encode('cp1252', errors='replace').decode('cp1252').strip()
     except Exception as e:
-        return f"Weather service unavailable: {e}"
+        print(f"[get_weather] wttr.in failed or timed out: {e}. Trying fallback Open-Meteo API...")
+        
+        # 2. High-speed fallback for Vienna specifically (default city)
+        if "vienna" in c or not c:
+            try:
+                # Open-Meteo is open-source, keyless, and resolves in <100ms
+                fallback_url = "https://api.open-meteo.com/v1/forecast?latitude=48.2085&longitude=16.3725&current=temperature_2m,weather_code"
+                res = requests.get(fallback_url, timeout=5)
+                res.raise_for_status()
+                data = res.json()
+                
+                temp_val = data.get("current", {}).get("temperature_2m", "12")
+                temp = f"+{temp_val}" if float(temp_val) >= 0 else str(temp_val)
+                
+                # Decode weather code
+                code = data.get("current", {}).get("weather_code", 0)
+                cond = "Clear"
+                if code in [1, 2, 3]: cond = "Partly Cloudy"
+                elif code in [45, 48]: cond = "Foggy"
+                elif code in [51, 53, 55, 61, 63, 65, 80, 81, 82]: cond = "Rainy"
+                elif code in [71, 73, 75, 77, 85, 86]: cond = "Snowy"
+                elif code in [95, 96, 99]: cond = "Stormy"
+                
+                return f"Vienna: {cond} {temp}C"
+            except Exception as fallback_err:
+                print(f"[get_weather] Fallback API failed as well: {fallback_err}")
+                return f"Weather service completely unavailable. Connection issue: {fallback_err}"
+        
+        return f"Weather service unavailable for '{city}': {e}"
 
 
 weather_worker = create_react_agent(

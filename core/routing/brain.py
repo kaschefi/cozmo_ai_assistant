@@ -3,6 +3,9 @@ from datetime import datetime
 from core.routing.semantic_layer import check_layer_1, execute_reflex
 from core.routing.router import run_cozmo_agent
 from actions.physical.speak import respond
+from actions.physical.face import FaceLibrary
+from actions.physical.timer import run_timer_logic
+import asyncio
 
 async def process_user_intent(command: str, session_id: str = "cozmo_default_session") -> str:
     """
@@ -24,12 +27,14 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
             msg = f"Starting a timer for {seconds} seconds."
             await respond(msg)
             if cozmo_manager.robot_mode:
-                # Trigger FastAPI timer on the robot
+                # Trigger physical timer directly on the robot (prevents loopback deadlocks)
                 try:
-                    import requests
-                    requests.post("http://localhost:8000/actions/timer", json={"seconds": seconds})
+                    cli = cozmo_manager.get_robot()
+                    if cli:
+                        face = FaceLibrary(cli)
+                        asyncio.create_task(run_timer_logic(seconds, face))
                 except Exception as e:
-                    print(f" [Union Brain] Error triggering FastAPI timer: {e}")
+                    print(f" [Union Brain] Error triggering physical timer: {e}")
             else:
                 # In terminal mode, run a simulated background timer
                 async def terminal_timer():

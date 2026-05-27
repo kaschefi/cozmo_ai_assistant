@@ -32,13 +32,13 @@ def start_listening_loop(loop: asyncio.AbstractEventLoop, face_library=None):
     try:
         microphone = sr.Microphone()
     except Exception as e:
-        print(f"🎙 [Voice Listener] ⚠ Could not initialize microphone: {e}")
+        print(f"[Voice Listener] [Error] Could not initialize microphone: {e}")
         return
 
     with microphone as source:
-        print("🎙 [Voice Listener] Cozmo is listening... Adjusting for ambient noise...")
+        print("[Voice Listener] Cozmo is listening... Adjusting for ambient noise...")
         recognizer.adjust_for_ambient_noise(source, duration=1)
-        print("🎙 [Voice Listener] Ready! Say 'Hey Buddy' followed by your command.")
+        print("[Voice Listener] Ready! Say 'Hey Buddy' followed by your command.")
 
         while True:
             try:
@@ -78,7 +78,7 @@ def start_listening_loop(loop: asyncio.AbstractEventLoop, face_library=None):
                 # Speech was unintelligible, continue listening
                 continue
             except Exception as e:
-                print(f"🎙 [Voice Listener] Error: {e}")
+                print(f"[Voice Listener] Error: {e}")
                 time.sleep(1)
                 continue
 

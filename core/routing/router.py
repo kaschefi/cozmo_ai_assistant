@@ -284,6 +284,57 @@ def weather_node(state: AgentState):
     # Step 2: Call the Python get_weather function directly
     from actions.digital.langchain_agents import get_weather
     raw_weather = get_weather.func(city)
+
+    # Parsing weather details for face display
+    import re
+    # Extract temperature (digits, optionally signed)
+    temp_match = re.search(r'([+-]?\d+)', raw_weather)
+    temp = temp_match.group(1) if temp_match else "15"
+    
+    # Map condition
+    raw_lower = raw_weather.lower()
+    if any(x in raw_lower for x in ["rain", "drizzle", "shower"]):
+        cond = "rainy"
+    elif any(x in raw_lower for x in ["snow", "ice", "flurry"]):
+        cond = "snowy"
+    elif any(x in raw_lower for x in ["cloud", "overcast", "mist", "fog"]):
+        cond = "cloudy"
+    elif any(x in raw_lower for x in ["thunder", "storm", "lightning"]):
+        cond = "stormy"
+    else:
+        cond = "sunny"
+
+    # Trigger Cozmo Face weather update in Robot Mode directly via Python (prevents loopback deadlocks)
+    from core.hardware.connection import cozmo_manager
+    if cozmo_manager.robot_mode:
+        try:
+            cli = cozmo_manager.get_robot()
+            if cli:
+                import asyncio
+                
+                # Run a background loop to periodically redraw the weather face
+                # This prevents pycozmo speech/movement animations from overwriting the screen buffer!
+                async def draw_weather_loop():
+                    from actions.physical.face import FaceLibrary
+                    face = FaceLibrary(cli)
+                    
+                    # Redraw every 1.5 seconds for 30 seconds (20 iterations) to keep display stable without Wi-Fi/Audio packet congestion
+                    for _ in range(20):
+                        try:
+                            face.act_weather(temp, cond)
+                        except Exception:
+                            pass
+                        await asyncio.sleep(1.5)
+                    
+                    # Return to standard eyes after 30 seconds
+                    try:
+                        face.act_reset()
+                    except Exception:
+                        pass
+                
+                asyncio.create_task(draw_weather_loop())
+        except Exception as e:
+            print(f"Error drawing weather on face: {e}")
     
     # Step 3: Generate the conversational response including the temperature degrees
     weather_prompt = f"""You are Cozmo, a friendly robot assistant. 

@@ -51,7 +51,7 @@ def ensure_n8n_started():
 def ensure_ollama_started():
     """Checks if Ollama is running, and warns the user if it isn't."""
     if not is_service_running(11434):
-        print(f"{BLUE}⚠ Ollama is not running!{RESET}")
+        print(f"{BLUE}[Warning] Ollama is not running!{RESET}")
         print(f"{GRAY}Layer 2 (Router & Chat) requires Ollama to be active on port 11434.{RESET}")
         print(f"{GRAY}Please start the Ollama application and try again.{RESET}\n")
         # We don't try to auto-start Ollama as it's usually a desktop app on Windows
