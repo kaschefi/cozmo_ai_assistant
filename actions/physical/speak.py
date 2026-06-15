@@ -38,6 +38,7 @@ class VoiceSpeaker:
         self._remainder = np.array([], dtype=np.float32)
         self._actively_speaking = False
         self._interrupt_flag = False
+        self._paused = False
         self._stream = None
 
         self._initialize_model()
@@ -92,6 +93,11 @@ class VoiceSpeaker:
             print(f"[VoiceSpeaker] Audio callback status: {status}")
 
         try:
+            if self._paused:
+                outdata[:] = 0.0
+                self._actively_speaking = False
+                return
+
             needed = frames
             filled = 0
             
@@ -139,6 +145,7 @@ class VoiceSpeaker:
         aborting the hardware ring buffer to prevent trailing off.
         """
         self._interrupt_flag = True
+        self._paused = False
         
         # 1. Clear the Queue
         while not self._audio_queue.empty():
@@ -167,6 +174,15 @@ class VoiceSpeaker:
                 print(f"[VoiceSpeaker] Error restarting stream during interrupt: {e}")
                 
         self._interrupt_flag = False
+
+    def pause(self):
+        """Non-destructively pauses audio playback."""
+        self._paused = True
+        self._actively_speaking = False
+
+    def resume(self):
+        """Resumes paused audio playback."""
+        self._paused = False
 
     def _sanitize_text(self, text: str) -> str:
         """
