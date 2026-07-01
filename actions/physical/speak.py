@@ -8,6 +8,7 @@ import threading
 try:
     import sounddevice as sd
     import numpy as np
+
     AUDIO_AVAILABLE = True
 except ImportError:
     AUDIO_AVAILABLE = False
@@ -16,6 +17,7 @@ except ImportError:
 # Try to import kokoro_onnx
 try:
     from kokoro_onnx import Kokoro
+
     KOKORO_AVAILABLE = True
 except ImportError:
     KOKORO_AVAILABLE = False
@@ -23,12 +25,14 @@ except ImportError:
 
 
 class VoiceSpeaker:
-    def __init__(self, model_path: str = "kokoro-v1.0.onnx", voices_path: str = "voices-v1.0.bin"):
+    def __init__(self, model_path: str = "kokoro-v1.0.onnx", voices_path: str = "voices-v1.0.bin",
+                 volume_multiplier: float = 4.5):
         """
         Initializes the VoiceSpeaker engine with zero-disk I/O Kokoro ONNX model.
         """
         self.model_path = model_path
         self.voices_path = voices_path
+        self.volume_multiplier = volume_multiplier  # Digital gain control
         self.kokoro = None
         self.sample_rate = 24000  # Default for Kokoro v0.19
         self.block_size = int(self.sample_rate * 0.02)  # 20ms chunks (480 samples)
@@ -71,7 +75,7 @@ class VoiceSpeaker:
         """Initializes the background audio hardware stream."""
         if not AUDIO_AVAILABLE:
             return
-        
+
         try:
             self._stream = sd.OutputStream(
                 samplerate=self.sample_rate,
@@ -100,7 +104,7 @@ class VoiceSpeaker:
 
             needed = frames
             filled = 0
-            
+
             # Start with any leftover samples from the previous callback
             if len(self._remainder) > 0:
                 take = min(needed, len(self._remainder))
@@ -108,32 +112,32 @@ class VoiceSpeaker:
                 self._remainder = self._remainder[take:]
                 needed -= take
                 filled += take
-                
+
             # Pull chunks from the queue until we have enough to satisfy `frames`
             while needed > 0:
                 try:
                     chunk = self._audio_queue.get_nowait()
                     take = min(needed, len(chunk))
-                    outdata[filled:filled+take, 0] = chunk[:take]
-                    
+                    outdata[filled:filled + take, 0] = chunk[:take]
+
                     if take < len(chunk):
                         self._remainder = chunk[take:]
-                        
+
                     needed -= take
                     filled += take
                 except queue.Empty:
                     break
-                    
+
             # If we didn't get enough frames, pad the rest of the buffer with pure silence
             if needed > 0:
                 outdata[filled:, 0] = 0.0
-                
+
             # Update state for the microphone VAD crossover
             if filled > 0:
                 self._actively_speaking = True
             else:
                 self._actively_speaking = False
-                
+
         except Exception as e:
             print(f"[VoiceSpeaker] Error in audio callback: {e}")
             outdata[:] = 0.0
@@ -141,27 +145,27 @@ class VoiceSpeaker:
 
     def interrupt(self):
         """
-        Instantly halts speaking by clearing the queue and explicitly 
+        Instantly halts speaking by clearing the queue and explicitly
         aborting the hardware ring buffer to prevent trailing off.
         """
         self._interrupt_flag = True
         self._paused = False
-        
+
         # 1. Clear the Queue
         while not self._audio_queue.empty():
             try:
                 self._audio_queue.get_nowait()
             except queue.Empty:
                 break
-                
+
         self._remainder = np.array([], dtype=np.float32)
         self._actively_speaking = False
-        
+
         # 2. Hard flush the sounddevice hardware buffer
         if self._stream and AUDIO_AVAILABLE:
             try:
                 self._stream.abort()  # Instantly drop buffered frames
-                
+
                 # Recreate the stream for the next speech command
                 self._stream = sd.OutputStream(
                     samplerate=self.sample_rate,
@@ -172,7 +176,7 @@ class VoiceSpeaker:
                 self._stream.start()
             except Exception as e:
                 print(f"[VoiceSpeaker] Error restarting stream during interrupt: {e}")
-                
+
         self._interrupt_flag = False
 
     def pause(self):
@@ -187,7 +191,7 @@ class VoiceSpeaker:
     def _sanitize_text(self, text: str) -> str:
         """
         Dynamic Token Sanitization:
-        Strips out raw formatting notation like backticks, clean markdown punctuation, 
+        Strips out raw formatting notation like backticks, clean markdown punctuation,
         and edge-case characters to prevent reading aloud code syntax.
         """
         text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
@@ -210,16 +214,20 @@ class VoiceSpeaker:
             samples, _ = self.kokoro.create(
                 text, voice=voice, speed=speed, lang="en-us"
             )
-            
+
             if self._interrupt_flag:
                 return
+
+            # Apply digital volume multiplier and prevent clipping distortion
+            if self.volume_multiplier != 1.0:
+                samples = np.clip(samples * self.volume_multiplier, -0.95, 0.95)
 
             # Chop the resulting float32 array into discrete 20ms frames and enqueue
             total_samples = len(samples)
             for i in range(0, total_samples, self.block_size):
                 if self._interrupt_flag:
                     break
-                
+
                 chunk = samples[i:i + self.block_size]
                 self._audio_queue.put(chunk)
 
@@ -227,11 +235,52 @@ class VoiceSpeaker:
             print(f"[VoiceSpeaker] Error during ONNX generation: {e}")
             traceback.print_exc()
 
+    def _generate_robot_audio_blocking(self, text: str, voice: str, speed: float = 1.0):
+        """
+        Generates full sentences/phrases to preserve prosody, resamples to 22050Hz,
+        and saves as a mono 16-bit WAV file for physical Cozmo playback.
+        """
+        if not self.kokoro:
+            return
+
+        try:
+            # Kokoro generates the entire audio chunk in memory (24000Hz, float32)
+            samples, _ = self.kokoro.create(
+                text, voice=voice, speed=speed, lang="en-us"
+            )
+
+            # Apply digital volume multiplier and prevent clipping distortion
+            if self.volume_multiplier != 1.0:
+                samples = np.clip(samples * self.volume_multiplier, -0.95, 0.95)
+
+            # Resample from 24000Hz to 22050Hz (using linear interpolation)
+            num_in_samples = len(samples)
+            num_out_samples = int(num_in_samples * 22050 / 24000)
+
+            original_indices = np.linspace(0, num_in_samples - 1, num_in_samples)
+            new_indices = np.linspace(0, num_in_samples - 1, num_out_samples)
+            resampled = np.interp(new_indices, original_indices, samples)
+
+            # Convert float32 to 16-bit PCM
+            pcm_data = np.clip(resampled * 32767.0, -32768, 32767).astype(np.int16)
+
+            # Save to temporary WAV file using python's built-in wave module
+            import wave
+            with wave.open("temp_speech.wav", "wb") as wav_file:
+                wav_file.setnchannels(1)  # mono
+                wav_file.setsampwidth(2)  # 16-bit (2 bytes)
+                wav_file.setframerate(22050)  # 22050 Hz
+                wav_file.writeframes(pcm_data.tobytes())
+
+        except Exception as e:
+            print(f"[VoiceSpeaker] Error generating robot audio: {e}")
+            traceback.print_exc()
+
     async def say(self, text: str, voice: str = "am_echo", speed: float = 1.0) -> None:
         """
-        Non-Blocking Async Design:
-        Offloads generation to background thread which streams frames to our queue.
-        Returns almost instantly.
+        Plays speech response. If Cozmo physical mode is active and the robot is connected,
+        it resamples the audio and plays it directly on Cozmo's speaker.
+        Otherwise, it falls back to streaming on the PC speaker.
         """
         if not text:
             return
@@ -240,9 +289,33 @@ class VoiceSpeaker:
         if not sanitized_text:
             return
 
+        # Check if Cozmo robot connection is active
+        from core.hardware.connection import cozmo_manager
+        import pycozmo
+        cli = cozmo_manager.get_robot() if cozmo_manager.robot_mode else None
+
+        if cli:
+            # Physical Robot Speech: Generate 22050Hz WAV and play on Cozmo speaker
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(
+                None, self._generate_robot_audio_blocking, sanitized_text, voice, speed
+            )
+            try:
+                import os
+                wav_path = os.path.abspath("temp_speech.wav")
+                # Set Cozmo volume to maximum (65535 is the hardware limit for 16-bit unsigned)
+                try:
+                    cli.set_volume(65535)
+                except Exception as e:
+                    print(f"[VoiceSpeaker] Failed to set volume: {e}")
+                cli.play_audio(wav_path)
+                cli.wait_for(pycozmo.event.EvtAudioCompleted)
+            except Exception as e:
+                print(f"[VoiceSpeaker] Error playing audio on Cozmo: {e}")
+            return
+
+        # PC Speaker Fallback:
         # Windows WASAPI workaround: Re-initialize the audio stream if idle.
-        # Opening and closing the microphone stream often silently aborts 
-        # the background output stream.
         if AUDIO_AVAILABLE and not self._actively_speaking:
             try:
                 if self._stream:
@@ -254,11 +327,26 @@ class VoiceSpeaker:
 
         loop = asyncio.get_running_loop()
 
-        # Thread-Safe Offloading: 
+        # Thread-Safe Offloading:
         # Offload the heavy ONNX matrix math generation pass to a background thread pool executor
         await loop.run_in_executor(
             None, self._generate_audio_blocking, sanitized_text, voice, speed
         )
+
+        # Safety Guard: If stream or audio is not initialized/available, flush the queue and return
+        if not AUDIO_AVAILABLE or not self._stream or not self.kokoro:
+            while not self._audio_queue.empty():
+                try:
+                    self._audio_queue.get_nowait()
+                except queue.Empty:
+                    break
+            return
+
+        # Wait for the audio stream to finish playing
+        # Sleep briefly to let the callback process the first chunk and flag actively_speaking
+        await asyncio.sleep(0.05)
+        while self._stream.active and (self._actively_speaking or not self._audio_queue.empty()):
+            await asyncio.sleep(0.05)
 
 
 # Global instance for easy import across the project
@@ -276,10 +364,10 @@ async def respond(text: str, play_animation: bool = True, language: str = "en"):
     """
     # Print response text directly in blue color with no prefix
     print(f"\n\033[94m{text}\033[0m\n")
-    
+
     # Bypass language translation networks to stay offline, route immediately to local Kokoro.
     await speaker.say(text, voice="am_echo")
-        
+
     return {"status": "success", "message": "Response processed via local VoiceSpeaker."}
 
 

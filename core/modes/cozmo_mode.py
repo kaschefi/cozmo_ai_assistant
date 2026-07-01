@@ -77,6 +77,9 @@ async def lifespan(app: FastAPI):
     app.state.voice_listener_task = asyncio.create_task(start_listening_task(app.state.face))
     print("[lifespan] Cozmo Voice Listening task spawned.")
 
+    # Get the running event loop to pass to the console input thread
+    loop = asyncio.get_running_loop()
+
     # Start Cozmo's terminal input console in a background thread
     print("[lifespan] Starting Cozmo Console Input thread...")
     console_thread = threading.Thread(
