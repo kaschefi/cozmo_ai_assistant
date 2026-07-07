@@ -7,14 +7,14 @@ import React, { useEffect, useRef } from 'react';
 const CONFIG = {
   // --- Particle Generation & Spacing ---
   // Smaller values = denser dots and higher particle count
-  STEP_X: 4,  // Horizontal dot spacing (pixels)
-  STEP_Y: 7,  // Vertical scanline height (pixels)
+  STEP_X: 5,  // Horizontal dot spacing (pixels)
+  STEP_Y: 8,  // Vertical scanline height (pixels)
 
   // --- Animation Transition Speeds ---
   // Base easing speed. Increase to make transition faster (e.g. 0.08 to 0.12)
-  TRANSITION_SPEED: 0.14,
+  TRANSITION_SPEED: 0.08,
   // Speed variation per particle for an organic, asynchronous arrival (e.g. 0.04)
-  TRANSITION_VARIATION: 0.5,
+  TRANSITION_VARIATION: 0.4,
 
   // --- Swarm/Drifting Wave Physics ---
   // Maximum strength of the curving swarm effect (0 for straight lines, 20-50 for curved paths)
@@ -58,89 +58,7 @@ export interface Particle {
   isFadingOut: boolean;
 }
 
-// Mathematical helper to distribute particles uniformly along a rounded rectangle border
-const getRoundedRectPoint = (
-  w: number,
-  h: number,
-  r: number,
-  cx: number,
-  cy: number,
-  t: number
-) => {
-  const L_top = w - 2 * r;
-  const L_side = h - 2 * r;
-  const L_arc = (Math.PI * r) / 2;
-  const P = 2 * L_top + 2 * L_side + 4 * L_arc; // total perimeter
 
-  const d = t * P; // distance along perimeter
-
-  // 1. Top side (moving right)
-  if (d < L_top) {
-    return { x: cx - w / 2 + r + d, y: cy - h / 2 };
-  }
-
-  // 2. Top-right corner
-  let limit = L_top + L_arc;
-  if (d < limit) {
-    const d_arc = d - L_top;
-    const angle = -Math.PI / 2 + (d_arc / L_arc) * (Math.PI / 2);
-    return {
-      x: cx + w / 2 - r + r * Math.cos(angle),
-      y: cy - h / 2 + r + r * Math.sin(angle),
-    };
-  }
-
-  // 3. Right side (moving down)
-  limit += L_side;
-  if (d < limit) {
-    const d_side = d - (L_top + L_arc);
-    return { x: cx + w / 2, y: cy - h / 2 + r + d_side };
-  }
-
-  // 4. Bottom-right corner
-  limit += L_arc;
-  if (d < limit) {
-    const d_arc = d - (L_top + L_arc + L_side);
-    const angle = 0 + (d_arc / L_arc) * (Math.PI / 2);
-    return {
-      x: cx + w / 2 - r + r * Math.cos(angle),
-      y: cy + h / 2 - r + r * Math.sin(angle),
-    };
-  }
-
-  // 5. Bottom side (moving left)
-  limit += L_top;
-  if (d < limit) {
-    const d_top = d - (L_top + 2 * L_arc + L_side);
-    return { x: cx + w / 2 - r - d_top, y: cy + h / 2 };
-  }
-
-  // 6. Bottom-left corner
-  limit += L_arc;
-  if (d < limit) {
-    const d_arc = d - (2 * L_top + 2 * L_arc + L_side);
-    const angle = Math.PI / 2 + (d_arc / L_arc) * (Math.PI / 2);
-    return {
-      x: cx - w / 2 + r + r * Math.cos(angle),
-      y: cy + h / 2 - r + r * Math.sin(angle),
-    };
-  }
-
-  // 7. Left side (moving up)
-  limit += L_side;
-  if (d < limit) {
-    const d_side = d - (2 * L_top + 3 * L_arc + L_side);
-    return { x: cx - w / 2, y: cy + h / 2 - r - d_side };
-  }
-
-  // 8. Top-left corner
-  const d_arc = d - (2 * L_top + 3 * L_arc + 2 * L_side);
-  const angle = Math.PI + (d_arc / L_arc) * (Math.PI / 2);
-  return {
-    x: cx - w / 2 + r + r * Math.cos(angle),
-    y: cy - h / 2 + r + r * Math.sin(angle),
-  };
-};
 
 // Helper to draw rounded rectangle
 const drawRoundedRect = (
@@ -165,35 +83,26 @@ const drawRoundedRect = (
   ctx.fill();
 };
 
-interface ParticleCanvasProps {
-  chatBoxRef: React.RefObject<HTMLDivElement | null>;
-  onChatActiveChange: (active: boolean) => void;
-}
-
 /**
  * ParticleCanvas component rendering the glowing vector dot matrix animations.
  * Tracks screen scrolling to flow particles between shapes:
  * - Eyes idle breathing layout
  * - TRANSITION -> WELCOME text center alignment
  * - MOKA top-left logo alignment (header background tracking)
- * - Outline tracking for the floating ChatBox.
  */
-export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
-  chatBoxRef,
-  onChatActiveChange,
-}) => {
+export const ParticleCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Keep animation state in refs for high-performance retrieval inside requestAnimationFrame
-  const stateRef = useRef<'eyes' | 'transitioning' | 'moka' | 'chat_box'>('eyes');
+  const stateRef = useRef<'eyes' | 'transitioning' | 'moka'>('eyes');
   const particlesRef = useRef<Particle[]>([]);
   const animationFrameId = useRef<number | null>(null);
   const cycleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isScrolledRef = useRef(false);
-  const isChatActiveRef = useRef(false);
   const hasShownWelcomeRef = useRef(false);
   const mouseRef = useRef({ x: 0, y: 0 });
   const mouseTargetRef = useRef({ x: 0, y: 0 });
+  const mousePosTargetRef = useRef({ x: -9999, y: -9999 });
 
   useEffect(() => {
     // 1. Generate Target Coordinates using an offscreen canvas
@@ -316,7 +225,7 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
         welcomeY: welcomeT.y + offsetYWelcome,
         mokaX: mokaT.x,
         mokaY: mokaT.y,
-        size: Math.random() * 1.0 + 1.6, // dot size between 1.6px and 2.6px
+        size: Math.random() * 1.0 + 1.8, // dot size between 1.8px and 2.8px
         alpha: 0, // start invisible and fade in
         targetAlpha: 1.0,
         mokaAlpha: isMokaActive ? 1.0 : 0.0, // hide excess particles in logo state
@@ -356,8 +265,10 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
       const height = window.innerHeight;
 
       // Smoothly interpolate cursor position (lerp)
-      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * 0.35;
-      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * 0.35;
+      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * 1;
+      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * 1;
+
+
 
       // Scale matrix to fit screen width and height uniformly with margins
       const scale = Math.min(width / logicalW, height / logicalH) * 0.82;
@@ -368,11 +279,9 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
 
       const currentState = stateRef.current;
 
-      // Make the shadow glow subtler/sharper in MOKA and CHAT states to improve legibility
-      const isSubtleGlow = currentState === 'moka' || currentState === 'chat_box';
-      ctx.shadowBlur = (isSubtleGlow ? 4 : 8) * scale;
-      ctx.shadowColor = 'rgba(0, 243, 255, 0.75)';
-      ctx.fillStyle = '#00f3ff';
+      // Disable native shadowBlur to prevent performance drops and slow-motion lag!
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = 'transparent';
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
@@ -416,45 +325,6 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
           targetX = 48 + p.mokaX * logoScale;
           targetY = 29 + p.mokaY * logoScale;
           pTargetAlpha = p.mokaAlpha; // inactive particles fade to 0 opacity
-        } else if (currentState === 'chat_box' && chatBoxRef.current) {
-          // Dynamic chat box tracking! Query the HTML element's bounding box relative to the viewport
-          const rect = chatBoxRef.current.getBoundingClientRect();
-          const boxW = rect.width;
-          const boxH = rect.height;
-          const boxR = 24; // matches rounded-[24px] corner radius
-          const boxCX = rect.left + rect.width / 2;
-          const boxCY = rect.top + rect.height / 2;
-
-          // Map particle uniformly along the rounded rect outline in viewport coordinates
-          const pt = i / particles.length;
-          const pCoord = getRoundedRectPoint(boxW, boxH, boxR, boxCX, boxCY, pt);
-          targetX = pCoord.x;
-          targetY = pCoord.y;
-          pTargetAlpha = 1.0;
-
-          // --- Path Constraint for Chat Box Transition ---
-          // Force particles to follow the red line conduit (down the left side first, then curve right into the box)
-          // To prevent distorting the settled box, we only apply the left-skew constraint if the particle is physically above the top of the box.
-          let finalTargetX = targetX;
-          if (p.y < rect.top - 10) {
-            const startX = 60; // lock X target near the left margin (X ≈ 60px)
-            const curveStartHeight = rect.top - 20; // curve starts sweeping right just above the box
-            const t = Math.max(0, Math.min(1, (p.y - 48) / (curveStartHeight - 48)));
-            finalTargetX = startX + (targetX - startX) * (t * t);
-          }
-          targetX = finalTargetX;
-        } else if (currentState === 'chat_box') {
-          // Fallback if ref is not fully painted yet
-          const boxW = Math.min(width * 0.8, 800);
-          const boxH = 450;
-          const boxR = 24;
-          const boxCX = width / 2;
-          const boxCY = height + 100;
-          const pt = i / particles.length;
-          const pCoord = getRoundedRectPoint(boxW, boxH, boxR, boxCX, boxCY, pt);
-          targetX = pCoord.x;
-          targetY = pCoord.y;
-          pTargetAlpha = 0.0;
         } else {
           // WELCOME coordinates
           targetX = p.welcomeX * scale + offsetX;
@@ -462,18 +332,36 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
           pTargetAlpha = 1.0;
         }
 
+        // Mouse avoidance repelling force (applied in screen pixel space relative to target coordinates)
+        const dxMouse = targetX - mousePosTargetRef.current.x;
+        const dyMouse = targetY - mousePosTargetRef.current.y;
+        const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
+
+        let avoidX = 0;
+        let avoidY = 0;
+        const avoidanceRadius = 60; // push radius in pixels
+        if (distMouse < avoidanceRadius && distMouse > 0) {
+          const force = (avoidanceRadius - distMouse) / avoidanceRadius; // 0 to 1
+          const strength = force * 50; // push distance in pixels
+          avoidX = (dxMouse / distMouse) * strength;
+          avoidY = (dyMouse / distMouse) * strength;
+        }
+
+        targetX += avoidX;
+        targetY += avoidY;
+
         // 2. Physics Motion Update (steer and swarm dynamically)
         const dx = targetX - p.x;
         const dy = targetY - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Easing factor with variation: tighter and faster when in eyes state to track cursor instantly
-        const ease = currentState === 'eyes' 
-          ? 0.28 + p.speedOffset * 0.08
+        // Easing factor with variation: transition smoothly if far (e.g. from header), track instantly if close (mouse avoidance/gaze)
+        const ease = currentState === 'eyes'
+          ? (dist > 180 ? 0.16 : 0.8) + p.speedOffset * 0.08
           : CONFIG.TRANSITION_SPEED + p.speedOffset * CONFIG.TRANSITION_VARIATION;
 
-        // Swarming curving perturbation: decays as particles reach targets (disable for steady eyes/moka/chat to avoid slow-motion drift)
-        const isSwarmingState = currentState !== 'eyes' && currentState !== 'moka' && currentState !== 'chat_box';
+        // Swarming curving perturbation: decays as particles reach targets (disable for steady eyes/moka to avoid slow-motion drift)
+        const isSwarmingState = currentState !== 'eyes' && currentState !== 'moka';
         const swarmFactor = isSwarmingState ? Math.min(dist * CONFIG.SWARM_DECAY, CONFIG.SWARM_STRENGTH) : 0;
         const angle = time * CONFIG.SWARM_FREQUENCY + p.seed * 15;
         const swarmX = Math.sin(angle) * swarmFactor;
@@ -487,10 +375,17 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
 
         // Draw particle if visible
         if (p.alpha > 0.01) {
-          // Render dots slightly smaller for moka & chat box to keep detail sharp
-          const isScaledDown = currentState === 'moka' || currentState === 'chat_box';
+          // Render dots slightly smaller for moka to keep detail sharp
+          const isScaledDown = currentState === 'moka';
           const currentSize = isScaledDown ? p.size * 0.72 * scale : p.size * scale;
-          
+
+          // Draw soft glowing outer aura (subtler size and opacity to avoid over-glowing)
+          ctx.fillStyle = `rgba(0, 243, 255, ${p.alpha * 0.12})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, currentSize * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Draw bright core dot
           ctx.fillStyle = `rgba(0, 243, 255, ${p.alpha})`;
           ctx.beginPath();
           ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
@@ -531,6 +426,10 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
         x: (e.clientX - cx) / cx,
         y: (e.clientY - cy) / cy,
       };
+      mousePosTargetRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+      };
     };
     window.addEventListener('mousemove', handleMouseMove);
 
@@ -544,34 +443,9 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
           stateRef.current = 'eyes';
           runCycle();
         }
-        if (isChatActiveRef.current) {
-          isChatActiveRef.current = false;
-          onChatActiveChange(false);
-        }
       } else {
         if (cycleTimerRef.current) clearTimeout(cycleTimerRef.current);
-
-        // Dynamically track if the chat box container has entered the viewport
-        let showChat = false;
-        if (chatBoxRef.current) {
-          const rect = chatBoxRef.current.getBoundingClientRect();
-          // Trigger transition when the top of the chat box enters the viewport
-          showChat = rect.top < window.innerHeight - 40;
-        }
-
-        if (showChat) {
-          stateRef.current = 'chat_box';
-          if (!isChatActiveRef.current) {
-            isChatActiveRef.current = true;
-            onChatActiveChange(true);
-          }
-        } else {
-          stateRef.current = 'moka';
-          if (isChatActiveRef.current) {
-            isChatActiveRef.current = false;
-            onChatActiveChange(false);
-          }
-        }
+        stateRef.current = 'moka';
       }
     };
 
@@ -588,7 +462,7 @@ export const ParticleCanvas: React.FC<ParticleCanvasProps> = ({
         cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, [chatBoxRef, onChatActiveChange]);
+  }, []);
 
   return (
     <canvas

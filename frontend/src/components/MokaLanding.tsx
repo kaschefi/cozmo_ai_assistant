@@ -1,8 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import Header from './ui/Header';
 import WelcomeCard from './ui/WelcomeCard';
 import FeatureGrid from './ui/FeatureGrid';
-import ChatBox from './ui/ChatBox';
 import ParticleCanvas from './ui/ParticleCanvas';
 
 /**
@@ -11,11 +10,8 @@ import ParticleCanvas from './ui/ParticleCanvas';
  * and component-driven architecture.
  */
 export const MokaLanding: React.FC = () => {
-  const chatBoxRef = useRef<HTMLDivElement | null>(null);
-  const [isChatActive, setIsChatActive] = useState(false);
-
   return (
-    <div className="relative min-h-[220vh] bg-gradient-to-br from-[#020512] via-[#070b1a] to-[#020512] overflow-x-hidden select-none">
+    <div className="relative min-h-[200vh] bg-gradient-to-br from-[#020512] via-[#070b1a] to-[#020512] overflow-x-hidden select-none">
       {/* Subtle digital grid overlay */}
       <div 
         className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
@@ -29,10 +25,7 @@ export const MokaLanding: React.FC = () => {
       <Header />
       
       {/* Fixed canvas on top of everything so particles float over the header and content */}
-      <ParticleCanvas 
-        chatBoxRef={chatBoxRef} 
-        onChatActiveChange={setIsChatActive} 
-      />
+      <ParticleCanvas />
 
       {/* Fixed dark vignette overlay to keep contrast high */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(2,5,18,0.85)_100%)] pointer-events-none z-16" />
@@ -44,12 +37,6 @@ export const MokaLanding: React.FC = () => {
 
         {/* Feature Grid representing three core services */}
         <FeatureGrid />
-
-        {/* Dynamic Flow Chat Box container */}
-        <ChatBox 
-          ref={chatBoxRef} 
-          isChatActive={isChatActive} 
-        />
       </div>
     </div>
   );
