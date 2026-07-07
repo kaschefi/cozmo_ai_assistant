@@ -12,9 +12,9 @@ const CONFIG = {
 
   // --- Animation Transition Speeds ---
   // Base easing speed. Increase to make transition faster (e.g. 0.08 to 0.12)
-  TRANSITION_SPEED: 0.08,
-  // Speed variation per particle for an organic, asynchronous arrival (e.g. 0.04)
-  TRANSITION_VARIATION: 0.4,
+  TRANSITION_SPEED: 0.02,
+  // Speed variation peparticle for an organic, asynchronous arrival (e.g. 0.04)
+  TRANSITION_VARIATION: 0.07,
 
   // --- Swarm/Drifting Wave Physics ---
   // Maximum strength of the curving swarm effect (0 for straight lines, 20-50 for curved paths)
@@ -355,9 +355,9 @@ export const ParticleCanvas: React.FC = () => {
         const dy = targetY - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Easing factor with variation: transition smoothly if far (e.g. from header), track instantly if close (mouse avoidance/gaze)
+        // Easing factor with variation: transition smoothly if far (using config speed), track instantly if close (mouse avoidance/gaze)
         const ease = currentState === 'eyes'
-          ? (dist > 180 ? 0.16 : 0.8) + p.speedOffset * 0.08
+          ? (dist > 180 ? (CONFIG.TRANSITION_SPEED + p.speedOffset * CONFIG.TRANSITION_VARIATION) : (0.04 + p.speedOffset * 0.08))
           : CONFIG.TRANSITION_SPEED + p.speedOffset * CONFIG.TRANSITION_VARIATION;
 
         // Swarming curving perturbation: decays as particles reach targets (disable for steady eyes/moka to avoid slow-motion drift)
@@ -413,7 +413,7 @@ export const ParticleCanvas: React.FC = () => {
         } else {
           stateRef.current = 'eyes';
         }
-      }, 10000);
+      }, 4000);
     };
 
     runCycle();
