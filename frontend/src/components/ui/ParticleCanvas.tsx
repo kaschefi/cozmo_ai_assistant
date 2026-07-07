@@ -94,7 +94,7 @@ export const ParticleCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Keep animation state in refs for high-performance retrieval inside requestAnimationFrame
-  const stateRef = useRef<'eyes' | 'transitioning' | 'moka'>('transitioning');
+  const stateRef = useRef<'eyes' | 'transitioning' | 'moka' | 'talk-button'>('transitioning');
   const particlesRef = useRef<Particle[]>([]);
   const animationFrameId = useRef<number | null>(null);
   const cycleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,6 +104,8 @@ export const ParticleCanvas: React.FC = () => {
   const mousePosTargetRef = useRef({ x: -9999, y: -9999 });
 
   useEffect(() => {
+    let cachedButton: HTMLElement | null = null;
+
     // 1. Generate Target Coordinates using an offscreen canvas
     const logicalW = 1200;
     const logicalH = 600;
@@ -276,7 +278,30 @@ export const ParticleCanvas: React.FC = () => {
 
       ctx.clearRect(0, 0, width, height);
 
-      const currentState = stateRef.current;
+      let currentState = stateRef.current;
+      let buttonRect: DOMRect | null = null;
+
+      // If scrolled, dynamically check if the button is fully in view
+      if (isScrolledRef.current) {
+        if (!cachedButton || !cachedButton.isConnected) {
+          cachedButton = document.getElementById('talk-button');
+        }
+        if (cachedButton) {
+          const rect = cachedButton.getBoundingClientRect();
+          const isButtonFullyInView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+          if (isButtonFullyInView) {
+            currentState = 'talk-button';
+            stateRef.current = 'talk-button';
+            buttonRect = rect;
+          } else {
+            currentState = 'moka';
+            stateRef.current = 'moka';
+          }
+        } else {
+          currentState = 'moka';
+          stateRef.current = 'moka';
+        }
+      }
 
       // Disable native shadowBlur to prevent performance drops and slow-motion lag!
       ctx.shadowBlur = 0;
@@ -318,8 +343,59 @@ export const ParticleCanvas: React.FC = () => {
           targetX = (scaledX + shiftX) * scale + offsetX + idleX;
           targetY = (scaledY + shiftY) * scale + offsetY + idleY;
           pTargetAlpha = 1.0;
-        } else if (currentState === 'moka') {
-          // MOKA logo at top-left, centered vertically inside the fixed 96px header
+        } else if (currentState === 'talk-button' && buttonRect) {
+          const isButtonActive = (i % 5) === 0; // Only use 20% of particles for a clean, non-overcrowded border
+          
+          if (isButtonActive) {
+            const cx = buttonRect.left + buttonRect.width / 2;
+            const cy = buttonRect.top + buttonRect.height / 2;
+
+            // Rectangular orbital path around the button
+            const padding = 8 + p.speedOffset * 12; // thickness of the rectangular band
+            const w = buttonRect.width + padding * 2;
+            const h = buttonRect.height + padding * 2;
+            
+            const left = cx - w / 2;
+            const top = cy - h / 2;
+            
+            const perimeter = 2 * (w + h);
+            
+            // Compute t (0 to 1) based on index and speed offset
+            const t = ((i / particles.length) + (time * 0.002) * (0.8 + p.speedOffset * 0.4)) % 1.0;
+            const dist = t * perimeter;
+            
+            if (dist < w) {
+              // Top edge
+              targetX = left + dist;
+              targetY = top;
+            } else if (dist < w + h) {
+              // Right edge
+              targetX = left + w;
+              targetY = top + (dist - w);
+            } else if (dist < 2 * w + h) {
+              // Bottom edge
+              targetX = left + w - (dist - w - h);
+              targetY = top + h;
+            } else {
+              // Left edge
+              targetX = left;
+              targetY = top + h - (dist - 2 * w - h);
+            }
+
+            // Add subtle organic micro-vibration
+            targetX += Math.sin(time * 0.08 + p.seed) * 1.5;
+            targetY += Math.cos(time * 0.08 + p.seed) * 1.5;
+
+            pTargetAlpha = 1.0;
+          } else {
+            // Fade out the remaining 80% of particles and target the logo
+            pTargetAlpha = 0.0;
+            const logoScale = 0.38;
+            targetX = 48 + p.mokaX * logoScale;
+            targetY = 29 + p.mokaY * logoScale;
+          }
+        } else if (currentState === 'moka' || currentState === 'talk-button') {
+          // MOKA logo at top-left, centered vertically inside the fixed 96px header (or fallback if button not found)
           const logoScale = 0.38;
           targetX = 48 + p.mokaX * logoScale;
           targetY = 29 + p.mokaY * logoScale;

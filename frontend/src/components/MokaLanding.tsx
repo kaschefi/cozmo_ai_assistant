@@ -1,6 +1,7 @@
 import React from 'react';
 import Header from './ui/Header';
 import FeatureMarquee from './ui/FeatureMarquee';
+import TalkSection from './ui/TalkSection';
 import ParticleCanvas from './ui/ParticleCanvas';
 
 /**
@@ -10,7 +11,7 @@ import ParticleCanvas from './ui/ParticleCanvas';
  */
 export const MokaLanding: React.FC = () => {
   return (
-    <div className="relative min-h-[180vh] bg-gradient-to-br from-[#020512] via-[#070b1a] to-[#020512] overflow-x-hidden select-none">
+    <div className="relative min-h-[220vh] bg-gradient-to-br from-[#020512] via-[#070b1a] to-[#020512] overflow-x-hidden select-none">
       {/* Subtle digital grid overlay */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
@@ -33,6 +34,9 @@ export const MokaLanding: React.FC = () => {
       <div className="relative w-full max-w-5xl mx-auto px-6 pt-[105vh] pb-32 z-20 pointer-events-auto">
         {/* Infinite scrolling showcase of Cozmo Agent capabilities */}
         <FeatureMarquee />
+
+        {/* Talk Section with target button and orbiting particles */}
+        <TalkSection />
       </div>
     </div>
   );
