@@ -39,6 +39,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/api/health")
+async def health_endpoint():
+    """
+    Simple health check endpoint to verify connectivity to the cognitive layer.
+    """
+    return {"status": "success", "connected": True}
+
 @app.post("/api/chat")
 async def chat_endpoint(req: ChatRequest):
     """

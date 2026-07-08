@@ -50,6 +50,28 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     return () => clearInterval(interval);
   }, [isConversationStarted]);
 
+  // Core Brain Connection State (polls backend /api/health)
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:5000/api/health');
+        if (res.ok) {
+          setIsConnected(true);
+        } else {
+          setIsConnected(false);
+        }
+      } catch (err) {
+        setIsConnected(false);
+      }
+    };
+
+    checkConnection();
+    const intervalId = setInterval(checkConnection, 3000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   // Suggested starter prompts
   /* const suggestions = [
     "Tell me about Moka's memory system.",
@@ -342,8 +364,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
         if (p.alpha > 0.01) {
           // Render dot (scaled down for the logo shape to keep typography detail sharp)
-          const currentSize = isConversationStartedVal 
-            ? Math.max(0.8, p.size * 0.65 * scale) 
+          const currentSize = isConversationStartedVal
+            ? Math.max(0.8, p.size * 0.65 * scale)
             : Math.max(1.0, p.size * scale);
           ctx.fillStyle = `rgba(0, 243, 255, ${p.alpha})`;
           ctx.beginPath();
@@ -506,8 +528,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             ← Back to Ecosystem
           </button>
           <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse" />
-            Core Brain: Connected
+            <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
+                ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'
+              }`} />
+            Core Brain: {isConnected ? 'Connected' : 'Connecting...'}
           </div>
         </div>
       </header>
@@ -520,16 +545,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
       {/* Scrollable Conversation Stream State */}
       <div
-        className={`flex-1 overflow-y-auto px-6 pt-24 pb-32 max-w-2xl mx-auto w-full transition-all duration-700 delay-200 flex flex-col gap-4 ${
-          isConversationStarted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-        }`}
+        className={`flex-1 overflow-y-auto px-6 pt-24 pb-32 max-w-2xl mx-auto w-full transition-all duration-700 delay-200 flex flex-col gap-4 ${isConversationStarted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+          }`}
       >
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex flex-col max-w-[85%] ${
-              msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
-            }`}
+            className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+              }`}
           >
             {/* Sender tag */}
             <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
@@ -537,11 +560,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             </span>
             {/* Message bubble */}
             <div
-              className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${
-                msg.sender === 'user'
+              className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${msg.sender === 'user'
                   ? 'bg-slate-900/65 border border-cyan-500/20 text-white shadow-[0_0_15px_rgba(0,243,255,0.04)] rounded-tr-none'
                   : 'bg-slate-950/70 border border-slate-800/70 text-slate-300 rounded-tl-none'
-              }`}
+                }`}
             >
               {msg.text}
             </div>
@@ -592,11 +614,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
       {/* Sliding Input Box Container */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${
-          isConversationStarted
+        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${isConversationStarted
             ? 'bottom-6 max-w-2xl'
             : 'bottom-10 max-w-lg'
-        }`}
+          }`}
       >
         <div className="w-full flex items-center bg-slate-950/70 border border-slate-800/80 rounded-2xl p-2.5 backdrop-blur-md hover:border-[#00d2ff]/30 focus-within:border-[#00d2ff]/50 focus-within:shadow-[0_0_20px_rgba(0,210,255,0.06)] transition-all">
           <input
