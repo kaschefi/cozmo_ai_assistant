@@ -5,10 +5,16 @@ import subprocess
 import time
 import threading
 from datetime import datetime
+from dotenv import load_dotenv
 from core.routing.semantic_layer import check_layer_1, initialize_router
 from core.routing.brain import process_user_intent
 import asyncio
 from actions.physical.speak import respond
+
+load_dotenv()
+
+N8N_PORT = int(os.getenv("N8N_PORT", "5678"))
+OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 
 # --- ANSI Color Codes ---
 GREEN = "\033[92m"
@@ -29,12 +35,12 @@ def is_service_running(port):
 def ensure_n8n_started():
     """Boots n8n in a background thread so the terminal starts immediately."""
     def check_and_boot():
-        if not is_service_running(5678):
+        if not is_service_running(N8N_PORT):
             #sys.stdout.write(f"{GRAY}n8n is not running. Booting it up in the background...{RESET}\n")
             sys.stdout.flush()
             subprocess.Popen(["n8n", "start"], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             for _ in range(30):
-                if is_service_running(5678):
+                if is_service_running(N8N_PORT):
                     #sys.stdout.write(f"\n{GRAY}[Background] n8n server is online!{RESET}\n: ")
                     sys.stdout.flush()
                     return
@@ -50,9 +56,9 @@ def ensure_n8n_started():
 
 def ensure_ollama_started():
     """Checks if Ollama is running, and warns the user if it isn't."""
-    if not is_service_running(11434):
+    if not is_service_running(OLLAMA_PORT):
         print(f"{BLUE}[Warning] Ollama is not running!{RESET}")
-        print(f"{GRAY}Layer 2 (Router & Chat) requires Ollama to be active on port 11434.{RESET}")
+        print(f"{GRAY}Layer 2 (Router & Chat) requires Ollama to be active on port {OLLAMA_PORT}.{RESET}")
         print(f"{GRAY}Please start the Ollama application and try again.{RESET}\n")
         # We don't try to auto-start Ollama as it's usually a desktop app on Windows
         return False

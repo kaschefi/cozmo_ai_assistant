@@ -13,8 +13,9 @@ if WORKSPACE_DIR not in sys.path:
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Security, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import APIKeyHeader
 import uvicorn
 
 # Import request models and unified brain router
@@ -39,6 +40,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+api_key_header = APIKeyHeader(name="X-Moka-Token", auto_error=False)
+
+async def verify_moka_token(token: str = Security(api_key_header)):
+    expected_token = os.getenv("MOKA_ADMIN_TOKEN")
+    if not expected_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: MoKa Admin Token is unconfigured."
+        )
+    if not token or token != expected_token:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Invalid or missing X-Moka-Token header."
+        )
+    return token
+
 @app.get("/api/health")
 async def health_endpoint():
     """
@@ -46,7 +63,7 @@ async def health_endpoint():
     """
     return {"status": "success", "connected": True}
 
-@app.post("/api/chat")
+@app.post("/api/chat", dependencies=[Depends(verify_moka_token)])
 async def chat_endpoint(req: ChatRequest):
     """
     Direct endpoint mapping user chat prompts to the cognitive layer.

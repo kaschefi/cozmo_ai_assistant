@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph, START
 from langgraph.prebuilt import ToolNode
 from langsmith import Client
 from langsmith.evaluation import evaluate
-from langchain_community.chat_models import ChatOllama
+from core.routing.llm_factory import get_llm
 
 # Import the base configuration/nodes from your production code
 from actions.digital.calendar_agent import AgentState, call_agent, router_edge
@@ -119,8 +119,8 @@ def exact_match_evaluator(run, example) -> dict:
     if reference.lower() in prediction.lower():
         return {"key": "rule_adherence", "score": 1.0}
 
-    # Connect directly to your local Ollama instance running llama3.1
-    judge_llm = ChatOllama(model="llama3.1", temperature=0)
+    # Connect directly to your local Ollama instance
+    judge_llm = get_llm("JUDGE_LLM_MODEL", "llama3.1", temperature=0)
 
     prompt = prompt = f"""
 You are an impartial evaluator for a Google Calendar assistant.

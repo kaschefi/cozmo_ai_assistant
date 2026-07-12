@@ -1,12 +1,15 @@
+import os
 from datetime import datetime
+from dotenv import load_dotenv
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import create_react_agent
-from langchain_ollama import ChatOllama
+from core.routing.llm_factory import get_llm
 from core.routing.tool_vector_db import tool_rag_registry
 
+load_dotenv()
 
-qwen25 = ChatOllama(model="qwen2.5:3b", temperature=0, base_url="http://localhost:11434")
+qwen25 = get_llm("WEATHER_LLM_MODEL", "qwen2.5:3b", temperature=0)
 
 
 tool_rag_registry.register_tool_schema(

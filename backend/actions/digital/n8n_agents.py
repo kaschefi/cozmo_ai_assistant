@@ -1,7 +1,10 @@
+import os
 import requests
 from schemas.request_models import AgentState
-import requests
 from core.routing.tool_vector_db import tool_rag_registry
+from dotenv import load_dotenv
+
+load_dotenv()
 
 tool_rag_registry.register_tool_schema(
     name="calendar_node",
@@ -14,7 +17,7 @@ def call_n8n_calendar(user_input: str) -> str:
     """
     print("Routing to n8n ...")
 
-    url = "http://localhost:5678/webhook/calendarTool"
+    url = os.getenv("N8N_CALENDAR_WEBHOOK_URL", "http://localhost:5678/webhook/calendarTool")
 
     try:
         response = requests.post(url, json={"user_input": user_input}, timeout=180)
@@ -43,7 +46,7 @@ def call_web_search(user_input: str) -> str:
     """
     print("Routing to n8n ...")
 
-    url = "http://localhost:5678/webhook/websearchTool"
+    url = os.getenv("N8N_WEBSEARCH_WEBHOOK_URL", "http://localhost:5678/webhook/websearchTool")
 
     try:
         response = requests.post(url, json={"user_input": user_input}, timeout=180)

@@ -1,9 +1,12 @@
 # schemas/memory_db.py
 import uuid
 import os
+from dotenv import load_dotenv
 from psycopg import connect
 from core.routing.tool_vector_db import LangChainFastEmbedBridge
 import numpy as np
+
+load_dotenv()
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/cozmo_db")
 
