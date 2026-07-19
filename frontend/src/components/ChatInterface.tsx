@@ -687,8 +687,33 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               >
                 {msg.text}
               </div>
-              {/* Timestamp */}
-              <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
+              {/* Timestamp & Actions */}
+              {msg.sender === 'user' ? (
+                <div className="w-full flex items-center justify-between mt-1 px-1">
+                  <button
+                    onClick={() => handleSendMessage(msg.text)}
+                    className="p-1 rounded text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 transition-all cursor-pointer flex items-center justify-center group"
+                    title="Resend this message"
+                  >
+                    <svg
+                      className="w-3.5 h-3.5 transition-transform duration-500 ease-out group-hover:rotate-180"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                      />
+                    </svg>
+                  </button>
+                  <span className="text-[9px] text-slate-600">{msg.timestamp}</span>
+                </div>
+              ) : (
+                <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
+              )}
             </div>
           ))}
 
