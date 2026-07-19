@@ -49,12 +49,16 @@ class ToolVectorRegistry:
         results = self.db.similarity_search_with_score(user_query, k=k)
         
         filtered_tools = []
+        seen_names = set()
         for doc, score in results:
             if score <= distance_threshold:
-                filtered_tools.append({
-                    "name": doc.metadata["tool_name"],
-                    "description": doc.page_content
-                })
+                name = doc.metadata["tool_name"]
+                if name not in seen_names:
+                    seen_names.add(name)
+                    filtered_tools.append({
+                        "name": name,
+                        "description": doc.page_content
+                    })
         
         return filtered_tools
 

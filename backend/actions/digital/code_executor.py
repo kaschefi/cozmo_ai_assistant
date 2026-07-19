@@ -1,9 +1,11 @@
+from core.routing.tool_vector_db import tool_rag_registry
 import subprocess
 import sys
 import os
 from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_ollama import ChatOllama
+from langchain_core.messages import ToolMessage
 from core.routing.llm_factory import get_llm
 
 # 1. Define the Sandbox directly as a LangChain Tool using the @tool decorator
@@ -139,12 +141,38 @@ Example Transformations:
             tool_output = selected_tool.invoke(tool_call["args"])
 
             # Append the sandbox result back to the chat history
-            from langchain_core.messages import ToolMessage
             messages.append(ToolMessage(content=str(tool_output), tool_call_id=tool_call["id"]))
 
         final_response = llm_with_tools.invoke(messages)
         return final_response.content
     return response.content
+
+# registering the tool with RAG for Multimodal functionality
+
+#  Arithmetic & Calculation Dimension
+tool_rag_registry.register_tool_schema(
+    name="code_executor_node",
+    description="Mathematical calculations, algebra, fractions, percentages, averages, exact arithmetic, and geometry radius computations."
+)
+
+#  Logic, Rules, & Algorithms Dimension
+tool_rag_registry.register_tool_schema(
+    name="code_executor_node",
+    description="Computational logic puzzles, coordinate navigation movement, rule checks, password validation, parenthetical balancing, and condition checking."
+)
+
+#  List & Array Data Processing Dimension
+tool_rag_registry.register_tool_schema(
+    name="code_executor_node",
+    description="Manipulating data lists, sorting values, filtering duplicates, counting occurrences, array operations, and structured JSON/CSV formatting."
+)
+
+#  String Parsing & Conversions Dimension
+tool_rag_registry.register_tool_schema(
+    name="code_executor_node",
+    description="Parsing strings, extracting numbers from text, unit conversions, date subtraction, days between dates, and substring formatting."
+)
+
 
 if __name__ == "__main__":
     print(code_executor("can you please tell me what is the square root of 25"))

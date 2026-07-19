@@ -1,4 +1,5 @@
 # core/router.py
+from actions.digital.code_executor import code_executor
 from core.routing.llm_factory import get_llm
 from langgraph.graph import StateGraph, START, END
 import os
@@ -388,10 +389,18 @@ def chat_node(state: AgentState):
     response = chat_llm.invoke(messages_payload)
     return {"messages": [response]}
 
+def code_executor_node(state: AgentState):
+    last_message = state["messages"][-1].content
+    reply = code_executor(last_message)
+    return {"messages": [AIMessage(content=reply)]}
+
+
+
 TOOL_REGISTRY = {
     "calendar_node": calendar_node,
     "web_search_node": web_search_node,
     "weather_node": weather_node,
+    "code_executor_node": code_executor_node,
 }
 
 def execute_tool_node(state: AgentState):

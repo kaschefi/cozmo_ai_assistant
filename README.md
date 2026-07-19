@@ -49,9 +49,15 @@ An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a
                 │                    ▼
                 │  ┌────────────────────────────────────┐  │
                 │  │       Router Supervisor (LLM)      │  │  ← Structured classifier
+                │  └─────────────────┬──────────────────┘  │
+                │                    │ next_route (key)
+                │                    ▼
+                │  ┌────────────────────────────────────┐  │
+                │  │     Unified Tool Executor Node     │  │  ← Single generic node
+                │  │          (TOOL_REGISTRY)           │  │    Scales to 100+ tools!
                 │  └────────┬────────┬────────┬─────────┘  │
                 └───────────┼────────┼────────┼────────────┘
-                            │        │        │
+                            │        │        │ dynamic lookup
                             ▼        ▼        ▼
                       Calendar    Weather  Web Search / Casual Chat
                        (n8n)     (ReAct)   (Tavily MCP / Ollama)
@@ -62,11 +68,11 @@ Embedding-based semantic lookup. Utterances are mapped to a local registry of py
 *   Physical actions: Autonomous charger docking.
 *   System operations: Date, time, and laptop configurations (Gaming/Coding/Study setups).
 
-### 2. Layer 2 LangGraph Brain (Dynamic Tool RAG)
-For complex inputs, the system triggers a stateful graph:
-1.  **Tool Retrieval Node**: Uses `FAISS` to run similarity search on the user's query against registered tool schemas, fetching only the top 2 candidates.
-2.  **Route Query**: Constructs a system prompt with only the retrieved candidate tools and uses local LLM (`qwen2.5:3b`) to yield a structured `RouteDecision`.
-3.  **Specialized Workers**: Routes to n8n (Google Calendar, Web Search), ReAct agent (Weather), or falls back to casual conversational chat (`chat_node`).
+### 2. Layer 2 LangGraph Brain (Dynamic Tool RAG & Unified Registry)
+For complex inputs, the system triggers a stateful graph configured to scale efficiently to 100+ tools:
+1.  **Tool Retrieval Node**: Uses `FAISS` to run a similarity search on the user's query against registered tool schemas, fetching only the top 2 candidates.
+2.  **Route Query**: Constructs a system prompt with only the retrieved candidate tools and uses a local LLM (`qwen2.5:3b`) to yield a structured `RouteDecision`.
+3.  **Unified Tool Executor**: Rather than compiling individual LangGraph nodes and conditional edges for every tool (which causes high boilerplate code and bad scalability), the graph routes to a single generic `execute_tool_node`. This node dynamically resolves the route key against a Python `TOOL_REGISTRY` mapping to run the tool's execution handler, falling back to a conversational `chat_node` if no tool matches.
 
 ### 3. Layer 2 Memory Architecture (Short & Long-Term)
 The assistant features a sophisticated, persistent two-tiered memory architecture designed to run efficiently on local systems without heavy cloud or complex database dependencies:
