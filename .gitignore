@@ -226,3 +226,9 @@ temp_speech.wav
 moka_web_launch.bat
 .bat
 convert_icon.py
+
+# Google OAuth Cache Token File
+**/google_token.json
+
+# Google OAuth setup script
+get_google_tokens.py
