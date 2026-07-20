@@ -29,6 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxrender-dev \
     ffmpeg \
+    portaudio19-dev \
+    libportaudio2 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy virtual environment from builder
@@ -50,10 +52,10 @@ COPY --chown=appuser:appuser . .
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health', timeout=2)" || exit 1
+    CMD python -c "import requests; requests.get('http://localhost:8000/api/health', timeout=2)" || exit 1
 
 # Expose the port that FastAPI runs on
 EXPOSE 8000
 
 # The command to run the app when the container starts
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "core.modes.web_api:app", "--host", "0.0.0.0", "--port", "8000"]

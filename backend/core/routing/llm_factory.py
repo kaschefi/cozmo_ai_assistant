@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from langchain_groq import ChatGroq
 
 load_dotenv()
 
@@ -60,8 +59,10 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0):
         )
 
 def get_groq_model(model_name="Compound", temperature=0.7):
+    from langchain_groq import ChatGroq
     return ChatGroq(
         temperature=temperature,
         groq_api_key=os.getenv("GROQ_API_KEY"),
         model_name=model_name
     )
+

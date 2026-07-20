@@ -90,7 +90,7 @@ def get_weather(city: str) -> str:
 
 
 weather_worker = create_react_agent(
-    model=get_groq_model(),
+    model=qwen25,
     tools=[get_weather],
     prompt=get_weather_prompt
 )

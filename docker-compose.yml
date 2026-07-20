@@ -12,12 +12,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-cozmo_memory}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-cozmo_memory}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # The FastAPI Backend Service
+  # The FastAPI Backend Service (Real-time Reload)
   backend:
     build:
       context: ./backend
@@ -26,6 +26,9 @@ services:
     container_name: cozmo-backend-app
     ports:
       - "8000:8000"
+    volumes:
+      - ./backend:/app
+    command: uvicorn core.modes.web_api:app --host 0.0.0.0 --port 8000 --reload
     env_file:
       - .env
     environment:
@@ -37,15 +40,20 @@ services:
       database:
         condition: service_healthy
 
-  # 3. The React/Vite Frontend Service
+  # The React/Vite Frontend Service (Hot Module Replacement HMR)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: moka-frontend:latest
+      target: builder
+    image: moka-frontend-dev:latest
     container_name: cozmo-frontend-app
     ports:
-      - "5173:80"
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npx vite --host 0.0.0.0 --port 5173
     depends_on:
       - backend
 

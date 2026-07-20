@@ -11,6 +11,8 @@ interface ChatInterfaceProps {
   onBackToLanding?: () => void;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding }) => {
   const [isConversationStarted, setIsConversationStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -39,7 +41,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           headers['X-Moka-Token'] = token;
         }
 
-        await fetch('http://127.0.0.1:5000/api/mute', {
+        await fetch(`${API_BASE_URL}/api/mute`, {
           method: 'POST',
           headers,
         });
@@ -93,7 +95,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   useEffect(() => {
     const fetchLocalToken = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/token/local');
+        const res = await fetch(`${API_BASE_URL}/api/token/local`);
         if (res.ok) {
           const data = await res.json();
           if (data.token) {
@@ -110,7 +112,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const res = await fetch('http://127.0.0.1:5000/api/health');
+        const res = await fetch(`${API_BASE_URL}/api/health`);
         if (res.ok) {
           setIsConnected(true);
         } else {
@@ -505,7 +507,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         headers['X-Moka-Token'] = token;
       }
 
-      const response = await fetch('http://127.0.0.1:5000/api/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
