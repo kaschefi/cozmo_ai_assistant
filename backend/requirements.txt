@@ -13,7 +13,7 @@ langgraph-prebuilt==1.0.13
 langsmith==0.8.0 
 psycopg==3.3.4 
 psycopg-binary==3.3.4 
-numpy==2.4.6 
+numpy>=2.0.2 
 pillow==10.4.0 
 opencv-python==4.13.0.92
 faster-whisper==1.2.1 
@@ -25,7 +25,7 @@ google-auth==2.55.2
 pycozmo==0.8.0 
 cozmo==1.4.10 
 semantic-router==0.1.12 
-fastembed==0.3.6 
+fastembed>=0.6.0 
 faiss-cpu==1.13.2 
 mcp==1.27.1 
 requests==2.34.2 

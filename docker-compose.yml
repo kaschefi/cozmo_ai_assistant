@@ -1,0 +1,54 @@
+services:
+  # The PostgreSQL Database Service
+  database:
+    image: postgres:15-alpine
+    container_name: cozmo-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cozmo_memory}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-cozmo_memory}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # The FastAPI Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: moka-backend:latest
+    container_name: cozmo-backend-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-cozmo_memory}
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  # 3. The React/Vite Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: moka-frontend:latest
+    container_name: cozmo-frontend-app
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+# Separate persistent storage volume so your DB memory survives container restarts
+volumes:
+  postgres_data:
