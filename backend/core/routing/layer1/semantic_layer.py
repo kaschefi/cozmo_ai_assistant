@@ -1,3 +1,4 @@
+# core/routing/layer1/semantic_layer.py
 import importlib
 import pkgutil
 import logging
@@ -21,7 +22,7 @@ except Exception:
 
 from semantic_router.encoders import FastEmbedEncoder
 from semantic_router.routers import SemanticRouter
-from core.routing.registry import reflex_registry
+from core.routing.layer1.registry import reflex_registry
 import actions.physical
 import actions.digital
 
@@ -49,7 +50,7 @@ def initialize_router():
     )
 
     # Build Layer 2 Tool RAG index exactly once after all actions are registered
-    from core.routing.tool_vector_db import tool_rag_registry
+    from core.routing.layer2.tool_vector_db import tool_rag_registry
     tool_rag_registry.build_index()
 
 initialize_router()

@@ -1,7 +1,7 @@
 import os
 import requests
 from schemas.request_models import AgentState
-from core.routing.tool_vector_db import tool_rag_registry
+from core.routing.layer2.tool_vector_db import tool_rag_registry
 from dotenv import load_dotenv
 
 load_dotenv()

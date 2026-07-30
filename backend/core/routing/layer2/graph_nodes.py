@@ -1,23 +1,14 @@
-# core/router.py
-from actions.digital.code_executor import code_executor
+# core/routing/layer2/graph_nodes.py
+import re
+import threading
+import sys
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, RemoveMessage
+from langsmith import traceable
+
 from core.routing.llm_factory import get_llm
-from langgraph.graph import StateGraph, START, END
-import os
-from dotenv import load_dotenv
+from core.routing.layer2.tool_vector_db import tool_rag_registry
 from schemas.memory_db import long_term_memory
 from schemas.request_models import AgentState, RouteDecision
-from actions.digital.n8n_agents import call_n8n_calendar, call_web_search
-from actions.digital.langchain_agents import weather_worker
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from core.routing.tool_vector_db import tool_rag_registry
-from psycopg import connect
-from psycopg.rows import dict_row
-from langgraph.checkpoint.postgres import PostgresSaver
-from langchain_core.messages import RemoveMessage
-from langsmith import traceable
-from actions.digital.calendar_agent import run_calendar_agent
-load_dotenv()
-
 
 GRAY = "\033[90m"
 RESET = "\033[0m"
@@ -26,8 +17,6 @@ router_llm = get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=0)
 structured_router = router_llm.with_structured_output(RouteDecision)
 chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 
-
-# --- GRAPH NODES ---
 
 def tool_retrieval_node(state: AgentState):
     """
@@ -87,6 +76,7 @@ def summarize_conversation_node(state: AgentState):
         "messages": delete_messages_instructions
     }
 
+
 def memory_retrieval_node(state: AgentState):
     """
     Step 1: Runs a quick similarity check against the permanent database
@@ -138,7 +128,6 @@ def memory_extraction_node(state: AgentState):
         
     user_id = "cozmo_owner"
 
-    import threading
     @traceable(name="Long-Term Memory Fact Extraction", run_type="chain")
     def run_extraction_bg():
         try:
@@ -182,7 +171,6 @@ def memory_extraction_node(state: AgentState):
                 for fact in cleaned_result.split("\n"):
                     clean_fact = fact.strip()
                     # Robust cleaning: strip list indicators like "1. ", "- ", "* "
-                    import re
                     clean_fact = re.sub(r'^[-*\d.\s]+', '', clean_fact).strip()
                     
                     # Parse pipe separation
@@ -197,16 +185,14 @@ def memory_extraction_node(state: AgentState):
                         clean_fact = re.sub(r'^[Tt]he\s+[Uu]ser', 'The user', clean_fact)
                         
                         long_term_memory.save_memory(clean_fact, category=category, user_id=user_id)
-                        #print(f"\n{GRAY} [LONG-TERM MEMORY UPDATE]: Saved -> {clean_fact} ({category}){RESET}\n: ", end="")
-                        import sys
                         sys.stdout.flush()
         except Exception as e:
             print(f"\n{GRAY} [LONG-TERM MEMORY ERROR]: Failed background extraction: {e}{RESET}\n: ", end="")
-            import sys
             sys.stdout.flush()
 
     threading.Thread(target=run_extraction_bg, daemon=False).start()
     return {}
+
 
 def route_query(state: AgentState):
     last_message = state["messages"][-1].content
@@ -243,237 +229,11 @@ def route_query(state: AgentState):
 
     return {"next_route": decision.route}
 
-# --- WORKER NODES  ---
-
-def calendar_node(state: AgentState):
-    last_message = state["messages"][-1].content
-    reply = run_calendar_agent(last_message)
-    return {"messages": [AIMessage(content=reply)]}
-
-
-def web_search_node(state: AgentState):
-    last_message = state["messages"][-1].content
-    reply = call_web_search(last_message)
-    if not reply:
-        reply = "I tried searching, but couldn't reach the search service."
-    return {"messages": [AIMessage(content=reply)]}
-
-
-def weather_node(state: AgentState):
-    """
-    Direct single-turn Weather Node:
-    1. Extract the city from the user query using a precise prompt (default to Vienna).
-    2. Call the get_weather Python function directly.
-    3. Feed the raw weather text to the LLM to format a friendly conversational response.
-    """
-    last_message = state["messages"][-1].content
-    
-    # Step 1: Extract city using a fast LLM call
-    city_prompt = f"""You are a precise city name extractor. Extract the city name mentioned in this query.
-    If no city is explicitly mentioned, output ONLY 'Vienna'.
-    Output ONLY the city name, with no other words, punctuation, or formatting.
-    
-    Query: "{last_message}"
-    """
-    city_response = chat_llm.invoke([
-        SystemMessage(content="You extract city names. Output ONLY the city name, nothing else."),
-        HumanMessage(content=city_prompt)
-    ])
-    city = city_response.content.strip().strip("'\"").strip()
-    if not city or len(city.split()) > 3: # Fallback if model outputs a sentence
-        city = "Vienna"
-        
-    # Step 2: Call the Python get_weather function directly
-    from actions.digital.langchain_agents import get_weather
-    raw_weather = get_weather.func(city)
-
-    # Parsing weather details for face display
-    import re
-    # Extract temperature (digits, optionally signed)
-    temp_match = re.search(r'([+-]?\d+)', raw_weather)
-    temp = temp_match.group(1) if temp_match else "15"
-    
-    # Map condition
-    raw_lower = raw_weather.lower()
-    if any(x in raw_lower for x in ["rain", "drizzle", "shower"]):
-        cond = "rainy"
-    elif any(x in raw_lower for x in ["snow", "ice", "flurry"]):
-        cond = "snowy"
-    elif any(x in raw_lower for x in ["cloud", "overcast", "mist", "fog"]):
-        cond = "cloudy"
-    elif any(x in raw_lower for x in ["thunder", "storm", "lightning"]):
-        cond = "stormy"
-    else:
-        cond = "sunny"
-
-    # Trigger Cozmo Face weather update in Robot Mode directly via Python (prevents loopback deadlocks)
-    from core.hardware.connection import cozmo_manager
-    if cozmo_manager.robot_mode:
-        try:
-            cli = cozmo_manager.get_robot()
-            if cli:
-                import asyncio
-                
-                # Run a background loop to periodically redraw the weather face
-                # This prevents pycozmo speech/movement animations from overwriting the screen buffer!
-                async def draw_weather_loop():
-                    from actions.physical.face import FaceLibrary
-                    face = FaceLibrary(cli)
-                    
-                    # Redraw every 1.5 seconds for 30 seconds (20 iterations) to keep display stable without Wi-Fi/Audio packet congestion
-                    for _ in range(20):
-                        try:
-                            face.act_weather(temp, cond)
-                        except Exception:
-                            pass
-                        await asyncio.sleep(1.5)
-                    
-                    # Return to standard eyes after 30 seconds
-                    try:
-                        face.act_reset()
-                    except Exception:
-                        pass
-                
-                asyncio.create_task(draw_weather_loop())
-        except Exception as e:
-            print(f"Error drawing weather on face: {e}")
-    
-    # Step 3: Generate the conversational response including the temperature degrees
-    weather_prompt = f"""You are Cozmo, a friendly robot assistant. 
-    Here is the raw weather data fetched for the city of '{city}':
-    "{raw_weather}"
-    
-    Based on this raw data, write a short, natural, conversational response that you can speak out loud.
-    You MUST explicitly include the exact temperature in degrees (in Celsius). Never output just the condition (like 'sunny') without the exact temperature degrees.
-    Keep it to a single friendly sentence.
-    """
-    
-    response = chat_llm.invoke([
-        SystemMessage(content="You are Cozmo. Write a friendly, single-sentence weather update including the exact temperature degrees."),
-        HumanMessage(content=weather_prompt)
-    ])
-    
-    return {"messages": [AIMessage(content=response.content.strip())]}
-
-
-def chat_node(state: AgentState):
-    existing_summary = state.get("summary", "")
-    retrieved_memories = state.get("retrieved_memories", [])
-    messages_payload = []
-
-    system_instructions = (
-        "You are Cozmo, an advanced personal robot assistant with a persistent long-term memory core. "
-        "Be friendly, highly conversational, and helpful.\n"
-        "CONVERSATIONAL HYGIENE RULES:\n"
-        "1. Never 'flex' or list all of your memory core facts unsolicited in a single response.\n"
-        "2. Keep your responses short, natural, and highly focused on the user's latest statement (1-2 sentences max).\n"
-        "3. Only mention a fact if it is directly and naturally relevant to the user's latest message. Treat your memories as silent background knowledge."
-    )
-    if existing_summary:
-        system_instructions += f"Summary of the current chat session: {existing_summary} "
-        
-    if retrieved_memories:
-        facts_str = "\n".join(f"- {fact}" for fact in retrieved_memories)
-        system_instructions += (
-            f"\n\n[LONG-TERM MEMORY CORE]\n"
-            f"You permanently remember the following historical facts about this user:\n"
-            f"{facts_str}\n\n"
-            f"INSTRUCTIONS:\n"
-            f"1. Treat these facts as absolute, undeniable truths from past interactions.\n"
-            f"2. Never break character, and never explain technical AI limitations or state that you cannot remember things across sessions."
-        )
-
-    messages_payload.append(SystemMessage(content=system_instructions))
-    messages_payload.extend(state["messages"])
-
-    response = chat_llm.invoke(messages_payload)
-    return {"messages": [response]}
-
-def code_executor_node(state: AgentState):
-    last_message = state["messages"][-1].content
-    reply = code_executor(last_message)
-    return {"messages": [AIMessage(content=reply)]}
-
-
-
-TOOL_REGISTRY = {
-    "calendar_node": calendar_node,
-    "web_search_node": web_search_node,
-    "weather_node": weather_node,
-    "code_executor_node": code_executor_node,
-}
-
-def execute_tool_node(state: AgentState):
-    route = state.get("next_route", "none")
-    handler = TOOL_REGISTRY.get(route)
-    if handler:
-        return handler(state)
-    return {"messages": [AIMessage(content=f"Error: Tool handler for '{route}' not found.")]}
 
 def decide_next_step(state: AgentState) -> str:
     """Evaluates router output and targets a node execution branch."""
+    from core.routing.layer2.worker_nodes import TOOL_REGISTRY
     route = state.get("next_route", "none")
     if route in TOOL_REGISTRY:
         return "execute_tool_node"
     return "chat_node"
-
-
-# --- BUILD THE GRADIENT COMPILER GRAPH ---
-builder = StateGraph(AgentState)
-
-# Add nodes
-builder.add_node("tool_retrieval_node", tool_retrieval_node)
-builder.add_node("route_query", route_query)
-builder.add_node("summarize_conversation_node", summarize_conversation_node)
-builder.add_node("execute_tool_node", execute_tool_node)
-builder.add_node("chat_node", chat_node)
-builder.add_node("memory_retrieval_node", memory_retrieval_node)
-builder.add_node("memory_extraction_node", memory_extraction_node)
-
-# Wire the transitions
-builder.add_edge(START, "memory_retrieval_node")
-builder.add_edge("memory_retrieval_node", "tool_retrieval_node")
-builder.add_edge("tool_retrieval_node", "route_query")
-builder.add_conditional_edges("route_query", decide_next_step)
-
-builder.add_edge("execute_tool_node", "summarize_conversation_node")
-builder.add_edge("chat_node", "summarize_conversation_node")
-
-builder.add_edge("summarize_conversation_node", "memory_extraction_node")
-builder.add_edge("memory_extraction_node", END)
-
-
-
-DB_URI = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/cozmo_db")
-
-# Crucial for LangGraph compatibility & table schema auto-migrations
-conn_kwargs = {
-    "autocommit": True,
-    "row_factory": dict_row
-}
-try:
-    conn = connect(DB_URI, **conn_kwargs)
-    checkpointer = PostgresSaver(conn)
-    checkpointer.setup()
-
-    cozmo_graph = builder.compile(checkpointer=checkpointer)
-except Exception as db_err:
-    cozmo_graph = builder.compile()  # Fallback to stateless memory if DB is down
-
-
-def run_cozmo_agent(user_input: str,thread_id: str = "cozmo_default_session") -> str:
-    initial_state = {"messages": [HumanMessage(content=user_input)]}
-    config = {
-        "configurable": {"thread_id": thread_id},
-        "metadata": {
-            "session_id": thread_id,
-            "application_mode": "Terminal" if thread_id.startswith("terminal") else "Physical_Cozmo"
-        }
-    }
-    initial_state = {
-        "messages": [HumanMessage(content=user_input)],
-        "retrieved_memories": []  # Empty initial layer container
-    }
-
-    result = cozmo_graph.invoke(initial_state, config=config)
-    return result["messages"][-1].content

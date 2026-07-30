@@ -3,7 +3,7 @@ import time
 import cv2
 import numpy as np
 from core.hardware.connection import cozmo_manager
-from core.routing.registry import reflex_registry
+from core.routing.layer1.registry import reflex_registry
 
 latest_image = None
 new_frame_available = False

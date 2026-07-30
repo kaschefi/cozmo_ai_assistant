@@ -3,7 +3,7 @@ import uuid
 import os
 from dotenv import load_dotenv
 from psycopg import connect
-from core.routing.tool_vector_db import LangChainFastEmbedBridge
+from core.routing.layer2.tool_vector_db import LangChainFastEmbedBridge
 import numpy as np
 
 load_dotenv()

@@ -2,7 +2,7 @@ import os
 import webbrowser
 import asyncio
 import glob
-from core.routing.registry import reflex_registry
+from core.routing.layer1.registry import reflex_registry
 from actions.physical.speak import respond
 
 @reflex_registry.reflex("setup_gaming", ["set my laptop for gaming",

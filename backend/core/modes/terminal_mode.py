@@ -6,7 +6,7 @@ import time
 import threading
 from datetime import datetime
 from dotenv import load_dotenv
-from core.routing.semantic_layer import check_layer_1, initialize_router
+from core.routing.layer1.semantic_layer import check_layer_1, initialize_router
 from core.routing.brain import process_user_intent
 import asyncio
 from actions.physical.speak import respond

@@ -5,7 +5,7 @@ from langchain_core.tools import tool
 from langchain_core.messages import SystemMessage
 from langgraph.prebuilt import create_react_agent
 from core.routing.llm_factory import get_llm
-from core.routing.tool_vector_db import tool_rag_registry
+from core.routing.layer2.tool_vector_db import tool_rag_registry
 from core.routing.llm_factory import get_groq_model
 load_dotenv()
 

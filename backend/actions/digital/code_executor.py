@@ -1,4 +1,4 @@
-from core.routing.tool_vector_db import tool_rag_registry
+from core.routing.layer2.tool_vector_db import tool_rag_registry
 import subprocess
 import sys
 import os

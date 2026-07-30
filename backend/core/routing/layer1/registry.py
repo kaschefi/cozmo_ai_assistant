@@ -1,11 +1,11 @@
-# core/registry.py
+# core/routing/layer1/registry.py
 from semantic_router import Route
 
 
 class ReflexRegistry:
     def __init__(self):
         self.routes = []
-        # Maps route_name (function, speech_text)
+        # Maps route_name -> (function, speech_text)
         self.actions = {}
 
     def reflex(self, name: str, utterances: list[str], score_threshold: float = 0.85, speech: str = ""):
