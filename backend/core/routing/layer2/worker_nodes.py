@@ -34,20 +34,13 @@ def weather_node(state: AgentState):
     """
     last_message = state["messages"][-1].content
     
-    # Step 1: Extract city using a fast LLM call
-    city_prompt = f"""You are a precise city name extractor. Extract the city name mentioned in this query.
-    If no city is explicitly mentioned, output ONLY 'Vienna'.
-    Output ONLY the city name, with no other words, punctuation, or formatting.
-    
-    Query: "{last_message}"
-    """
-    city_response = chat_llm.invoke([
-        SystemMessage(content="You extract city names. Output ONLY the city name, nothing else."),
-        HumanMessage(content=city_prompt)
-    ])
-    city = city_response.content.strip().strip("'\"").strip()
-    if not city or len(city.split()) > 3: # Fallback if model outputs a sentence
-        city = "Vienna"
+    # Step 1: Fast regex city extraction (defaults to Vienna in <1ms)
+    city = "Vienna"
+    city_match = re.search(r'\bin\s+([A-Za-z\s]+)', last_message, re.IGNORECASE)
+    if city_match:
+        extracted = city_match.group(1).strip()
+        if len(extracted.split()) <= 2:
+            city = extracted
         
     # Step 2: Call the Python get_weather function directly
     from actions.digital.langchain.weather_agent import get_weather

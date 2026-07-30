@@ -511,7 +511,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         headers['X-Moka-Token'] = token;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -521,24 +521,62 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         }),
       });
 
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
         throw new Error(`Server returned HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      const replyId = Math.random().toString();
       const replyTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Append empty response bubble that populates as tokens arrive
       setMessages(prev => [
         ...prev,
         {
-          id: Math.random().toString(),
+          id: replyId,
           sender: 'moka',
-          text: data.response || 'No response text returned.',
+          text: '',
           timestamp: replyTimestamp
         }
       ]);
       setIsMokaTyping(false);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+          const dataStr = trimmed.replace(/^data:\s*/, '');
+          if (dataStr === '[DONE]') break;
+
+          try {
+            const parsed = JSON.parse(dataStr);
+            if (parsed.token) {
+              const tokenText = parsed.token;
+              setMessages(prev =>
+                prev.map(msg =>
+                  msg.id === replyId
+                    ? { ...msg, text: msg.text + tokenText }
+                    : msg
+                )
+              );
+            }
+          } catch {
+            // Ignore unparseable non-json SSE lines
+          }
+        }
+      }
     } catch (error) {
-      console.warn("Backend API not reachable. Checking connection status...", error);
+      console.warn("Backend API stream error:", error);
       if (!isConnectedRef.current) {
         // Roll back: remove user message from chat stream and prepend back to pending queue
         setMessages(prev => prev.filter(m => m.id !== messageId));

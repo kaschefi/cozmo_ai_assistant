@@ -70,9 +70,15 @@ class VoiceSpeaker:
             return
 
         try:
-            print("[VoiceSpeaker] Initializing Kokoro TTS engine into memory...")
+            import os
+            # Resolve absolute path to root workspace if relative file not found in current CWD
+            ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            m_path = self.model_path if os.path.exists(self.model_path) else os.path.join(ROOT_DIR, self.model_path)
+            v_path = self.voices_path if os.path.exists(self.voices_path) else os.path.join(ROOT_DIR, self.voices_path)
+
+            print(f"[VoiceSpeaker] Initializing Kokoro TTS engine from {m_path}...")
             # Load the model into memory once at boot time
-            self.kokoro = Kokoro(self.model_path, self.voices_path)
+            self.kokoro = Kokoro(m_path, v_path)
             print("[VoiceSpeaker] Kokoro TTS Engine initialized successfully.")
         except Exception as e:
             print(f"[WARNING] VoiceSpeaker failed to initialize Kokoro model: {e}")

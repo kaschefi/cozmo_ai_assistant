@@ -144,6 +144,19 @@ async def chat_endpoint(req: ChatRequest):
             detail=f"An error occurred in the cognitive layer: {str(e)}"
         )
 
+from fastapi.responses import StreamingResponse
+
+@app.post("/api/chat/stream", dependencies=[Depends(verify_moka_token)])
+async def chat_stream_endpoint(req: ChatRequest):
+    """
+    Direct SSE streaming endpoint pushing tokens token-by-token in real time.
+    """
+    from core.routing.brain import stream_user_intent
+    return StreamingResponse(
+        stream_user_intent(req.message, session_id=req.session_id, mute=req.mute),
+        media_type="text/event-stream"
+    )
+
 @app.post("/api/mute", dependencies=[Depends(verify_moka_token)])
 async def mute_endpoint():
     """
