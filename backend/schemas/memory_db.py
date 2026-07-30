@@ -26,8 +26,8 @@ class LongTermMemoryManager:
 
     def _ensure_table_exists(self):
         """Creates the user_profile_memories table with category support and runs safe DDL migrations and a self-healing sweeper."""
-        with connect(DB_URI) as conn:
-            with connect(DB_URI) as conn:
+        try:
+            with connect(DB_URI, connect_timeout=1) as conn:
                 with conn.cursor() as cur:
                     # 1. Create table if not exists with correct schema
                     cur.execute("""
@@ -139,6 +139,8 @@ class LongTermMemoryManager:
                                 "DELETE FROM user_profile_memories WHERE id = ANY(%s);",
                                 (ids_to_delete,)
                             )
+        except Exception as e:
+            print(f"[LongTermMemoryManager] Database connection skipped/unavailable ({e}). Running in offline mode.")
 
     def save_memory(self, fact: str, category: str = None, user_id: str = "cozmo_owner"):
         """Saves a unique personal fact to the database. Overwrites semantically conflicting or matching category facts."""

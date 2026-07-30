@@ -20,7 +20,7 @@ try:
 except Exception:
     pass
 
-from semantic_router.encoders import FastEmbedEncoder
+from core.routing.encoder import get_shared_encoder
 from semantic_router.routers import SemanticRouter
 from core.routing.layer1.registry import reflex_registry
 import actions.physical
@@ -41,7 +41,7 @@ def initialize_router():
     global layer_1_router
 
     load_actions()
-    encoder = FastEmbedEncoder(name="BAAI/bge-small-en-v1.5")
+    encoder = get_shared_encoder()
     layer_1_router = SemanticRouter(
         encoder=encoder,
         routes=reflex_registry.routes,

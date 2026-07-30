@@ -1,10 +1,5 @@
 import time
 from datetime import datetime
-from core.routing.layer1.semantic_layer import check_layer_1, execute_reflex
-from core.routing.layer2.router import run_cozmo_agent
-from actions.physical.speak import respond
-from actions.physical.face import FaceLibrary
-from actions.physical.timer import run_timer_logic
 import asyncio
 
 async def process_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False) -> str:
@@ -14,6 +9,10 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
     1. Tier 1 (Semantic Layer / Reflexes): Fast, local, and deterministic.
     2. Tier 2 (Cognitive Layer / LangGraph Router): RAG, Memory, and LLM-driven actions.
     """
+    from core.routing.layer1.semantic_layer import check_layer_1, execute_reflex
+    from core.routing.layer2.router import run_cozmo_agent
+    from actions.physical.speak import respond
+
     command_clean = command.strip()
     if not command_clean:
         return ""

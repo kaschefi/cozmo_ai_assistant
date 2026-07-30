@@ -110,22 +110,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   }, []);
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
     const checkConnection = async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/api/health`);
         if (res.ok) {
           setIsConnected(true);
+          timeoutId = setTimeout(checkConnection, 5000);
         } else {
           setIsConnected(false);
+          timeoutId = setTimeout(checkConnection, 500);
         }
       } catch {
         setIsConnected(false);
+        timeoutId = setTimeout(checkConnection, 500);
       }
     };
 
     checkConnection();
-    const intervalId = setInterval(checkConnection, 3000);
-    return () => clearInterval(intervalId);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Suggested starter prompts

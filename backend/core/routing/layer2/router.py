@@ -49,7 +49,8 @@ DB_URI = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/co
 # Crucial for LangGraph compatibility & table schema auto-migrations
 conn_kwargs = {
     "autocommit": True,
-    "row_factory": dict_row
+    "row_factory": dict_row,
+    "connect_timeout": 1
 }
 try:
     conn = connect(DB_URI, **conn_kwargs)

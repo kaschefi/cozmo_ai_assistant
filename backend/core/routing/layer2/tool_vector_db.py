@@ -1,15 +1,16 @@
 # core/routing/layer2/tool_vector_db.py
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
-from semantic_router.encoders import FastEmbedEncoder
+from core.routing.encoder import get_shared_encoder
 import numpy as np
 
 
 class LangChainFastEmbedBridge:
     """Bridges Layer 1 encoder to LangChain's vector store interface."""
 
-    def __init__(self):
-        self.encoder = FastEmbedEncoder(name="BAAI/bge-small-en-v1.5")
+    @property
+    def encoder(self):
+        return get_shared_encoder()
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return self.encoder(texts)

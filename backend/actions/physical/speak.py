@@ -45,8 +45,16 @@ class VoiceSpeaker:
         self._paused = False
         self._stream = None
 
-        self._initialize_model()
-        self._initialize_stream()
+    def _ensure_initialized(self):
+        """Ensures the Kokoro model and sound stream are initialized before playback."""
+        if self.kokoro is None and KOKORO_AVAILABLE and AUDIO_AVAILABLE:
+            self._initialize_model()
+        if self._stream is None and AUDIO_AVAILABLE:
+            self._initialize_stream()
+
+    def warmup(self):
+        """Background warmup function to load Kokoro ONNX model weights asynchronously."""
+        self._ensure_initialized()
 
     @property
     def is_playing(self) -> bool:
@@ -206,6 +214,7 @@ class VoiceSpeaker:
         Heavy ONNX matrix math generation pass (Blocking).
         Generates full sentences/phrases to preserve prosody, then chops into 20ms chunks.
         """
+        self._ensure_initialized()
         if not self.kokoro or self._interrupt_flag:
             return
 
@@ -240,6 +249,7 @@ class VoiceSpeaker:
         Generates full sentences/phrases to preserve prosody, resamples to 22050Hz,
         and saves as a mono 16-bit WAV file for physical Cozmo playback.
         """
+        self._ensure_initialized()
         if not self.kokoro:
             return
 

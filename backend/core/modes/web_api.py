@@ -13,6 +13,8 @@ if WORKSPACE_DIR not in sys.path:
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Security, Depends, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
@@ -22,10 +24,45 @@ import uvicorn
 from schemas.request_models import ChatRequest
 from core.routing.brain import process_user_intent
 
+
+async def _background_warmup():
+    """
+    Non-blocking background task that pre-warms AI/ML models (FastEmbed, Semantic Router,
+    Kokoro ONNX) while the web server is already live and responding to health probes.
+    """
+    try:
+        print("[MoKa Warmup] Starting background model pre-warming...")
+        loop = asyncio.get_running_loop()
+        
+        # 1. Warm up shared encoder
+        from core.routing.encoder import get_shared_encoder
+        await loop.run_in_executor(None, get_shared_encoder)
+
+        # 2. Warm up semantic layer router & tool vector DB index
+        from core.routing.layer1.semantic_layer import initialize_router
+        await loop.run_in_executor(None, initialize_router)
+
+        # 3. Warm up Kokoro ONNX speaker model
+        from actions.physical.speak import speaker
+        await loop.run_in_executor(None, speaker.warmup)
+
+        print("[MoKa Warmup] All cognitive models pre-warmed & active in RAM!")
+    except Exception as e:
+        print(f"[MoKa Warmup] Notice during background pre-warming: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Launch background pre-warming without blocking server boot
+    asyncio.create_task(_background_warmup())
+    yield
+
+
 app = FastAPI(
     title="MoKa Web API",
     description="Dedicated connection bridge for MoKa's cognitive layer, enabling chat interface access offline.",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS middleware configuration allowing traffic from Vite/React frontend
