@@ -1,3 +1,4 @@
+# actions/digital/langgraph/calendar_agent.py
 import os
 import datetime
 import socket
@@ -70,7 +71,7 @@ def format_iso_datetime(dt_str: str) -> str:
     raise ValueError(f"Invalid date/time format: '{dt_str}'. Must be an ISO 8601 string (e.g. YYYY-MM-DDTHH:MM:SSZ).")
 
 
-TOKEN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "google_token.json")
+TOKEN_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "google_token.json")
 
 def get_calendar_service():
     """Builds the calendar client using server-side credentials with local file persistence and automatic refresh handling."""

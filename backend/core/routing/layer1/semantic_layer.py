@@ -30,11 +30,11 @@ layer_1_router = None
 
 def load_actions():
     """
-    Automatically imports all modules inside the actions packages
+    Automatically imports all modules inside the actions packages and subpackages
     so that the decorators trigger and register themselves.
     """
     for package in [actions.physical, actions.digital]:
-        for _, module_name, _ in pkgutil.iter_modules(package.__path__, package.__name__ + "."):
+        for _, module_name, _ in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
             importlib.import_module(module_name)
 
 def initialize_router():
@@ -53,9 +53,6 @@ def initialize_router():
     from core.routing.layer2.tool_vector_db import tool_rag_registry
     tool_rag_registry.build_index()
 
-initialize_router()
-
-
 async def execute_reflex(route_name: str, mute: bool = False) -> bool:
     if route_name in reflex_registry.actions:
         action_func, speech_text = reflex_registry.actions[route_name]
@@ -72,5 +69,8 @@ async def execute_reflex(route_name: str, mute: bool = False) -> bool:
 
 
 def check_layer_1(user_input: str) -> str:
+    global layer_1_router
+    if layer_1_router is None:
+        initialize_router()
     route_choice = layer_1_router(user_input)
     return route_choice.name

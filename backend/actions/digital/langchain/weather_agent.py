@@ -1,3 +1,4 @@
+# actions/digital/langchain/weather_agent.py
 import os
 from datetime import datetime
 from dotenv import load_dotenv
@@ -7,15 +8,16 @@ from langgraph.prebuilt import create_react_agent
 from core.routing.llm_factory import get_llm
 from core.routing.layer2.tool_vector_db import tool_rag_registry
 from core.routing.llm_factory import get_groq_model
+
 load_dotenv()
 
 qwen25 = get_llm("WEATHER_LLM_MODEL", "qwen2.5:3b", temperature=0)
-
 
 tool_rag_registry.register_tool_schema(
     name="weather_node",
     description="Provides real-time weather updates, climate forecasts, temperature, precipitation, rain, snow, or wind details."
 )
+
 def get_weather_prompt(state) -> list:
     current_time = datetime.now().strftime("%A, %B %d, %Y at %I:%M %p")
 

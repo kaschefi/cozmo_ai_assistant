@@ -2,10 +2,7 @@
 import re
 import asyncio
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from actions.digital.calendar_agent import run_calendar_agent
 
-from actions.digital.code_executor import code_executor
-from actions.digital.n8n_agents import call_web_search
 from core.routing.llm_factory import get_llm
 from schemas.request_models import AgentState
 
@@ -13,12 +10,14 @@ chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 
 
 def calendar_node(state: AgentState):
+    from actions.digital.langgraph.calendar_agent import run_calendar_agent
     last_message = state["messages"][-1].content
     reply = run_calendar_agent(last_message)
     return {"messages": [AIMessage(content=reply)]}
 
 
 def web_search_node(state: AgentState):
+    from actions.digital.n8n_agents import call_web_search
     last_message = state["messages"][-1].content
     reply = call_web_search(last_message)
     if not reply:
@@ -51,7 +50,7 @@ def weather_node(state: AgentState):
         city = "Vienna"
         
     # Step 2: Call the Python get_weather function directly
-    from actions.digital.langchain_agents import get_weather
+    from actions.digital.langchain.weather_agent import get_weather
     raw_weather = get_weather.func(city)
 
     # Parsing weather details for face display
@@ -155,6 +154,7 @@ def chat_node(state: AgentState):
 
 
 def code_executor_node(state: AgentState):
+    from actions.digital.langchain.code_executor import code_executor
     last_message = state["messages"][-1].content
     reply = code_executor(last_message)
     return {"messages": [AIMessage(content=reply)]}
