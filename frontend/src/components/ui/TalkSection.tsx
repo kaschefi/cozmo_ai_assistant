@@ -14,19 +14,19 @@ export const TalkSection: React.FC<TalkSectionProps> = ({ onStartChat }) => {
         <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
           Talk to Moka
         </h2>
-        <svg 
-          className="absolute -bottom-3 -left-2 w-[calc(100%+1rem)] h-3.5 text-[#00d2ff] drop-shadow-[0_0_8px_rgba(0,210,255,0.85)]" 
-          viewBox="0 0 300 20" 
-          fill="none" 
-          preserveAspectRatio="none" 
+        <svg
+          className="absolute -bottom-3 -left-2 w-[calc(100%+1rem)] h-3.5 text-[#00d2ff] drop-shadow-[0_0_8px_rgba(0,210,255,0.85)]"
+          viewBox="0 0 300 20"
+          fill="none"
+          preserveAspectRatio="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <path 
-            d="M 10 14 C 50 4, 100 18, 150 12 C 200 6, 250 16, 290 8" 
-            stroke="currentColor" 
-            strokeWidth="4" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
+          <path
+            d="M 10 14 C 50 4, 100 18, 150 12 C 200 6, 250 16, 290 8"
+            stroke="currentColor"
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
       </div>

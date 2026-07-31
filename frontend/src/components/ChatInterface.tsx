@@ -656,162 +656,162 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
   return (
     <div className="relative w-screen h-screen bg-[#020512] bg-gradient-to-br from-[#020512] via-[#070b1a] to-[#020512] overflow-hidden flex flex-col">
-      {/* Subtle digital grid overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #00f3ff 1px, transparent 1px)',
-          backgroundSize: '30px 30px'
-        }}
-      />
+          {/* Subtle digital grid overlay */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
+            style={{
+              backgroundImage: 'radial-gradient(circle, #00f3ff 1px, transparent 1px)',
+              backgroundSize: '30px 30px'
+            }}
+          />
 
-      {/* Persistent Header */}
-      <header
-        data-identity-state={headerState}
-        className="fixed top-0 left-0 w-full h-20 bg-[#020512]/95 border-b border-slate-900/60 backdrop-blur-md z-30 flex items-center justify-between px-6"
-      >
-        {/* Placeholder spacer for the absolute eyes container when transitioned */}
-        <div className="w-36 h-10" />
-
-        {/* Back and state details */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBackToLanding}
-            className="px-4 py-1.5 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-900/60 hover:border-slate-700 text-xs md:text-sm font-semibold tracking-wide text-slate-400 hover:text-white transition-all cursor-pointer"
+          {/* Persistent Header */}
+          <header
+            data-identity-state={headerState}
+            className="fixed top-0 left-0 w-full h-20 bg-[#020512]/95 border-b border-slate-900/60 backdrop-blur-md z-30 flex items-center justify-between px-6"
           >
-            ← Back to Ecosystem
-          </button>
-          <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide">
-            <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
-              ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
-              : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'
-              }`} />
-            Core Brain: {isConnected ? 'Connected' : 'Connecting...'}
-          </div>
-          {token && (
-            <div className="text-[10px] md:text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2 py-0.5 rounded font-mono" title={token}>
-              Token: {token.length > 8 ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : token} (Local)
-            </div>
-          )}
-        </div>
-      </header>
+            {/* Placeholder spacer for the absolute eyes container when transitioned */}
+            <div className="w-36 h-10" />
 
-      {/* Full-viewport canvas for fluid particle eyes and MOKA logo text */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 w-full h-full block pointer-events-none z-45"
-      />
-
-      {/* Scrollable Conversation Stream Wrapper (Full Width) */}
-      <div
-        className={`w-full flex-1 overflow-y-auto transition-all duration-700 delay-200 ${isConversationStarted ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-      >
-        {/* Centered Conversation Stream Content */}
-        <div
-          className={`px-6 pt-24 pb-32 max-w-2xl mx-auto w-full flex flex-col gap-4 transition-all duration-700 delay-200 ${isConversationStarted ? 'translate-y-0' : 'translate-y-10'
-            }`}
-        >
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
-                }`}
-            >
-              {/* Sender tag */}
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
-                {msg.sender === 'user' ? 'You' : 'Moka'}
-              </span>
-              {/* Message bubble */}
-              <div
-                className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${msg.sender === 'user'
-                  ? 'bg-slate-900/65 border border-cyan-500/20 text-white shadow-[0_0_15px_rgba(0,243,255,0.04)] rounded-tr-none'
-                  : 'bg-slate-950/70 border border-slate-800/70 text-slate-300 rounded-tl-none'
-                  }`}
+            {/* Back and state details */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBackToLanding}
+                className="px-4 py-1.5 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-900/60 hover:border-slate-700 text-xs md:text-sm font-semibold tracking-wide text-slate-400 hover:text-white transition-all cursor-pointer"
               >
-                {msg.text}
+                ← Back to Ecosystem
+              </button>
+              <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide">
+                <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
+                  ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+                  : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'
+                  }`} />
+                Core Brain: {isConnected ? 'Connected' : 'Connecting...'}
               </div>
-              {/* Timestamp & Actions */}
-              {msg.sender === 'user' ? (
-                <div className="w-full flex items-center justify-between mt-1 px-1">
-                  <button
-                    onClick={() => handleSendMessage(msg.text)}
-                    className="p-1 rounded text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 transition-all cursor-pointer flex items-center justify-center group"
-                    title="Resend this message"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5 transition-transform duration-500 ease-out group-hover:rotate-180"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                      />
-                    </svg>
-                  </button>
-                  <span className="text-[9px] text-slate-600">{msg.timestamp}</span>
+              {token && (
+                <div className="text-[10px] md:text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2 py-0.5 rounded font-mono" title={token}>
+                  Token: {token.length > 8 ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : token} (Local)
                 </div>
-              ) : (
-                <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
               )}
             </div>
-          ))}
+          </header>
 
-          {/* Render pending/on-hold queued messages */}
-          {pendingQueue.map((msg) => (
+          {/* Full-viewport canvas for fluid particle eyes and MOKA logo text */}
+          <canvas
+            ref={canvasRef}
+            className="fixed inset-0 w-full h-full block pointer-events-none z-45"
+          />
+
+          {/* Scrollable Conversation Stream Wrapper (Full Width) */}
+          <div
+            className={`w-full flex-1 overflow-y-auto transition-all duration-700 delay-200 ${isConversationStarted ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+          >
+      {/* Centered Conversation Stream Content */}
+      <div
+        className={`px-6 pt-24 pb-32 max-w-2xl mx-auto w-full flex flex-col gap-4 transition-all duration-700 delay-200 ${isConversationStarted ? 'translate-y-0' : 'translate-y-10'
+          }`}
+      >
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+              }`}
+          >
+            {/* Sender tag */}
+            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
+              {msg.sender === 'user' ? 'You' : 'Moka'}
+            </span>
+            {/* Message bubble */}
             <div
-              key={msg.id}
-              className="flex flex-col max-w-[85%] self-end items-end transition-all duration-300"
+              className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${msg.sender === 'user'
+                ? 'bg-slate-900/65 border border-cyan-500/20 text-white shadow-[0_0_15px_rgba(0,243,255,0.04)] rounded-tr-none'
+                : 'bg-slate-950/70 border border-slate-800/70 text-slate-300 rounded-tl-none'
+                }`}
             >
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
-                You
-              </span>
-              <div
-                className="p-4 rounded-2xl text-sm md:text-base leading-relaxed bg-[#0a0f24]/50 border border-dashed border-slate-700/60 text-slate-400 rounded-tr-none flex flex-col gap-2 min-w-[220px]"
-              >
-                <div>{msg.text}</div>
-                <div className="flex items-center justify-between gap-4 mt-1 pt-1.5 border-t border-slate-800/40">
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium font-sans">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                    Queued (On Hold)
-                  </div>
-                  <button
-                    onClick={() => handleDeletePendingMessage(msg.id)}
-                    className="px-2 py-0.5 rounded border border-red-500/30 hover:border-red-400 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1 font-semibold"
-                    title="Cancel and delete from queue"
+              {msg.text}
+            </div>
+            {/* Timestamp & Actions */}
+            {msg.sender === 'user' ? (
+              <div className="w-full flex items-center justify-between mt-1 px-1">
+                <button
+                  onClick={() => handleSendMessage(msg.text)}
+                  className="p-1 rounded text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 transition-all cursor-pointer flex items-center justify-center group"
+                  title="Resend this message"
+                >
+                  <svg
+                    className="w-3.5 h-3.5 transition-transform duration-500 ease-out group-hover:rotate-180"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Cancel
-                  </button>
-                </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                    />
+                  </svg>
+                </button>
+                <span className="text-[9px] text-slate-600">{msg.timestamp}</span>
               </div>
+            ) : (
               <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
-            </div>
-          ))}
+            )}
+          </div>
+        ))}
 
-          {/* Typing indicator bubble */}
-          {isMokaTyping && (
-            <div className="flex flex-col self-start items-start max-w-[85%]">
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
-                Moka
-              </span>
-              <div className="p-4 rounded-2xl rounded-tl-none bg-slate-950/70 border border-slate-800/70 flex gap-1.5 items-center justify-center min-w-[60px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+        {/* Render pending/on-hold queued messages */}
+        {pendingQueue.map((msg) => (
+          <div
+            key={msg.id}
+            className="flex flex-col max-w-[85%] self-end items-end transition-all duration-300"
+          >
+            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
+              You
+            </span>
+            <div
+              className="p-4 rounded-2xl text-sm md:text-base leading-relaxed bg-[#0a0f24]/50 border border-dashed border-slate-700/60 text-slate-400 rounded-tr-none flex flex-col gap-2 min-w-[220px]"
+            >
+              <div>{msg.text}</div>
+              <div className="flex items-center justify-between gap-4 mt-1 pt-1.5 border-t border-slate-800/40">
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium font-sans">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                  Queued (On Hold)
+                </div>
+                <button
+                  onClick={() => handleDeletePendingMessage(msg.id)}
+                  className="px-2 py-0.5 rounded border border-red-500/30 hover:border-red-400 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                  title="Cancel and delete from queue"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </button>
               </div>
             </div>
-          )}
+            <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
+          </div>
+        ))}
 
-          <div ref={messagesEndRef} />
-        </div>
+        {/* Typing indicator bubble */}
+        {isMokaTyping && (
+          <div className="flex flex-col self-start items-start max-w-[85%]">
+            <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
+              Moka
+            </span>
+            <div className="p-4 rounded-2xl rounded-tl-none bg-slate-950/70 border border-slate-800/70 flex gap-1.5 items-center justify-center min-w-[60px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
       </div>
+    </div>
 
       {/* Suggested Prompts Grid in Center (Fades out when conversation starts)
       <div
@@ -836,52 +836,52 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       </div>
       */}
 
-      {/* Sliding Input Box Container */}
-      <div
-        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${isConversationStarted
-          ? 'bottom-6 max-w-2xl'
-          : 'bottom-10 max-w-lg'
+  {/* Sliding Input Box Container */ }
+  <div
+    className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${isConversationStarted
+      ? 'bottom-6 max-w-2xl'
+      : 'bottom-10 max-w-lg'
+      }`}
+  >
+    <div className="w-full flex items-center bg-slate-950/70 border border-slate-800/80 rounded-2xl p-2.5 backdrop-blur-md hover:border-[#00d2ff]/30 focus-within:border-[#00d2ff]/50 focus-within:shadow-[0_0_20px_rgba(0,210,255,0.06)] transition-all">
+      <button
+        onClick={handleToggleMute}
+        className={`p-3 rounded-xl border transition-all duration-300 cursor-pointer flex items-center justify-center ${isMuted
+          ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/25 hover:border-rose-500/50 text-rose-400'
+          : 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/25 hover:border-cyan-500/50 text-cyan-400'
           }`}
+        title={isMuted ? "Unmute speech output" : "Mute speech output"}
       >
-        <div className="w-full flex items-center bg-slate-950/70 border border-slate-800/80 rounded-2xl p-2.5 backdrop-blur-md hover:border-[#00d2ff]/30 focus-within:border-[#00d2ff]/50 focus-within:shadow-[0_0_20px_rgba(0,210,255,0.06)] transition-all">
-          <button
-            onClick={handleToggleMute}
-            className={`p-3 rounded-xl border transition-all duration-300 cursor-pointer flex items-center justify-center ${isMuted
-                ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/25 hover:border-rose-500/50 text-rose-400'
-                : 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/25 hover:border-cyan-500/50 text-cyan-400'
-              }`}
-            title={isMuted ? "Unmute speech output" : "Mute speech output"}
-          >
-            {isMuted ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-              </svg>
-            )}
-          </button>
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message or press Enter to talk..."
-            className="flex-1 bg-transparent border-0 outline-none text-white text-sm md:text-base px-4 py-2 placeholder-slate-500"
-          />
-          <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputText.trim()}
-            className="p-3 bg-cyan-950/60 hover:bg-cyan-500 border border-cyan-500/25 hover:border-cyan-400 text-[#00d2ff] hover:text-white rounded-xl transition-all duration-300 disabled:opacity-30 disabled:hover:bg-cyan-950/60 disabled:hover:text-[#00d2ff] disabled:hover:border-cyan-500/25 cursor-pointer shadow-[0_0_15px_rgba(0,210,255,0.08)] flex items-center justify-center"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
-        </div>
-      </div>
+        {isMuted ? (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
+          </svg>
+        ) : (
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+          </svg>
+        )}
+      </button>
+      <input
+        type="text"
+        value={inputText}
+        onChange={(e) => setInputText(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Type a message or press Enter to talk..."
+        className="flex-1 bg-transparent border-0 outline-none text-white text-sm md:text-base px-4 py-2 placeholder-slate-500"
+      />
+      <button
+        onClick={() => handleSendMessage()}
+        disabled={!inputText.trim()}
+        className="p-3 bg-cyan-950/60 hover:bg-cyan-500 border border-cyan-500/25 hover:border-cyan-400 text-[#00d2ff] hover:text-white rounded-xl transition-all duration-300 disabled:opacity-30 disabled:hover:bg-cyan-950/60 disabled:hover:text-[#00d2ff] disabled:hover:border-cyan-500/25 cursor-pointer shadow-[0_0_15px_rgba(0,210,255,0.08)] flex items-center justify-center"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </button>
     </div>
+  </div>
+</div>
   );
 };
 
