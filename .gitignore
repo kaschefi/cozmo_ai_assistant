@@ -232,3 +232,10 @@ convert_icon.py
 
 # Google OAuth setup script
 get_google_tokens.py
+
+# Impeccable & AI Agents
+.agents/
+.impeccable/
+DESIGN.md
+PRODUCT.md
+skills-lock.json

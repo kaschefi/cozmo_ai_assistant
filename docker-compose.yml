@@ -57,6 +57,22 @@ services:
     depends_on:
       - backend
 
+  # The Cozmo Hardware Driver Daemon
+  hardware:
+    build:
+      context: ./backend/core/hardware/cozmo_driver
+      dockerfile: Dockerfile
+    image: moka-hardware-driver:latest
+    container_name: cozmo-hardware-driver
+    ports:
+      - "8001:8000"
+    environment:
+      - ANDROID_ADB_SERVER_ADDRESS=host.docker.internal
+      - ADB_SERVER_SOCKET=tcp:host.docker.internal:5037
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
 # Separate persistent storage volume so your DB memory survives container restarts
 volumes:
   postgres_data:

@@ -58,3 +58,5 @@ src/plugins/impeccable-live.client.ts
 .agents/
 .impeccable/
 DESIGN.md
+PRODUCT.md
+skills-lock.json
