@@ -6,6 +6,9 @@ import cv2
 from PIL import Image, ImageDraw
 import pycozmo
 
+from core.hardware.connection import cozmo_manager
+from core.routing.layer1.registry import reflex_registry
+
 # Terminal colors for scannable output log
 GREEN = "\033[92m"
 BLUE = "\033[94m"
@@ -24,14 +27,13 @@ frame_count = 0
 
 # ==============================================================================
 # CAMERA COLOR & EXPOSURE CALIBRATION SETTINGS
-# Change these values in code to find your ideal sweet spot for room lighting!
 # ==============================================================================
 cam_params = {
-    "red_gain": 0.87,     # Red Channel Multiplier (Decrease if too red/pink | Increase if too green/cyan)
-    "blue_gain": 1.05,    # Blue Channel Multiplier (Decrease if too blue | Increase if too yellow)
-    "brightness": -70,    # Brightness Offset (Decrease if image is washed out / too bright)
-    "contrast": 1.1,     # Contrast Multiplier (Default: 1.10 | Range: 1.0 - 1.3)
-    "gamma": 0.7,       # Gamma Curve (Default: 0.85 | Range: 0.7 - 1.0)
+    "red_gain": 0.87,     # Red Channel Multiplier
+    "blue_gain": 1.05,    # Blue Channel Multiplier
+    "brightness": -70,    # Brightness Offset
+    "contrast": 1.1,      # Contrast Multiplier
+    "gamma": 0.7,         # Gamma Curve
 }
 
 latest_sensor_state = {
@@ -47,23 +49,17 @@ latest_sensor_state = {
 
 def enhance_cozmo_frame(raw_bgr_frame, params=cam_params):
     """
-    Software Color Balance & Exposure Correction Pipeline:
-    1. Adjusts Red/Blue channel gains to eliminate pinkish/reddish color cast.
-    2. Modifies contrast & brightness to bring down overexposed highlights.
-    3. Applies Gamma Look-Up Table (LUT) to restore rich color vibrancy.
+    Software Color Balance & Exposure Correction Pipeline.
     """
-    # 1. Channel Balance Adjustment
     b, g, r = cv2.split(raw_bgr_frame)
     b = cv2.convertScaleAbs(b, alpha=params["blue_gain"])
     r = cv2.convertScaleAbs(r, alpha=params["red_gain"])
     frame_balanced = cv2.merge([b, g, r])
 
-    # 2. Contrast & Brightness Adjustment
     frame_adjusted = cv2.convertScaleAbs(
         frame_balanced, alpha=params["contrast"], beta=params["brightness"]
     )
 
-    # 3. Gamma LUT Lookup Correction
     gamma = max(params["gamma"], 0.1)
     inv_gamma = 1.0 / gamma
     table = np.array([((i / 255.0) ** inv_gamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
@@ -73,11 +69,7 @@ def enhance_cozmo_frame(raw_bgr_frame, params=cam_params):
 
 
 def on_camera_image(cli, image):
-    """
-    Ultra-fast PyCozmo camera callback.
-    Executes in < 0.1ms by storing ONLY the latest frame reference.
-    Drops old queued frames to guarantee ZERO latency stream playback.
-    """
+    """Ultra-fast PyCozmo camera callback."""
     global latest_raw_image, new_frame_available
     with lock:
         latest_raw_image = image
@@ -118,10 +110,18 @@ def on_orientation_change(cli, orientation):
     print(f"\n{CYAN}[ALERT] ORIENTATION CHANGED: {orient_name}{RESET}")
 
 
+def on_behavior_safety_event(reason: str):
+    """Callback when ReflexSafetyGuard intercepts a dangerous condition."""
+    print(f"\n{RED}[REFLEX SAFETY INTERCEPT] Safety guard tripped! Reason: {reason}{RESET}")
+
+
 def run_continuous_physical_and_sensor_test():
     """
-    Continuous zero-latency physical ability & real-time sensor/fall logging test
-    with automatic camera exposure & color balance correction.
+    Continuous physical movement & real-time sensor/fall logging test with:
+    - WASD Keyboard driving control (Forward, Backward, Left, Right)
+    - Up / Down Arrow keys to move hand (lift) up and down
+    - ReflexSafetyGuard protection against cliffs and freefalls
+    - Calibrated live camera feed with HUD controls display
     """
     global latest_raw_image, new_frame_available, frame_count, cam_params
 
@@ -132,41 +132,42 @@ def run_continuous_physical_and_sensor_test():
             pass
 
     print(f"{BLUE}====================================================={RESET}")
-    print(f"{BLUE}  PYCOZMO STREAM (COLOR CALIBRATED & ZERO LATENCY)    {RESET}")
+    print(f"{BLUE}  PYCOZMO CONTROLLER (WASD + ARROW KEYS + REFLEX SAFETY){RESET}")
     print(f"{BLUE}====================================================={RESET}")
-    print(f"{YELLOW}[INFO] Auto Color Balance & Exposure Filter ACTIVE (Red tint & brightness fixed).{RESET}")
-    print(f"{YELLOW}[HOTKEYS IN STREAM WINDOW]:{RESET}")
-    print(f"{GRAY}  ├─ '+' / '-': Adjust Brightness | 'r' / 'e': Red Gain | 'b' / 'v': Blue Gain{RESET}")
+    print(f"{YELLOW}[CONTROL BINDINGS IN STREAM WINDOW]:{RESET}")
+    print(f"{GREEN}  ├─ W / S        : Drive Forward / Backward (80 mm/s){RESET}")
+    print(f"{GREEN}  ├─ A / D        : Turn Left / Right in Place (60 deg/s){RESET}")
+    print(f"{GREEN}  ├─ UP / DOWN    : Move Hand (Lift) Up / Down{RESET}")
+    print(f"{GREEN}  ├─ SPACE / X    : Emergency Stop All Motors{RESET}")
+    print(f"{GREEN}  ├─ C            : Clear Reflex Safety Guard Trip{RESET}")
+    print(f"{GRAY}  ├─ '+' / '-'    : Adjust Brightness | 'r' / 'e': Red Gain | 'b' / 'v': Blue Gain{RESET}")
     print(f"{GRAY}  └─ '0': Reset Defaults | 'q': Exit Stream{RESET}\n")
 
     try:
-        # --- STEP 1: CONNECT TO ROBOT WITH RETRIES ---
-        print(f"{BLUE}[1/4] Connecting to Cozmo hardware...{RESET}")
-        connected = False
-        cli = None
-        for attempt in range(1, 11):
-            try:
-                print(f"{BLUE}  └─ Connection attempt {attempt}/10...{RESET}")
-                cli = pycozmo.Client()
-                cli.start()
-                cli.connect()
-                cli.wait_for_robot(timeout=10.0)
-                connected = True
-                print(f"{GREEN}[SUCCESS] Connected to Cozmo!{RESET}\n")
-                break
-            except Exception as conn_err:
-                print(f"{YELLOW}  └─ Attempt {attempt} failed ({conn_err}). Retrying in 2 seconds...{RESET}")
-                if cli:
-                    try:
-                        cli.disconnect()
-                        cli.stop()
-                    except Exception:
-                        pass
-                    cli = None
-                time.sleep(2.0)
+        # --- STEP 1: CONNECT TO ROBOT VIA COZMO MANAGER & SAFETY GUARD ---
+        print(f"{BLUE}[1/4] Connecting to Cozmo hardware with Reflex Safety Guard...{RESET}")
+        cozmo_manager.robot_mode = True
+        cozmo_manager.start()
 
-        if not connected or cli is None:
-            raise RuntimeError("Could not connect to Cozmo after 10 attempts. Please verify Cozmo is powered on and PC is connected to Cozmo's Wi-Fi network.")
+        cli = None
+        for attempt in range(1, 25):
+            cli = cozmo_manager.get_robot()
+            if cli and cozmo_manager.is_connected:
+                print(f"{GREEN}[SUCCESS] Connected to Cozmo hardware!{RESET}\n")
+                break
+            print(f"{BLUE}  └─ Waiting for Wi-Fi handshake ({attempt}/24)...{RESET}")
+            time.sleep(0.5)
+
+        if not cli or not cozmo_manager.is_connected:
+            raise RuntimeError(
+                "Could not connect to Cozmo. Please verify Cozmo is powered ON and PC Wi-Fi is connected to Cozmo's access point."
+            )
+
+        # Retrieve and configure Reflex Safety Guard
+        guard = cozmo_manager.get_safety_guard()
+        if guard:
+            guard.register_event_callback(on_behavior_safety_event)
+            print(f"{GREEN}[SUCCESS] Reflex Safety Guard registered and monitoring.{RESET}")
 
         # --- STEP 2: REGISTER EVENT HANDLERS ---
         print(f"{BLUE}[2/4] Registering sensor & camera handlers...{RESET}")
@@ -183,19 +184,22 @@ def run_continuous_physical_and_sensor_test():
         img = Image.new("1", (128, 32), color=0)
         draw = ImageDraw.Draw(img)
         draw.rectangle((0, 0, 127, 31), outline=1, fill=0)
-        draw.text((10, 4), "MOKA MONITORING", fill=1)
-        draw.text((15, 16), "CALIBRATED VIDEO", fill=1)
+        draw.text((8, 4), "WASD + ARROW MODE", fill=1)
+        draw.text((12, 16), "SAFETY ACTIVE", fill=1)
         cli.display_image(img)
-        print(f"{GREEN}[SUCCESS] Screen initialized. Starting calibrated stream loop...{RESET}\n")
+        print(f"{GREEN}[SUCCESS] Screen initialized. Starting interactive control loop...{RESET}\n")
 
-        # --- STEP 4: ZERO-LATENCY MAIN LOOP WITH COLOR CORRECTION ---
-        print(f"{BLUE}[4/4] Real-Time Calibrated Stream Active:{RESET}")
+        # --- STEP 4: INTERACTIVE CONTROL & CAMERA LOOP ---
+        print(f"{BLUE}[4/4] Real-Time Calibrated Stream & Control Active:{RESET}")
         print(f"{GRAY}-----------------------------------------------------------------------------{RESET}")
 
         last_telemetry_print = 0.0
+        last_movement_key_time = 0.0
+        is_moving = False
+        active_action = "IDLE"
 
         while True:
-            # 1. Process and Render Latest Camera Frame in Main Thread (Zero Latency)
+            # 1. Process and Render Camera Frame with HUD Overlay
             current_raw_img = None
             with lock:
                 if new_frame_available:
@@ -205,14 +209,12 @@ def run_continuous_physical_and_sensor_test():
             if current_raw_img is not None:
                 frame_count += 1
                 raw_bgr = cv2.cvtColor(np.array(current_raw_img), cv2.COLOR_RGB2BGR)
-
-                # Apply Software Color Balance & Exposure Enhancement Pipeline
                 frame = enhance_cozmo_frame(raw_bgr, cam_params)
 
-                # Header banner
+                # Top Header Banner
                 cv2.putText(
                     frame,
-                    f"PyCozmo Calibrated - Frame: {frame_count}",
+                    f"PyCozmo WASD - Frame: {frame_count}",
                     (10, 15),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.4,
@@ -220,45 +222,58 @@ def run_continuous_physical_and_sensor_test():
                     1,
                 )
 
-                # Fall Warning Overlay
-                if latest_sensor_state["is_falling"]:
-                    cv2.rectangle(frame, (0, 0), (frame.shape[1], 35), (0, 0, 255), -1)
+                # Active Action Display
+                action_color = (0, 255, 255) if active_action != "IDLE" else (200, 200, 200)
+                cv2.putText(
+                    frame,
+                    f"Action: {active_action}",
+                    (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.45,
+                    action_color,
+                    2,
+                )
+
+                # Safety Guard Status Overlay
+                is_safe = guard.is_safe() if guard else True
+                if not is_safe:
+                    cv2.rectangle(frame, (0, frame.shape[0] - 45), (frame.shape[1], frame.shape[0]), (0, 0, 255), -1)
+                    reason_text = guard.last_event_reason if guard else "TRIPPED"
                     cv2.putText(
                         frame,
-                        "!!! WARNING: COZMO IS FALLING !!!",
-                        (5, 22),
+                        f"!!! SAFETY TRIPPED: {reason_text} !!!",
+                        (10, frame.shape[0] - 25),
                         cv2.FONT_HERSHEY_SIMPLEX,
                         0.45,
                         (255, 255, 255),
                         2,
                     )
-                elif latest_sensor_state["cliff_detected"]:
                     cv2.putText(
                         frame,
-                        "CLIFF DETECTED!",
-                        (10, 30),
+                        "Press 'C' to clear safety after placing on safe surface",
+                        (10, frame.shape[0] - 8),
                         cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        (0, 0, 255),
-                        2,
+                        0.35,
+                        (255, 255, 255),
+                        1,
                     )
-
-                # Footer Overlay (Displays current color tuning settings)
-                orient_text = f"Orient: {latest_sensor_state['orientation']}"
-                tune_text = f"R:{cam_params['red_gain']:.2f} B:{cam_params['blue_gain']:.2f} Br:{cam_params['brightness']}"
-                cv2.putText(
-                    frame,
-                    f"{orient_text} | {tune_text}",
-                    (10, frame.shape[0] - 8),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.35,
-                    (255, 255, 255),
-                    1,
-                )
+                else:
+                    # Footer Overlay (Color tuning & Legend)
+                    orient_text = f"Orient: {latest_sensor_state['orientation']}"
+                    legend_text = "WASD: Drive | UP/DN: Hand | SPACE: Stop"
+                    cv2.putText(
+                        frame,
+                        f"{orient_text} | {legend_text}",
+                        (10, frame.shape[0] - 8),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.35,
+                        (255, 255, 255),
+                        1,
+                    )
 
                 cv2.imshow("PyCozmo Direct Stream", frame)
 
-            # 2. Extract Latest Robot Status & Telemetry
+            # 2. Extract Robot Telemetry
             status = getattr(cli, "robot_status", 0) or 0
             is_falling = bool(status & pycozmo.robot.RobotStatusFlag.IS_FALLING)
             cliff_detected = bool(status & pycozmo.robot.RobotStatusFlag.CLIFF_DETECTED)
@@ -276,52 +291,121 @@ def run_continuous_physical_and_sensor_test():
             orient_str = orientation.name if hasattr(orientation, "name") else str(orientation)
             latest_sensor_state["orientation"] = orient_str
 
-            accel = getattr(cli, "accel", None)
-            accel_tuple = (accel.x, accel.y, accel.z) if accel else (0.0, 0.0, 0.0)
-            latest_sensor_state["accel"] = accel_tuple
-
-            # Safety motor stop if falling or cliff detected
-            if is_falling or cliff_detected:
-                cli.stop_all_motors()
-
-            # 3. Print Telemetry Status Line (Refreshed at ~10Hz)
+            # Print Telemetry Line (~10Hz)
             now = time.time()
             if now - last_telemetry_print > 0.1:
                 fall_indicator = f"{RED}[FALLING!]{RESET}" if is_falling else f"{GREEN}[OK]{RESET}"
                 cliff_indicator = f"{RED}[CLIFF]{RESET}" if cliff_detected else f"{GREEN}[SAFE]{RESET}"
+                safety_indicator = f"{GREEN}[SAFE]{RESET}" if (guard and guard.is_safe()) else f"{RED}[SAFETY LOCK]{RESET}"
                 pickup_indicator = f"{YELLOW}[PICKED UP]{RESET}" if is_picked_up else f"{GREEN}[ON GROUND]{RESET}"
                 charger_indicator = f"{MAGENTA}[ON CHARGER]{RESET}" if is_on_charger else f"{GRAY}[BATTERY]{RESET}"
 
                 sys.stdout.write(
-                    f"\rLive Telemetry ──> Fall: {fall_indicator} | Cliff: {cliff_indicator} | "
-                    f"State: {pickup_indicator} | Power: {charger_indicator} | Orient: {orient_str} | Batt: {batt:.2f}V"
+                    f"\rTelemetry ──> Safety: {safety_indicator} | Fall: {fall_indicator} | Cliff: {cliff_indicator} | "
+                    f"State: {pickup_indicator} | Action: {CYAN}{active_action:<12}{RESET} | Batt: {batt:.2f}V"
                 )
                 sys.stdout.flush()
                 last_telemetry_print = now
 
-            # 4. Handle Live Hotkeys for On-the-fly Color & Exposure Tuning
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord("q"):
-                print(f"\n\n{GRAY}User requested exit via stream window.{RESET}")
-                break
-            elif key == ord("+") or key == ord("="):
-                cam_params["brightness"] = min(cam_params["brightness"] + 5, 50)
-            elif key == ord("-") or key == ord("_"):
-                cam_params["brightness"] = max(cam_params["brightness"] - 5, -80)
-            elif key == ord("r"):
-                cam_params["red_gain"] = round(max(cam_params["red_gain"] - 0.05, 0.2), 2)
-            elif key == ord("e"):
-                cam_params["red_gain"] = round(min(cam_params["red_gain"] + 0.05, 1.5), 2)
-            elif key == ord("b"):
-                cam_params["blue_gain"] = round(min(cam_params["blue_gain"] + 0.05, 2.5), 2)
-            elif key == ord("v"):
-                cam_params["blue_gain"] = round(max(cam_params["blue_gain"] - 0.05, 0.5), 2)
-            elif key == ord("0"):
-                cam_params["red_gain"] = 0.85
-                cam_params["blue_gain"] = 1.05
-                cam_params["brightness"] = -15
-                cam_params["contrast"] = 1.10
-                cam_params["gamma"] = 0.85
+            # 3. Capture Keyboard Inputs via cv2.waitKeyEx(1)
+            key_ex = cv2.waitKeyEx(1)
+            key = key_ex & 0xFF if key_ex != -1 else -1
+
+            is_safe_to_move = guard.is_safe() if guard else True
+
+            # Process WASD & Arrow Keys
+            if key_ex != -1:
+                # --- EXIT ---
+                if key == ord("q"):
+                    print(f"\n\n{GRAY}User requested exit via stream window.{RESET}")
+                    break
+
+                # --- CLEAR SAFETY GUARD ---
+                elif key in (ord("c"), ord("C")):
+                    if guard:
+                        guard.clear_safety()
+                        print(f"\n{GREEN}[SAFETY RESET] Reflex safety guard cleared by user.{RESET}")
+                        active_action = "SAFETY CLEARED"
+
+                # --- EMERGENCY STOP ---
+                elif key in (ord(" "), ord("x"), ord("X")):
+                    cli.stop_all_motors()
+                    cli.move_lift(0.0)
+                    is_moving = False
+                    active_action = "STOPPED"
+
+                # --- MOVEMENT COMMANDS (CHECK SAFETY GUARD FIRST) ---
+                elif not is_safe_to_move:
+                    active_action = "BLOCKED BY SAFETY"
+                    cli.stop_all_motors()
+                    cli.move_lift(0.0)
+
+                # W: FORWARD
+                elif key in (ord("w"), ord("W")):
+                    cli.drive_wheels(lwheel_speed=80.0, rwheel_speed=80.0)
+                    last_movement_key_time = time.time()
+                    is_moving = True
+                    active_action = "FORWARD"
+
+                # S: BACKWARD
+                elif key in (ord("s"), ord("S")):
+                    cli.drive_wheels(lwheel_speed=-80.0, rwheel_speed=-80.0)
+                    last_movement_key_time = time.time()
+                    is_moving = True
+                    active_action = "BACKWARD"
+
+                # A: TURN LEFT
+                elif key in (ord("a"), ord("A")):
+                    cli.drive_wheels(lwheel_speed=-60.0, rwheel_speed=60.0)
+                    last_movement_key_time = time.time()
+                    is_moving = True
+                    active_action = "TURN LEFT"
+
+                # D: TURN RIGHT
+                elif key in (ord("d"), ord("D")):
+                    cli.drive_wheels(lwheel_speed=60.0, rwheel_speed=-60.0)
+                    last_movement_key_time = time.time()
+                    is_moving = True
+                    active_action = "TURN RIGHT"
+
+                # UP ARROW: MOVE HAND (LIFT) UP
+                elif key_ex in (2490368, 0x260000) or key == 38 or (key_ex & 0xFFFF) == 38:
+                    cli.move_lift(3.0)
+                    last_movement_key_time = time.time()
+                    is_moving = True
+                    active_action = "LIFT UP"
+
+                # DOWN ARROW: MOVE HAND (LIFT) DOWN
+                elif key_ex in (2621440, 0x280000) or key == 40 or (key_ex & 0xFFFF) == 40:
+                    cli.move_lift(-3.0)
+                    last_movement_key_time = time.time()
+                    is_moving = True
+                    active_action = "LIFT DOWN"
+
+                # CAMERA TUNING HOTKEYS
+                elif key in (ord("+"), ord("=")):
+                    cam_params["brightness"] = min(cam_params["brightness"] + 5, 50)
+                elif key in (ord("-"), ord("_")):
+                    cam_params["brightness"] = max(cam_params["brightness"] - 5, -80)
+                elif key == ord("r"):
+                    cam_params["red_gain"] = round(max(cam_params["red_gain"] - 0.05, 0.2), 2)
+                elif key == ord("e"):
+                    cam_params["red_gain"] = round(min(cam_params["red_gain"] + 0.05, 1.5), 2)
+                elif key == ord("b"):
+                    cam_params["blue_gain"] = round(min(cam_params["blue_gain"] + 0.05, 2.5), 2)
+                elif key == ord("v"):
+                    cam_params["blue_gain"] = round(max(cam_params["blue_gain"] - 0.05, 0.5), 2)
+                elif key == ord("0"):
+                    cam_params["red_gain"] = 0.85
+                    cam_params["blue_gain"] = 1.05
+                    cam_params["brightness"] = -15
+
+            # 4. Auto-stop wheels & lift when movement keys are released (> 0.15s)
+            if is_moving and (now - last_movement_key_time > 0.15):
+                cli.stop_all_motors()
+                cli.move_lift(0.0)
+                is_moving = False
+                active_action = "IDLE"
 
     except KeyboardInterrupt:
         print(f"\n\n{YELLOW}[INTERRUPTED] Monitor stopped by user.{RESET}")
@@ -332,9 +416,8 @@ def run_continuous_physical_and_sensor_test():
         if cli:
             try:
                 cli.stop_all_motors()
+                cli.move_lift(0.0)
                 cli.enable_camera(enable=False)
-                cli.disconnect()
-                cli.stop()
             except Exception:
                 pass
         cv2.destroyAllWindows()

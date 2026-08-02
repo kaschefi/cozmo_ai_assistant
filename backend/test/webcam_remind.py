@@ -1,7 +1,7 @@
 import sys
 import time
 import numpy as np
-import cv25
+import cv2
 from PIL import Image
 import torch
 import torchvision.transforms as T
