@@ -337,8 +337,7 @@ def run_continuous_physical_and_sensor_test():
                 # --- MOVEMENT COMMANDS (CHECK SAFETY GUARD FIRST) ---
                 elif not is_safe_to_move:
                     active_action = "BLOCKED BY SAFETY"
-                    cli.stop_all_motors()
-                    cli.move_lift(0.0)
+                    is_moving = False
 
                 # W: FORWARD
                 elif key in (ord("w"), ord("W")):
