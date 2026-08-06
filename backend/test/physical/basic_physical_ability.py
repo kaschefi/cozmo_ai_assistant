@@ -43,7 +43,7 @@ latest_sensor_state = {
     "battery_voltage": 0.0,
     "orientation": "UNKNOWN",
     "accel": (0.0, 0.0, 0.0),
-    "gyro": (0.0, 0.0, 0.0),
+    "gyro": (0.0, 0.0, 0.0)
 }
 
 
@@ -210,6 +210,10 @@ def run_continuous_physical_and_sensor_test():
                 frame_count += 1
                 raw_bgr = cv2.cvtColor(np.array(current_raw_img), cv2.COLOR_RGB2BGR)
                 frame = enhance_cozmo_frame(raw_bgr, cam_params)
+
+                # Feed camera frame to Reflex Safety Guard for visual motion stasis bump detection
+                if guard:
+                    guard.update_camera_frame(raw_bgr, is_driving_forward=(active_action == "FORWARD"))
 
                 # Top Header Banner
                 cv2.putText(

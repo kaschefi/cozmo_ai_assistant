@@ -52,7 +52,7 @@ class TestWebAPISecurity(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "success")
         self.assertEqual(response.json()["response"], "Hello user")
-        mock_process.assert_called_once_with("hello", session_id="test_session")
+        mock_process.assert_called_once_with("hello", session_id="test_session", mute=False)
 
     def test_chat_endpoint_forbidden_with_invalid_token(self):
         os.environ["MOKA_ADMIN_TOKEN"] = "test-secret-token"
