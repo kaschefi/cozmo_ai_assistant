@@ -1,7 +1,7 @@
 import pycozmo
 import threading
 import time
-from core.hardware.reflex import ReflexSafetyGuard
+from core.hardware.safety import ReflexSafetyGuard
 
 
 class CozmoManager:

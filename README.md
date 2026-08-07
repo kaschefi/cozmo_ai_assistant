@@ -12,6 +12,7 @@ An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a
 | **Voice Input** | Wake-word listener (`"hey buddy"`) captures mic audio, transcribes via Google Speech Recognition, and routes to Layer 1 reflexes or LangGraph |
 | **Text-to-Speech** | Zero-disk I/O local TTS using **Kokoro-ONNX** for near-studio quality human expressions, offloaded to async background threads (implementation inspired by OpenJarvis) |
 | **Layer 1 Semantic Router** | Instant intent matching (~50ms) using `semantic-router` + `FastEmbed` for latency-critical commands (bypasses LLM) |
+| **Reflex Safety Guards** | Real-time hardware safety system in `safety.py` providing anti-fall (cliff/freefall detection + autonomous U-turn backup) and anti-dump/stall protection (IMU pitch tilt, impact shock, pose tracking, and OpenCV visual motion stasis) |
 | **Dynamic Layer 2 Tool RAG** | Rather than bloating LLM prompts with static definitions, tools are indexed in an in-memory vector database (**FAISS** + `BAAI/bge-small-en-v1.5` embeddings) and dynamically injected into the router's context based on relevance |
 | **Tavily MCP Integration** | Executes highly optimized, real-time web searches using the official Tavily **Model Context Protocol (MCP)** server spawned via standard `npx` stdio client pipes |
 | **Local Laptop Automation Setups** | Instant laptop routines for **Gaming Mode** (launches Steam, CS2, Discord), **Study Mode** (opens Moodle, Gemini, NotebookLM), and **Coding Mode** (opens PyCharm, GitHub, Gemini) |
@@ -68,13 +69,25 @@ Embedding-based semantic lookup. Utterances are mapped to a local registry of py
 *   Physical actions: Autonomous charger docking.
 *   System operations: Date, time, and laptop configurations (Gaming/Coding/Study setups).
 
-### 2. Layer 2 LangGraph Brain (Dynamic Tool RAG & Unified Registry)
+### 2. Hardware Reflex Safety Guards (`backend/core/hardware/safety.py`)
+Operating directly inside PyCozmo's low-level packet thread context (~33Hz), `ReflexSafetyGuard` provides zero-latency hardware protection by intercepting motor control methods (`drive_wheels`, `drive_straight`, `turn_in_place`, `stop_all_motors`) whenever dangerous conditions occur:
+*   **Anti-Fall Guard (Cliff & Freefall Protection)**:
+    *   **Goal**: Ensures Cozmo will not fall off tables, desks, or elevated boundaries.
+    *   **Implementation**: Listens directly to low-level `CLIFF_DETECTED` and `IS_FALLING` hardware status flags. When triggered, it instantly sets `safety_tripped` to block incoming host movement commands, emergency stops all motors, and spawns a background thread executing a non-blocking evasive maneuver (reversing away from the edge for 1.2s, pausing, and performing a 1.5s 180° U-turn away from the boundary).
+*   **Anti-Dump & Anti-Stall Guard (Obstacle Collision Protection)**:
+    *   **Goal**: Prevents Cozmo from pushing mindlessly into obstacles, stalling motors, tilting over, or dumping objects/himself when driving forward.
+    *   **Implementation**: Evaluates 3 multi-modal detection signals during forward movement:
+        1.  **IMU Pitch Tilt**: Detects pitch angle spikes (`> 0.35 rad` / `~20°` tilt) caused by climbing objects or tipping upward (preventing dumping/flipping).
+        2.  **Impact Deceleration**: Measures true forward X-axis deceleration ($a_x - g \sin\theta \le -3500\text{ mm/s}^2$) to catch sharp physical collisions.
+        3.  **Pose & OpenCV Visual Motion Stasis**: Combines a 0.8s pose sliding window ($< 10\text{mm}$ moved) with a 1.0s sliding OpenCV frame difference (`cv2.absdiff` on downscaled, blurred camera frames with mean diff $< 3.5$). If the camera scene remains static while wheels are commanded forward, visual stasis/collision is detected, safety trips, motors halt, and Cozmo backs away (1.0s) from the obstacle.
+
+### 3. Layer 2 LangGraph Brain (Dynamic Tool RAG & Unified Registry)
 For complex inputs, the system triggers a stateful graph configured to scale efficiently to 100+ tools:
 1.  **Tool Retrieval Node**: Uses `FAISS` to run a similarity search on the user's query against registered tool schemas, fetching only the top 2 candidates.
 2.  **Route Query**: Constructs a system prompt with only the retrieved candidate tools and uses a local LLM (`qwen2.5:3b`) to yield a structured `RouteDecision`.
 3.  **Unified Tool Executor**: Rather than compiling individual LangGraph nodes and conditional edges for every tool (which causes high boilerplate code and bad scalability), the graph routes to a single generic `execute_tool_node`. This node dynamically resolves the route key against a Python `TOOL_REGISTRY` mapping to run the tool's execution handler, falling back to a conversational `chat_node` if no tool matches.
 
-### 3. Layer 2 Memory Architecture (Short & Long-Term)
+### 4. Layer 2 Memory Architecture (Short & Long-Term)
 The assistant features a sophisticated, persistent two-tiered memory architecture designed to run efficiently on local systems without heavy cloud or complex database dependencies:
 
 #### A. Short-Term Memory (Stateful Session Checkpointing)
@@ -122,7 +135,8 @@ cozmo_ai_assistant/
     │   │
     │   ├── hardware/               # Physical hardware connections and robot managers
     │   │   ├── __init__.py
-    │   │   └── connection.py       # Singleton Cozmo hardware connection manager
+    │   │   ├── connection.py       # Singleton Cozmo hardware connection manager
+    │   │   └── safety.py           # Real-time ReflexSafetyGuard (Anti-fall & Anti-dump/stall protection)
     │   │
     │   ├── routing/                # AI Intelligence, Layer 1 & 2 routers, reflex registries, and tool RAG
     │   │   ├── __init__.py
