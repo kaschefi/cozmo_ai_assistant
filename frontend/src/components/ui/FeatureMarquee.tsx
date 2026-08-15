@@ -224,27 +224,16 @@ export const FeatureMarquee: React.FC = () => {
     <div className="w-full flex flex-col gap-12 relative z-20">
       {/* Centered Heading */}
       <div className="text-center max-w-2xl mx-auto px-4 mb-2 flex flex-col items-center">
-        <div className="relative inline-block mb-6">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-            Agent Capabilities
-          </h2>
-          <svg 
-            className="absolute -bottom-3 -left-2 w-[calc(100%+1rem)] h-3.5 text-[#00d2ff] drop-shadow-[0_0_8px_rgba(0,210,255,0.85)]" 
-            viewBox="0 0 300 20" 
-            fill="none" 
-            preserveAspectRatio="none" 
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path 
-              d="M 10 14 C 50 4, 100 18, 150 12 C 200 6, 250 16, 290 8" 
-              stroke="currentColor" 
-              strokeWidth="4" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-            />
-          </svg>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-2 h-2 rounded-full bg-[#00f3ff] animate-pulse" />
+          <span className="font-mono text-xs font-semibold tracking-widest text-[#00f3ff] uppercase">
+            AUTONOMOUS CAPABILITY MATRIX
+          </span>
         </div>
-        <p className="text-slate-400 text-sm md:text-base leading-relaxed mt-2">
+        <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight mb-3">
+          Agent Capabilities
+        </h2>
+        <p className="text-slate-400 text-sm md:text-base leading-relaxed">
           Powered by a dual-layer cognitive architecture matching ultra-low latency physical reactions with LangGraph dynamic reasoning pipelines.
         </p>
       </div>

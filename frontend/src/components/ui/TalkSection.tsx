@@ -10,29 +10,20 @@ export const TalkSection: React.FC<TalkSectionProps> = ({ onStartChat }) => {
       id="talk-section"
       className="w-full py-24 border-t border-slate-900/60 flex flex-col items-start gap-6 min-h-[40vh] relative z-20"
     >
-      <div className="relative inline-block">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-tight">
+      <div className="flex flex-col items-start gap-2">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="w-2 h-2 rounded-full bg-[#00f3ff] animate-pulse" />
+          <span className="font-mono text-xs font-semibold tracking-widest text-[#00f3ff] uppercase">
+            LIVE INTERACTION // SPEECH SYNTHESIS
+          </span>
+        </div>
+        <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight">
           Talk to Moka
         </h2>
-        <svg
-          className="absolute -bottom-3 -left-2 w-[calc(100%+1rem)] h-3.5 text-[#00d2ff] drop-shadow-[0_0_8px_rgba(0,210,255,0.85)]"
-          viewBox="0 0 300 20"
-          fill="none"
-          preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M 10 14 C 50 4, 100 18, 150 12 C 200 6, 250 16, 290 8"
-            stroke="currentColor"
-            strokeWidth="4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-3xl mt-2 font-sans">
+          Initiate a natural voice conversation with your agent. Moka listens for commands, manages schedules, and responds vocally with real-time speech synthesis.
+        </p>
       </div>
-      <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-3xl mt-2">
-        Initiate a natural voice conversation with your agent. Moka listens for commands, manages schedules, and responds vocally with real-time speech synthesis.
-      </p>
 
       {/* Target button for the swarming particle halo */}
       <button

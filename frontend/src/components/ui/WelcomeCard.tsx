@@ -6,7 +6,7 @@ import React from 'react';
 export const WelcomeCard: React.FC = () => {
   return (
     <div className="p-12 rounded-3xl bg-slate-950/40 border border-slate-800/80 backdrop-blur-lg shadow-[0_20px_50px_rgba(0,0,0,0.6)] text-center mb-16">
-      <h2 className="text-3xl font-extrabold text-white mb-4 tracking-tight">
+      <h2 className="font-megrim text-3xl md:text-4xl text-white mb-4 tracking-wider">
         Welcome to the Moka Ecosystem
       </h2>
       <p className="text-slate-300 max-w-2xl mx-auto text-base leading-relaxed mb-8">

@@ -2,7 +2,11 @@ import time
 import math
 import pycozmo
 from core.hardware.connection import cozmo_manager
-from core.routing.layer1.registry import reflex_registry
+
+try:
+    from core.routing.layer1.registry import reflex_registry
+except Exception:
+    reflex_registry = None
 
 # --- Head & Lift Movement Bounds ---
 DEFAULT_DRIVE_SPEED = 50.0    # mm/s
@@ -12,10 +16,11 @@ def _is_safety_tripped() -> bool:
     """
     Checks the active ReflexSafetyGuard instance to see if it's safe to move.
     """
-    guard = getattr(reflex_registry, "safety_guard", None) or cozmo_manager.get_safety_guard()
+    guard = (getattr(reflex_registry, "safety_guard", None) if reflex_registry else None) or cozmo_manager.get_safety_guard()
     if guard:
         return not guard.is_safe() # If not safe, safety is tripped!
     return False
+
 
 
 def set_head_angle(angle_degrees: float, duration: float = 1.0):
@@ -138,3 +143,32 @@ async def stop_movement():
     # This bypasses the safety trip check so we can always explicitly stop everything
     cli.stop_all_motors()
     return {"status": "success", "action": "stop_movement"}
+
+
+# -----------------------------------------------------------------------------
+# Phase 2 Reactive Motion Primitives Integration
+# -----------------------------------------------------------------------------
+from autonomous_cozmo.primitives import (
+    PoseTracker,
+    pose_tracker,
+    drive_to as _drive_to,
+    look_at as _look_at,
+    arc_sweep as _arc_sweep,
+)
+
+def drive_to(target_x: float, target_y: float, speed_mm_s: float = DEFAULT_DRIVE_SPEED, obstacle_avoidance: bool = True, obstacles=None):
+    return _drive_to(target_x=target_x, target_y=target_y, speed_mm_s=speed_mm_s, obstacle_avoidance=obstacle_avoidance, obstacles=obstacles)
+
+def look_at(target_x: float, target_y: float, target_z: float = 0.0, speed_deg_s: float = DEFAULT_TURN_SPEED):
+    return _look_at(target_x=target_x, target_y=target_y, target_z=target_z, speed_deg_s=speed_deg_s)
+
+def _register_reflex(name, utterances, score_threshold=0.85, speech=""):
+    if reflex_registry:
+        return reflex_registry.reflex(name, utterances, score_threshold=score_threshold, speech=speech)
+    def dummy_decorator(func):
+        return func
+    return dummy_decorator
+
+@_register_reflex("arc_sweep", ["scan area", "sweep arc", "look around", "observe surroundings"])
+async def arc_sweep(angle_range_deg: float = 60.0, head_tilt_deg: float = 10.0):
+    return _arc_sweep(angle_range_deg=angle_range_deg, head_tilt_deg=head_tilt_deg)
