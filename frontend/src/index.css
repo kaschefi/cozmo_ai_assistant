@@ -4,6 +4,34 @@
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-megrim: 'Megrim', cursive, sans-serif;
+
+  /* Global Brand Accent Tokens */
+  --color-brand-primary: var(--brand-primary);
+  --color-brand-light: var(--brand-light);
+  --color-brand-glow: var(--brand-glow);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-border: var(--brand-border);
+}
+
+:root {
+  /* =========================================================================
+     🎨 GLOBAL BRAND THEME PALETTE
+     Change '--brand-primary' to test different colors across the entire project!
+     Examples:
+       Cobalt Blue:   --brand-primary: #1c39bb;  --brand-light: #506df8;
+       Amber/Gold:    --brand-primary: #FFBF00;  --brand-light: #fcd34d;
+       Purple/Violet: --brand-primary: #7c3aed;  --brand-light: #a78bfa;
+       Emerald Green: --brand-primary: #059669;  --brand-light: #34d399;
+       Crimson Red:   --brand-primary: #e11d48;  --brand-light: #fb7185;
+     ========================================================================= */
+  --brand-primary: #1C39Bb;
+  --brand-light: #57c5c6;
+  --brand-glow: rgba(28, 57, 187, 0.35);
+  --brand-subtle: rgba(28, 57, 187, 0.15);
+  --brand-border: rgba(28, 57, 187, 0.35);
+
+  /* 🌌 Particle Canvas Color (RGB values: "0, 243, 255" for Cyan, "28, 57, 187" for Cobalt, "255, 191, 0" for Amber) */
+  --particle-rgb: 0, 243, 255;
 }
 
 .font-megrim {
@@ -11,19 +39,35 @@
   letter-spacing: 0.04em;
 }
 
-html, body, #root {
+/* Reusable Underline Heading Accent */
+.brand-underline {
+  height: 2px;
+  width: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--brand-primary), transparent);
+  margin-top: 0.5rem;
+}
+
+html,
+body,
+#root {
   margin: 0;
   padding: 0;
   width: 100%;
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: #020617; /* Slate-950 fallback */
+  background-color: #08090c;
+  /* Obsidian fallback */
 }
 
 @keyframes blink {
-  0%, 96%, 100% {
+
+  0%,
+  96%,
+  100% {
     transform: scaleY(1);
   }
+
   98% {
     transform: scaleY(0.05);
   }
@@ -38,6 +82,7 @@ html, body, #root {
   0% {
     transform: translateX(0%);
   }
+
   100% {
     transform: translateX(-50%);
   }
@@ -47,6 +92,7 @@ html, body, #root {
   0% {
     transform: translateX(-50%);
   }
+
   100% {
     transform: translateX(0%);
   }
@@ -74,12 +120,15 @@ html, body, #root {
     top: 0%;
     opacity: 0;
   }
+
   15% {
     opacity: 1;
   }
+
   85% {
     opacity: 1;
   }
+
   100% {
     top: 100%;
     opacity: 0;
@@ -97,13 +146,13 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-track {
-  background: #020512;
+  background: #08090c;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #1c1e29;
   border-radius: 9999px;
-  border: 2px solid #020512;
+  border: 2px solid #08090c;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -113,6 +162,5 @@ html, body, #root {
 /* Firefox scrollbar support */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1e293b #020512;
+  scrollbar-color: #1c1e29 #08090c;
 }
-

@@ -7,7 +7,7 @@ import React from 'react';
  */
 export const Header: React.FC = () => {
   return (
-    <header className="fixed top-0 left-0 w-full h-24 bg-[#020512]/90 border-b border-slate-900/60 backdrop-blur-md z-30 flex items-center justify-between px-12">
+    <header className="fixed top-0 left-0 w-full h-24 bg-[#08090c]/90 border-b border-[#1c1e29]/70 backdrop-blur-md z-30 flex items-center justify-between px-12">
       {/* Left side spacer to let MOKA particle logo float in the header */}
       <div className="w-40" />
 

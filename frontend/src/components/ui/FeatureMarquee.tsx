@@ -64,9 +64,9 @@ export const FeatureMarquee: React.FC = () => {
       title: 'FAISS Tool RAG',
       category: 'Intelligence',
       description: 'Dynamically indexes all workflow tools in a local FAISS database, presenting only relevant inputs to the LLM.',
-      badgeColor: 'border-amber-500 text-amber-400 shadow-amber-950/50',
+      badgeColor: 'border-[#1c39bb] text-[#6885ff] shadow-[#1c39bb]/50',
       icon: (
-        <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg className="w-6 h-6 text-[#6885ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       )
@@ -199,11 +199,11 @@ export const FeatureMarquee: React.FC = () => {
   const renderFeatureCard = (item: FeatureItem) => (
     <div
       key={`${item.id}-card`}
-      className="w-80 md:w-96 flex-shrink-0 mx-4 p-6 rounded-2xl bg-slate-900/35 border border-slate-800/40 backdrop-blur-md hover:bg-slate-900/60 hover:border-slate-700/60 hover:shadow-[0_0_30px_rgba(0,243,255,0.12)] transition-all duration-300 group flex flex-col justify-between"
+      className="w-80 md:w-96 flex-shrink-0 mx-4 p-6 rounded-2xl bg-[#0e1015]/95 border border-slate-800/80 hover:border-slate-700 hover:shadow-[0_0_30px_rgba(0,243,255,0.12)] transition-all duration-300 group flex flex-col justify-between"
     >
       <div>
         <div className="flex justify-between items-start mb-4">
-          <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800 group-hover:border-slate-700 group-hover:shadow-[0_0_15px_rgba(0,243,255,0.06)] transition-all duration-300">
+          <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800 group-hover:border-slate-700 group-hover:shadow-[0_0_15px_rgba(0,243,255,0.06)] transition-all duration-300">
             {item.icon}
           </div>
           <span className={`text-[10px] uppercase tracking-widest font-semibold px-2.5 py-0.5 rounded-full border ${item.badgeColor}`}>
@@ -224,15 +224,12 @@ export const FeatureMarquee: React.FC = () => {
     <div className="w-full flex flex-col gap-12 relative z-20">
       {/* Centered Heading */}
       <div className="text-center max-w-2xl mx-auto px-4 mb-2 flex flex-col items-center">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-2 h-2 rounded-full bg-[#00f3ff] animate-pulse" />
-          <span className="font-mono text-xs font-semibold tracking-widest text-[#00f3ff] uppercase">
-            AUTONOMOUS CAPABILITY MATRIX
-          </span>
+        <div className="relative inline-block mb-3">
+          <h2 className="font-megrim text-4xl md:text-5xl font-bold text-white tracking-wider leading-tight">
+            Agent Capabilities
+          </h2>
+          <div className="brand-underline" />
         </div>
-        <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight mb-3">
-          Agent Capabilities
-        </h2>
         <p className="text-slate-400 text-sm md:text-base leading-relaxed">
           Powered by a dual-layer cognitive architecture matching ultra-low latency physical reactions with LangGraph dynamic reasoning pipelines.
         </p>
@@ -241,10 +238,10 @@ export const FeatureMarquee: React.FC = () => {
       {/* Marquee Row 1 - Left to Right scrolling */}
       <div className="marquee-container relative w-screen left-[50%] right-[50%] -mx-[50vw] overflow-hidden py-4">
         {/* Soft fading gradients on the sides */}
-        <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-[#020512] to-transparent z-10 pointer-events-none" />
-        <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-[#020512] to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-[#08090c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-[#08090c] to-transparent z-10 pointer-events-none" />
 
-        <div className="animate-marquee-left">
+        <div className="animate-marquee-left will-change-transform">
           {/* First iteration */}
           <div className="flex">
             {row1Features.map((item) => renderFeatureCard(item))}
@@ -259,10 +256,10 @@ export const FeatureMarquee: React.FC = () => {
       {/* Marquee Row 2 - Right to Left scrolling */}
       <div className="marquee-container relative w-screen left-[50%] right-[50%] -mx-[50vw] overflow-hidden py-4 mb-8">
         {/* Soft fading gradients on the sides */}
-        <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-[#020512] to-transparent z-10 pointer-events-none" />
-        <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-[#020512] to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 left-0 w-24 bg-gradient-to-r from-[#08090c] to-transparent z-10 pointer-events-none" />
+        <div className="absolute top-0 bottom-0 right-0 w-24 bg-gradient-to-l from-[#08090c] to-transparent z-10 pointer-events-none" />
 
-        <div className="animate-marquee-right">
+        <div className="animate-marquee-right will-change-transform">
           {/* First iteration */}
           <div className="flex">
             {row2Features.map((item) => renderFeatureCard(item))}

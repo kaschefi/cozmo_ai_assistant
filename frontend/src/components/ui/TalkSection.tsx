@@ -11,15 +11,12 @@ export const TalkSection: React.FC<TalkSectionProps> = ({ onStartChat }) => {
       className="w-full py-24 border-t border-slate-900/60 flex flex-col items-start gap-6 min-h-[40vh] relative z-20"
     >
       <div className="flex flex-col items-start gap-2">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="w-2 h-2 rounded-full bg-[#00f3ff] animate-pulse" />
-          <span className="font-mono text-xs font-semibold tracking-widest text-[#00f3ff] uppercase">
-            LIVE INTERACTION // SPEECH SYNTHESIS
-          </span>
+        <div className="relative inline-block mb-1">
+          <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight">
+            Talk to Moka
+          </h2>
+          <div className="brand-underline" />
         </div>
-        <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight">
-          Talk to Moka
-        </h2>
         <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-3xl mt-2 font-sans">
           Initiate a natural voice conversation with your agent. Moka listens for commands, manages schedules, and responds vocally with real-time speech synthesis.
         </p>

@@ -44,7 +44,7 @@ export const LandingWrapper: React.FC = () => {
 
   return (
     <div
-      className="relative w-screen h-screen bg-gradient-to-br from-[#020617] via-[#0a1128] to-[#020617] overflow-hidden flex flex-col justify-center items-center"
+      className="relative w-screen h-screen bg-gradient-to-br from-[#08090c] via-[#0e1015] to-[#050608] overflow-hidden flex flex-col justify-center items-center"
       data-testid="landing-wrapper"
       data-mouse-x={x}
       data-mouse-y={y}

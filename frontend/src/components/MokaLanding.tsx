@@ -16,7 +16,7 @@ interface MokaLandingProps {
 
 export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat }) => {
   return (
-    <div className="relative min-h-[220vh] bg-gradient-to-br from-[#020512] via-[#070b1a] to-[#020512] overflow-x-hidden">
+    <div className="relative min-h-[220vh] bg-gradient-to-br from-[#08090c] via-[#0e1015] to-[#050608] overflow-x-hidden">
       {/* Subtle digital grid overlay */}
       <div
         className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
@@ -33,7 +33,7 @@ export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat }) => {
       <ParticleCanvas />
 
       {/* Fixed dark vignette overlay to keep contrast high */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(2,5,18,0.85)_100%)] pointer-events-none z-16" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(8,9,12,0.9)_100%)] pointer-events-none z-16" />
 
       {/* Foreground content card that scrolls up */}
       <div className="relative w-full pt-[105vh] pb-32 z-20 pointer-events-auto flex flex-col gap-20">

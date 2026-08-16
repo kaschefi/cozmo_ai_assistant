@@ -11,8 +11,8 @@ const CONFIG = {
   STEP_Y: 8,  // Vertical scanline height (pixels)
 
   // --- Animation Transition Speeds ---
-  // Base easing speed. Increase to make transition Snappy (e.g. 0.07)
-  TRANSITION_SPEED: 0.1,
+  // Base easing speed. Increase to make transition Snappy (e.g. 0.12)
+  TRANSITION_SPEED: 0.12,
   // Speed variation per particle for an organic, asynchronous arrival (e.g. 0.05)
   TRANSITION_VARIATION: 0.05,
 
@@ -33,6 +33,11 @@ const CONFIG = {
   IDLE_RANGE_X: 0.6,
   // Vertical breathing range
   IDLE_RANGE_Y: 0.4,
+
+  // --- Particle Color ---
+  // RGB string format: "r, g, b" (e.g. "0, 243, 255" for Cyan, "28, 57, 187" for Cobalt, "255, 191, 0" for Amber)
+  // Set to 'auto' to automatically sync with '--particle-rgb' in index.css!
+  COLOR_RGB: 'auto',
 };
 
 export interface Particle {
@@ -266,14 +271,27 @@ export const ParticleCanvas: React.FC = () => {
     });
 
     let time = 0;
-    const render = () => {
-      time++;
+    let lastTimestamp = performance.now();
+
+    const render = (now: number = performance.now()) => {
+      const rawDelta = (now - lastTimestamp) / 1000;
+      lastTimestamp = now;
+      // Clamp delta time to avoid large jumps on tab switch: min 0.001s, max 0.05s
+      const delta = Math.min(Math.max(rawDelta, 0.001), 0.05);
+      // Normalized time step (1.0 = 60 FPS)
+      const dt = delta * 60;
+      time += dt;
+
       const width = window.innerWidth;
       const height = window.innerHeight;
 
+      // Dynamically resolve particle color from index.css or CONFIG
+      const cssColor = getComputedStyle(document.documentElement).getPropertyValue('--particle-rgb').trim();
+      const rgb = (CONFIG.COLOR_RGB !== 'auto' ? CONFIG.COLOR_RGB : (cssColor || '0, 243, 255'));
+
       // Smoothly interpolate cursor position (lerp)
-      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * 1;
-      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * 1;
+      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * Math.min(1 * dt, 1);
+      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * Math.min(1 * dt, 1);
 
 
 
@@ -509,11 +527,12 @@ export const ParticleCanvas: React.FC = () => {
         const swarmX = Math.sin(angle) * swarmFactor;
         const swarmY = Math.cos(angle * 0.9) * swarmFactor;
 
-        p.x += (targetX + swarmX - p.x) * ease;
-        p.y += (targetY + swarmY - p.y) * ease;
+        const effectiveEase = Math.min(1 - Math.pow(Math.max(0, 1 - ease), dt), 1);
+        p.x += (targetX + swarmX - p.x) * effectiveEase;
+        p.y += (targetY + swarmY - p.y) * effectiveEase;
 
         // Smoothly fade in or fade out based on target alpha
-        p.alpha += (pTargetAlpha - p.alpha) * 0.08;
+        p.alpha += (pTargetAlpha - p.alpha) * Math.min(0.12 * dt, 1);
 
         // Draw particle if visible
         if (p.alpha > 0.01) {
@@ -522,13 +541,13 @@ export const ParticleCanvas: React.FC = () => {
           const currentSize = isScaledDown ? p.size * 0.72 * scale : p.size * scale;
 
           // Draw soft glowing outer aura (subtler size and opacity to avoid over-glowing)
-          ctx.fillStyle = `rgba(0, 243, 255, ${p.alpha * 0.12})`;
+          ctx.fillStyle = `rgba(${rgb}, ${p.alpha * 0.12})`;
           ctx.beginPath();
           ctx.arc(p.x, p.y, currentSize * 1.5, 0, Math.PI * 2);
           ctx.fill();
 
           // Draw bright core dot
-          ctx.fillStyle = `rgba(0, 243, 255, ${p.alpha})`;
+          ctx.fillStyle = `rgba(${rgb}, ${p.alpha})`;
           ctx.beginPath();
           ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
           ctx.fill();
@@ -546,7 +565,7 @@ export const ParticleCanvas: React.FC = () => {
       if (isScrolledRef.current) return;
 
       const currentState = stateRef.current;
-      const delay = currentState === 'transitioning' ? 5000 : 30000;
+      const delay = currentState === 'transitioning' ? 3000 : 30000;
 
       cycleTimerRef.current = setTimeout(() => {
         if (isScrolledRef.current) return;
