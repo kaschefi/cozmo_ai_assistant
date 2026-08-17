@@ -687,19 +687,42 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       {/* Persistent Header */}
       <header
         data-identity-state={headerState}
-        className="fixed top-0 left-0 w-full h-20 bg-[#08090c]/95 border-b border-[#1c1e29]/70 backdrop-blur-md z-30 flex items-center justify-between px-6"
+        className="fixed top-0 left-0 w-full h-20 bg-[#08090c]/95 border-b border-[#1c1e29]/70 backdrop-blur-md z-30 flex items-center justify-between px-6 md:px-10"
       >
-        {/* Placeholder spacer for the absolute eyes container when transitioned */}
-        <div className="w-36 h-10" />
+        {/* Left Side: Particle Logo Area & Home Navigation */}
+        <div className="flex items-center gap-3.5">
+          {/* Clickable slot for the floating particle MOKA logo / mini-eyes */}
+          <div
+            onClick={onBackToLanding}
+            className="w-36 h-10 cursor-pointer"
+            title="Back to Home"
+            role="button"
+            tabIndex={0}
+          />
 
-        {/* Back and state details */}
-        <div className="flex items-center gap-4">
+          <div className="h-5 w-px bg-slate-800 hidden sm:block" />
+
           <button
             onClick={onBackToLanding}
-            className="px-4 py-1.5 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-900/60 hover:border-slate-700 text-xs md:text-sm font-semibold tracking-wide text-slate-400 hover:text-white transition-all cursor-pointer"
+            className="px-3.5 py-1.5 rounded-xl border border-slate-800/80 bg-slate-950/60 hover:bg-slate-900/80 hover:border-cyan-500/40 text-xs md:text-sm font-semibold tracking-wide text-slate-300 hover:text-cyan-300 transition-all duration-300 cursor-pointer flex items-center gap-2 group shadow-sm hover:shadow-[0_0_15px_rgba(0,243,255,0.12)] active:scale-95"
+            title="Back to Home"
+            aria-label="Back to Home"
           >
-            ← Back to Ecosystem
+            <svg
+              className="w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 group-hover:-translate-x-0.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <span>Home</span>
           </button>
+        </div>
+
+        {/* Right Side: Core Brain State & Token */}
+        <div className="flex items-center gap-3 md:gap-4">
           <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide">
             <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
               ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
@@ -707,6 +730,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               }`} />
             Core Brain: {isConnected ? 'Connected' : 'Connecting...'}
           </div>
+
           {token && (
             <div className="text-[10px] md:text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2 py-0.5 rounded font-mono" title={token}>
               Token: {token.length > 8 ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : token} (Local)
@@ -841,37 +865,42 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           : 'bottom-10 max-w-lg'
           }`}
       >
-        <div className="w-full flex items-center bg-slate-950/70 border border-slate-800/80 rounded-2xl p-2.5 backdrop-blur-md hover:border-[#00d2ff]/30 focus-within:border-[#00d2ff]/50 focus-within:shadow-[0_0_20px_rgba(0,210,255,0.06)] transition-all">
+        <div className="w-full flex items-center bg-black/50 border border-cyan-500/25 rounded-3xl p-2.5 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.8)] focus-within:border-cyan-400/50 focus-within:shadow-[0_0_35px_rgba(0,243,255,0.2)] transition-all duration-300 gap-3">
           <button
             onClick={handleToggleMute}
-            className={`p-3 rounded-xl border transition-all duration-300 cursor-pointer flex items-center justify-center ${isMuted
-              ? 'bg-rose-950/40 hover:bg-rose-900/60 border-rose-500/25 hover:border-rose-500/50 text-rose-400'
-              : 'bg-cyan-950/40 hover:bg-cyan-900/60 border-cyan-500/25 hover:border-cyan-500/50 text-cyan-400'
-              }`}
+            className={`w-10 h-10 rounded-full border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${
+              isMuted
+                ? 'bg-rose-950/60 border-rose-500/40 text-rose-400'
+                : 'bg-slate-900/80 border-slate-700/80 text-cyan-400 hover:border-cyan-400'
+            }`}
             title={isMuted ? "Unmute speech output" : "Mute speech output"}
+            aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
           >
             {isMuted ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
               </svg>
             ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
               </svg>
             )}
           </button>
+
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message or press Enter to talk..."
-            className="flex-1 bg-transparent border-0 outline-none text-white text-sm md:text-base px-4 py-2 placeholder-slate-500"
+            placeholder="Message MoKa..."
+            className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-500 font-sans"
           />
+
           <button
             onClick={() => handleSendMessage()}
             disabled={!inputText.trim()}
-            className="p-3 bg-cyan-950/60 hover:bg-cyan-500 border border-cyan-500/25 hover:border-cyan-400 text-[#00d2ff] hover:text-white rounded-xl transition-all duration-300 disabled:opacity-30 disabled:hover:bg-cyan-950/60 disabled:hover:text-[#00d2ff] disabled:hover:border-cyan-500/25 cursor-pointer shadow-[0_0_15px_rgba(0,210,255,0.08)] flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer shadow-[0_0_20px_rgba(0,243,255,0.4)] active:scale-95 flex-shrink-0"
+            aria-label="Send"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />

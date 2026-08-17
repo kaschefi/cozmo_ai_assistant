@@ -45,6 +45,13 @@ class CozmoManager:
                 except Exception as e:
                     print(f"Failed to auto-raise head: {e}")
 
+                # Enable camera stream for visual motion stasis bump detection & REMIND vision
+                try:
+                    self.cli.enable_camera(enable=True, color=True)
+                    print("✅ [Camera] Stream enabled (color=True).")
+                except Exception as e:
+                    print(f"Failed to enable camera stream: {e}")
+
             except pycozmo.exception.ConnectionTimeout:
                 self.is_connected = False
                 self.cli = None

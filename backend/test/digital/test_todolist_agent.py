@@ -4,7 +4,7 @@ import datetime
 from typing import Optional, List, Dict, Any
 
 # Ensure backend directory is in sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage

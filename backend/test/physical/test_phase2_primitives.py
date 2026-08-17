@@ -8,7 +8,7 @@ import math
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from core.hardware.connection import cozmo_manager
-from autonomous_cozmo.primitives import (
+from autonomous_cozmo.motion import (
     PoseTracker,
     pose_tracker,
     drive_to,
@@ -42,6 +42,10 @@ def run_phase2_exit_test(dry_run: bool = False):
             dry_run = True
         else:
             print(f"{GREEN}✅ [Test] Hardware connected! Running live on Cozmo.{RESET}")
+            try:
+                cli.enable_camera(enable=True, color=True)
+            except Exception:
+                pass
     else:
         print(f"{MAGENTA}[Test] Running in DRY-RUN simulation mode.{RESET}")
 

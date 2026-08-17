@@ -11,10 +11,12 @@ const CONFIG = {
   STEP_Y: 8,  // Vertical scanline height (pixels)
 
   // --- Animation Transition Speeds ---
-  // Base easing speed. Increase to make transition Snappy (e.g. 0.12)
-  TRANSITION_SPEED: 0.12,
-  // Speed variation per particle for an organic, asynchronous arrival (e.g. 0.05)
-  TRANSITION_VARIATION: 0.05,
+  // Base easing speed. Increase to make transition Snappy (e.g. 0.08)
+  TRANSITION_SPEED: 0.08,
+  // Speed for transition into the MOKA top-left logo (lower = smoother, more cinematic flow)
+  MOKA_TRANSITION_SPEED: 0.045,
+  // Speed variation per particle for an organic, asynchronous arrival (e.g. 0.035)
+  TRANSITION_VARIATION: 0.035,
 
   // --- Swarm/Drifting Wave Physics ---
   // Maximum strength of the curving swarm effect (0 for straight lines, 20-50 for curved paths)
@@ -516,12 +518,13 @@ export const ParticleCanvas: React.FC = () => {
         const dist = Math.sqrt(dx * dx + dy * dy);
 
         // Easing factor with variation: transition smoothly if far (using config speed), track instantly if close (mouse avoidance/gaze)
+        const baseSpeed = currentState === 'moka' ? CONFIG.MOKA_TRANSITION_SPEED : CONFIG.TRANSITION_SPEED;
         const ease = currentState === 'eyes'
           ? (dist > 180 ? (CONFIG.TRANSITION_SPEED + p.speedOffset * CONFIG.TRANSITION_VARIATION) : (0.1 + p.speedOffset * 0.08))
-          : CONFIG.TRANSITION_SPEED + p.speedOffset * CONFIG.TRANSITION_VARIATION;
+          : baseSpeed + p.speedOffset * CONFIG.TRANSITION_VARIATION;
 
-        // Swarming curving perturbation: decays as particles reach targets (disable for steady eyes/moka to avoid slow-motion drift)
-        const isSwarmingState = currentState !== 'eyes' && currentState !== 'moka';
+        // Swarming curving perturbation: decays as particles reach targets (active during transit, settles sharply at destination)
+        const isSwarmingState = currentState === 'transitioning' || (currentState === 'moka' && dist > 50);
         const swarmFactor = isSwarmingState ? Math.min(dist * CONFIG.SWARM_DECAY, CONFIG.SWARM_STRENGTH) : 0;
         const angle = time * CONFIG.SWARM_FREQUENCY + p.seed * 15;
         const swarmX = Math.sin(angle) * swarmFactor;
@@ -532,7 +535,7 @@ export const ParticleCanvas: React.FC = () => {
         p.y += (targetY + swarmY - p.y) * effectiveEase;
 
         // Smoothly fade in or fade out based on target alpha
-        p.alpha += (pTargetAlpha - p.alpha) * Math.min(0.12 * dt, 1);
+        p.alpha += (pTargetAlpha - p.alpha) * Math.min(0.06 * dt, 1);
 
         // Draw particle if visible
         if (p.alpha > 0.01) {

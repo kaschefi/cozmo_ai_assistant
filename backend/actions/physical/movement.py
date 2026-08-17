@@ -28,7 +28,7 @@ def set_head_angle(angle_degrees: float, duration: float = 1.0):
     if not cli: return {"error": "Robot not connected"}
     if _is_safety_tripped(): return {"error": "Safety reflex active. Command dropped."}
 
-    angle_rad = max(pycozmo.robot.MIN_HEAD_ANGLE, min(pycozmo.robot.MAX_HEAD_ANGLE, math.radians(angle_degrees)))
+    angle_rad = max(pycozmo.robot.MIN_HEAD_ANGLE.radians, min(pycozmo.robot.MAX_HEAD_ANGLE.radians, math.radians(angle_degrees)))
     cli.set_head_angle(angle_rad)
     if duration > 0:
         time.sleep(duration)
@@ -99,9 +99,16 @@ def turn_in_place(angle_degrees: float, speed_deg_s: float = DEFAULT_TURN_SPEED)
     if not cli: return {"error": "Robot not connected"}
     if _is_safety_tripped(): return {"error": "Safety reflex active. Command dropped."}
 
-    angle_rad = math.radians(angle_degrees)
-    speed_rad_s = math.radians(speed_deg_s)
-    cli.turn_in_place(angle_rad=angle_rad, speed_rad_s=speed_rad_s)
+    turn_direction = 1.0 if angle_degrees > 0 else -1.0
+    track_w = pycozmo.robot.TRACK_WIDTH.mm if hasattr(pycozmo.robot, "TRACK_WIDTH") else 45.0
+    wheel_linear_speed = math.radians(speed_deg_s) * (track_w / 2.0)
+    turn_duration = abs(angle_degrees) / max(1.0, speed_deg_s)
+    l_speed = -turn_direction * wheel_linear_speed
+    r_speed = turn_direction * wheel_linear_speed
+
+    cli.drive_wheels(lwheel_speed=l_speed, rwheel_speed=r_speed)
+    time.sleep(turn_duration)
+    cli.stop_all_motors()
     return {"status": "success", "action": "turn_in_place", "angle_degrees": angle_degrees}
 
 
@@ -148,7 +155,7 @@ async def stop_movement():
 # -----------------------------------------------------------------------------
 # Phase 2 Reactive Motion Primitives Integration
 # -----------------------------------------------------------------------------
-from autonomous_cozmo.primitives import (
+from autonomous_cozmo.motion import (
     PoseTracker,
     pose_tracker,
     drive_to as _drive_to,

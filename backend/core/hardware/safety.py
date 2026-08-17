@@ -43,7 +43,7 @@ class ReflexSafetyGuard:
 
         # Sensitivity thresholds for bump detection
         self.PITCH_BUMP_THRESHOLD = 0.35  # Radians (~20 degrees tilt upward)
-        self.ACCEL_IMPACT_THRESHOLD = -3500.0  # Deceleration spike along X-axis (mm/s^2)
+        self.ACCEL_IMPACT_THRESHOLD = -1200.0  # Deceleration spike along X-axis (mm/s^2) for low-speed cruise
 
         # Lock to ensure only one evasive thread runs at a time
         self._worker_lock = threading.Lock()
@@ -383,35 +383,32 @@ class ReflexSafetyGuard:
         with self._worker_lock:
             print(f"[REFLEX SAFETY] {reason}! Executing non-blocking evasive maneuver...")
 
+            def _pulse_drive(l_speed: float, r_speed: float, duration_s: float, step_interval_s: float = 0.08):
+                t_start = time.time()
+                while time.time() - t_start < duration_s:
+                    if self.is_picked_up:
+                        break
+                    self.cli.drive_wheels(lwheel_speed=l_speed, rwheel_speed=r_speed)
+                    time.sleep(step_interval_s)
+                self.cli.drive_wheels(lwheel_speed=0.0, rwheel_speed=0.0)
+
             try:
                 self.cli.drive_wheels(lwheel_speed=0.0, rwheel_speed=0.0)
 
                 if reason == "CLIFF_DETECTED" and not self.is_picked_up:
                     BACKUP_DURATION = 1.2
-                    TURN_DURATION = 1.5
+                    TURN_DURATION = 0.9  # ~180° rotation at 80 mm/s differential speed
 
-                    if not self.is_picked_up:
-                        self.cli.drive_wheels(lwheel_speed=-80.0, rwheel_speed=-80.0)
-                        time.sleep(BACKUP_DURATION)
+                    # 1. Back away from edge
+                    _pulse_drive(-80.0, -80.0, BACKUP_DURATION)
+                    time.sleep(0.2)
 
-                    if not self.is_picked_up:
-                        self.cli.drive_wheels(lwheel_speed=0.0, rwheel_speed=0.0)
-                        time.sleep(0.3)
-
-                    if not self.is_picked_up:
-                        self.cli.drive_wheels(lwheel_speed=100.0, rwheel_speed=-100.0)
-                        time.sleep(TURN_DURATION)
-
-                    self.cli.drive_wheels(lwheel_speed=0.0, rwheel_speed=0.0)
+                    # 2. Spin 180° U-turn away from the cliff
+                    _pulse_drive(80.0, -80.0, TURN_DURATION)
 
                 elif reason == "BUMP_DETECTED" and not self.is_picked_up:
                     BACKUP_DURATION = 1.0
-
-                    if not self.is_picked_up:
-                        self.cli.drive_wheels(lwheel_speed=-80.0, rwheel_speed=-80.0)
-                        time.sleep(BACKUP_DURATION)
-
-                    self.cli.drive_wheels(lwheel_speed=0.0, rwheel_speed=0.0)
+                    _pulse_drive(-80.0, -80.0, BACKUP_DURATION)
 
                 elif reason == "IS_FALLING" and not self.is_picked_up:
                     self.cli.drive_wheels(lwheel_speed=0.0, rwheel_speed=0.0)
