@@ -174,6 +174,14 @@ tool_rag_registry.register_tool_schema(
     description="Parsing strings, extracting numbers from text, unit conversions, date subtraction, days between dates, and substring formatting."
 )
 
+#  String & Character Reversal Dimension
+tool_rag_registry.register_tool_schema(
+    name="code_executor_node",
+    description="String reversal, spelling words backwards, reversing text or characters, word manipulation, character inversion, and word flipping."
+)
+
+
+
 
 if __name__ == "__main__":
     print(code_executor("can you please tell me what is the square root of 25"))
