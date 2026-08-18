@@ -41,7 +41,7 @@ def run_phase2_exit_test(dry_run: bool = False):
             print(f"{YELLOW}[Test] Hardware not connected. Falling back to dry-run simulation mode.{RESET}")
             dry_run = True
         else:
-            print(f"{GREEN}✅ [Test] Hardware connected! Running live on Cozmo.{RESET}")
+            print(f"{GREEN} [Test] Hardware connected! Running live on Cozmo.{RESET}")
             try:
                 cli.enable_camera(enable=True, color=True)
             except Exception:
@@ -71,7 +71,7 @@ def run_phase2_exit_test(dry_run: bool = False):
         print(f"{MAGENTA}--- Step {idx}/5: Moving to {wp['name']} (x={wp['x']}, y={wp['y']}) ---{RESET}")
 
         if _is_safety_tripped():
-            print(f"{RED}❌ Safety reflex tripped before step {idx}! Aborting exit test.{RESET}")
+            print(f"{RED} Safety reflex tripped before step {idx}! Aborting exit test.{RESET}")
             return False
 
         # Apply simulated dynamic host SLAM offset on Waypoint 4 to verify drift compensation

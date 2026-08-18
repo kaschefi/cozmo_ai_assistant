@@ -43,7 +43,8 @@ class ReflexSafetyGuard:
 
         # Sensitivity thresholds for bump detection
         self.PITCH_BUMP_THRESHOLD = 0.35  # Radians (~20 degrees tilt upward)
-        self.ACCEL_IMPACT_THRESHOLD = -1200.0  # Deceleration spike along X-axis (mm/s^2) for low-speed cruise
+        self.baseline_accel_x = -3600.0   # Adaptive resting baseline (mm/s^2)
+        self.ACCEL_SHOCK_DELTA_THRESHOLD = -2200.0  # Deceleration shock below baseline (mm/s^2)
 
         # Lock to ensure only one evasive thread runs at a time
         self._worker_lock = threading.Lock()
@@ -291,15 +292,20 @@ class ReflexSafetyGuard:
 
         is_forward_driving = (self.cmd_lwheel > 20.0 and self.cmd_rwheel > 20.0)
 
+        # Adaptive resting baseline tracking when stationary
+        if abs(l_speed) < 3.0 and not is_forward_driving:
+            self.baseline_accel_x = 0.95 * self.baseline_accel_x + 0.05 * accel_x
+
         # (a) Pitch condition (climbing an object)
         is_pitched_up = abs(pitch_rad) > self.PITCH_BUMP_THRESHOLD
 
-        # (b) Linear Acceleration Impact Shock
+        # (b) Linear Acceleration Impact Shock (relative to resting baseline)
         gravity_x = math.sin(pitch_rad) * 9800.0
         true_accel_x = accel_x - gravity_x
+        accel_shock = true_accel_x - self.baseline_accel_x
 
         is_impact_detected = False
-        if is_forward_driving and true_accel_x <= self.ACCEL_IMPACT_THRESHOLD:
+        if is_forward_driving and accel_shock <= self.ACCEL_SHOCK_DELTA_THRESHOLD:
             is_impact_detected = True
 
         # (c) Pose Sliding Window Stall Detection

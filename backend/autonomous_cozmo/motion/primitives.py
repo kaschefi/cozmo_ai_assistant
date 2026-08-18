@@ -7,12 +7,6 @@ from core.hardware.connection import cozmo_manager
 from .pose_tracker import pose_tracker
 from .potential_fields import compute_apf_heading
 
-try:
-    from core.routing.layer1.registry import reflex_registry
-except Exception:
-    reflex_registry = None
-
-
 DEFAULT_DRIVE_SPEED = 50.0      # mm/s
 DEFAULT_TURN_SPEED = 90.0       # deg/s
 ROBOT_CAMERA_HEIGHT_MM = 45.0   # Camera height above desk baseline (mm)
@@ -23,7 +17,7 @@ def _is_safety_tripped() -> bool:
     """
     Checks if the active ReflexSafetyGuard instance has tripped safety.
     """
-    guard = (getattr(reflex_registry, "safety_guard", None) if reflex_registry else None) or cozmo_manager.get_safety_guard()
+    guard = cozmo_manager.get_safety_guard()
     if guard:
         return not guard.is_safe()
     return False
@@ -33,7 +27,7 @@ def _get_safety_reason() -> str:
     """
     Retrieves the last safety event reason from the safety guard.
     """
-    guard = (getattr(reflex_registry, "safety_guard", None) if reflex_registry else None) or cozmo_manager.get_safety_guard()
+    guard = cozmo_manager.get_safety_guard()
     if guard:
         return guard.last_event_reason or "Safety reflex active"
     return "Safety reflex active"
