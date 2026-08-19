@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import argparse
+import math
 import numpy as np
 from PIL import Image
 
@@ -43,12 +44,11 @@ def run_phase4_exit_test(dry_run: bool = False, duration_s: float = 60.0):
     print(f"{CYAN}{'='*75}{RESET}\n")
 
     if not dry_run:
-        print(f"{YELLOW}[Hardware] Attempting PyCozmo hardware connection via CozmoManager...{RESET}")
+        print(f"{YELLOW}[Hardware] Attempting PyCozmo hardware connection via CozmoManager (waiting up to 15s)...{RESET}")
         cozmo_manager.start()
-        time.sleep(2.0)
-        cli = cozmo_manager.get_robot()
+        cli = cozmo_manager.wait_for_connection(timeout=15.0)
         if not cli:
-            print(f"{YELLOW}[Hardware] Robot not connected. Falling back to dry-run simulation mode.{RESET}")
+            print(f"{YELLOW}[Hardware] Robot connection timed out or failed. Falling back to dry-run simulation mode.{RESET}")
             dry_run = True
         else:
             print(f"{GREEN}[OK] Live Cozmo connected! Camera stream active.{RESET}")
@@ -193,7 +193,11 @@ def run_phase4_exit_test(dry_run: bool = False, duration_s: float = 60.0):
     print(f"  -> Drifted Odometry Pose: ({drifted_pose[0]:.1f}, {drifted_pose[1]:.1f}, {drifted_pose[2]:.1f}°)")
 
     # 2. Simulate camera recognizing Charging Dock anchor at visual distance 100mm, azimuth 180°
-    # Expected robot position: x=100.0, y=0.0
+    _, _, curr_heading_theta = pose_tracker.get_effective_pose()
+    expected_bearing_rad = math.radians((curr_heading_theta + 180.0) % 360.0)
+    expected_x = 0.0 - 100.0 * math.cos(expected_bearing_rad)
+    expected_y = 0.0 - 100.0 * math.sin(expected_bearing_rad)
+
     print(f"{MAGENTA}[SLAM] Camera spots 'ChargingDock' anchor (visual distance: 100.0mm, azimuth: 180.0°)...{RESET}")
     correction = landmark_slam.correct_drift_from_observation(
         landmark_name="ChargingDock",
@@ -202,11 +206,10 @@ def run_phase4_exit_test(dry_run: bool = False, duration_s: float = 60.0):
     )
 
     corrected_x, corrected_y, _ = pose_tracker.get_effective_pose()
-    # Corrected position relative to (0, 0) dock when looking backward at 180 deg is x=100.0, y=0.0
-    if abs(corrected_x - 100.0) < 2.0 and abs(corrected_y - 0.0) < 2.0:
+    if abs(corrected_x - expected_x) < 2.0 and abs(corrected_y - expected_y) < 2.0:
         print(f"{GREEN}[OK] [STAGE 4 PASSED] Visual Landmark SLAM eliminated odometry drift! Corrected to ({corrected_x:.1f}, {corrected_y:.1f}){RESET}")
     else:
-        print(f"{RED}[FAIL] SLAM correction error: got ({corrected_x}, {corrected_y}){RESET}")
+        print(f"{RED}[FAIL] SLAM correction error: expected ({expected_x:.1f}, {expected_y:.1f}), got ({corrected_x:.1f}, {corrected_y:.1f}){RESET}")
         return False
 
     # -------------------------------------------------------------------------

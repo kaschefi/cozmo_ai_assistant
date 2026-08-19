@@ -33,12 +33,11 @@ def run_phase2_exit_test(dry_run: bool = False):
     print(f"{CYAN}{'='*70}{RESET}\n")
 
     if not dry_run:
-        print(f"{YELLOW}[Test] Attempting hardware connection via CozmoManager...{RESET}")
+        print(f"{YELLOW}[Test] Attempting hardware connection via CozmoManager (waiting up to 15s)...{RESET}")
         cozmo_manager.start()
-        time.sleep(2.0)
-        cli = cozmo_manager.get_robot()
+        cli = cozmo_manager.wait_for_connection(timeout=15.0)
         if not cli:
-            print(f"{YELLOW}[Test] Hardware not connected. Falling back to dry-run simulation mode.{RESET}")
+            print(f"{YELLOW}[Test] Hardware connection timed out or failed. Falling back to dry-run simulation mode.{RESET}")
             dry_run = True
         else:
             print(f"{GREEN} [Test] Hardware connected! Running live on Cozmo.{RESET}")

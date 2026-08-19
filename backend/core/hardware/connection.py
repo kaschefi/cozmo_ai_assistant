@@ -9,6 +9,7 @@ class CozmoManager:
     cli = None
     safety_guard = None
     is_connected = False
+    is_connecting = False
     robot_mode = False
 
     def __new__(cls):
@@ -17,9 +18,17 @@ class CozmoManager:
             cls._instance.robot_mode = False
             cls._instance.safety_guard = None
             cls._instance.is_connected = False
+            cls._instance.is_connecting = False
         return cls._instance
 
     def start(self):
+        if self.is_connected and self.cli:
+            return
+        if self.is_connecting:
+            return
+
+        self.is_connecting = True
+
         def connect():
             try:
                 cli = pycozmo.Client()
@@ -29,7 +38,8 @@ class CozmoManager:
                 cli.wait_for_robot()
                 self.cli = cli
                 self.is_connected = True
-                print("✅ PyCozmo connected successfully!")
+                self.is_connecting = False
+                print("[OK] PyCozmo connected successfully!")
 
                 # Initialize safety reflex guard
                 self.safety_guard = ReflexSafetyGuard(self.cli)
@@ -48,23 +58,42 @@ class CozmoManager:
                 # Enable camera stream for visual motion stasis bump detection & REMIND vision
                 try:
                     self.cli.enable_camera(enable=True, color=True)
-                    print("✅ [Camera] Stream enabled (color=True).")
+                    print("[OK] [Camera] Stream enabled (color=True).")
                 except Exception as e:
                     print(f"Failed to enable camera stream: {e}")
 
             except pycozmo.exception.ConnectionTimeout:
                 self.is_connected = False
+                self.is_connecting = False
                 self.cli = None
-                print("❌ [PyCozmo Error] Connection Timeout!")
+                print("[PyCozmo Error] Connection Timeout!")
                 print("   Please verify:")
                 print("   1. Cozmo is turned ON (head lights lit up).")
                 print("   2. Your computer Wi-Fi is connected to Cozmo's Wi-Fi network (e.g. Cozmo_XXXXXX).")
             except Exception as e:
                 self.is_connected = False
+                self.is_connecting = False
                 self.cli = None
-                print(f"❌ [PyCozmo Error] Failed to connect to Cozmo: {e}")
+                print(f"[PyCozmo Error] Failed to connect to Cozmo: {e}")
 
         threading.Thread(target=connect, daemon=True).start()
+
+    def wait_for_connection(self, timeout: float = 15.0):
+        """
+        Wait for background connection thread to finish Wi-Fi handshake.
+        Returns the PyCozmo client instance if connected, or None if timed out.
+        """
+        start_t = time.time()
+        attempt = 1
+        while time.time() - start_t < timeout:
+            if self.is_connected and self.cli:
+                return self.cli
+            if not self.is_connecting and not self.is_connected:
+                # Thread finished with an error
+                return None
+            time.sleep(0.5)
+            attempt += 1
+        return self.cli if self.is_connected else None
 
     def get_robot(self):
         return self.cli if self.is_connected else None
@@ -82,4 +111,5 @@ class CozmoManager:
 
 
 
-cozmo_manager = CozmoManager()
+cozmo_manager = CozmoManager()
+
