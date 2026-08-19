@@ -2,47 +2,81 @@ import time
 from typing import List, Dict, Tuple, Optional, Any
 from ..tree import Node, NodeStatus, Blackboard
 from ...motion import drive_to, arc_sweep, pose_tracker
+from ...vision.remind_engine import remind_engine
 
 
-class SelectNextWanderTargetNode(Node):
+class SelectDynamicWanderTargetNode(Node):
     """
-    Action Node (Phase 3 Fixed Target Wander Selection):
-    Cycles sequentially through a static list of safe desk waypoints,
-    storing the next active target coordinate on the blackboard.
+    Action Node (Phase 4 Dynamic REMIND Target Selection):
+    Replaces static lists with dynamic visual memory indexing:
+    1. Priority 1: Novel / unvisited detected objects (remind_engine.get_novel_objects())
+    2. Priority 2: Least recently attended objects (remind_engine.get_least_recently_attended())
+    3. Priority 3: Exploratory sector waypoints if visual memory is empty.
     """
-    DEFAULT_WANDER_WAYPOINTS: List[Dict[str, Any]] = [
-        {"name": "Desk Center", "x": 150.0, "y": 0.0, "scan": True},
-        {"name": "Front Left", "x": 150.0, "y": 80.0, "scan": True},
-        {"name": "Back Left", "x": 0.0, "y": 80.0, "scan": True},
-        {"name": "Back Right", "x": -80.0, "y": 0.0, "scan": True},
+    DEFAULT_FALLBACK_EXPLORE_WAYPOINTS: List[Dict[str, Any]] = [
+        {"name": "Sector 1 (Center Desk)", "x": 120.0, "y": 0.0, "scan": True},
+        {"name": "Sector 2 (Front Left)", "x": 120.0, "y": 60.0, "scan": True},
+        {"name": "Sector 3 (Back Left)", "x": 0.0, "y": 60.0, "scan": True},
+        {"name": "Sector 4 (Origin Sector)", "x": 0.0, "y": 0.0, "scan": False},
     ]
 
     def __init__(
         self,
-        name: str = "SelectNextWanderTarget",
-        waypoints: Optional[List[Dict[str, Any]]] = None,
+        name: str = "SelectDynamicWanderTarget",
+        fallback_waypoints: Optional[List[Dict[str, Any]]] = None,
     ):
         super().__init__(name)
-        self.waypoints = waypoints or self.DEFAULT_WANDER_WAYPOINTS
-        self.current_idx = 0
+        self.fallback_waypoints = fallback_waypoints or self.DEFAULT_FALLBACK_EXPLORE_WAYPOINTS
+        self.fallback_idx = 0
 
     def tick(self, blackboard: Blackboard) -> NodeStatus:
-        if not self.waypoints:
+        # 1. Check for Novel Objects
+        novel_objects = remind_engine.get_novel_objects()
+        if novel_objects:
+            target_obj = novel_objects[0]
+            print(f"[BehaviorTree/REMIND] Found novel unvisited target '{target_obj.name}' at ({target_obj.estimated_x:.1f}, {target_obj.estimated_y:.1f})")
+            blackboard.set("target_id", target_obj.id)
+            blackboard.set("target_x", target_obj.estimated_x)
+            blackboard.set("target_y", target_obj.estimated_y)
+            blackboard.set("target_name", f"[NOVEL] {target_obj.name}")
+            blackboard.set("should_scan", True)
+            self.status = NodeStatus.SUCCESS
+            return NodeStatus.SUCCESS
+
+        # 2. Check for Least Recently Attended Objects
+        attended_objects = remind_engine.get_least_recently_attended()
+        if attended_objects:
+            target_obj = attended_objects[0]
+            elapsed_s = time.time() - target_obj.last_attended_time
+            print(f"[BehaviorTree/REMIND] Cycling to least recently attended '{target_obj.name}' (elapsed: {elapsed_s:.1f}s) at ({target_obj.estimated_x:.1f}, {target_obj.estimated_y:.1f})")
+            blackboard.set("target_id", target_obj.id)
+            blackboard.set("target_x", target_obj.estimated_x)
+            blackboard.set("target_y", target_obj.estimated_y)
+            blackboard.set("target_name", f"[REVISIT] {target_obj.name}")
+            blackboard.set("should_scan", True)
+            self.status = NodeStatus.SUCCESS
+            return NodeStatus.SUCCESS
+
+        # 3. Fallback to exploratory sector waypoint
+        if not self.fallback_waypoints:
             self.status = NodeStatus.FAILURE
             return NodeStatus.FAILURE
 
-        target = self.waypoints[self.current_idx]
-        blackboard.set("current_target", target)
-        blackboard.set("target_x", float(target["x"]))
-        blackboard.set("target_y", float(target["y"]))
-        blackboard.set("target_name", target.get("name", f"Target_{self.current_idx}"))
-        blackboard.set("should_scan", target.get("scan", True))
+        fallback_target = self.fallback_waypoints[self.fallback_idx]
+        self.fallback_idx = (self.fallback_idx + 1) % len(self.fallback_waypoints)
 
-        # Advance index circularly for next time
-        self.current_idx = (self.current_idx + 1) % len(self.waypoints)
+        blackboard.set("target_id", None)
+        blackboard.set("target_x", float(fallback_target["x"]))
+        blackboard.set("target_y", float(fallback_target["y"]))
+        blackboard.set("target_name", fallback_target.get("name", f"Sector_{self.fallback_idx}"))
+        blackboard.set("should_scan", fallback_target.get("scan", True))
 
         self.status = NodeStatus.SUCCESS
         return NodeStatus.SUCCESS
+
+
+# Backward-compatibility alias for Phase 3 tests
+SelectNextWanderTargetNode = SelectDynamicWanderTargetNode
 
 
 class ExecuteDriveToTargetNode(Node):
@@ -51,7 +85,7 @@ class ExecuteDriveToTargetNode(Node):
     Retrieves the current target coordinates from the blackboard and executes drive_to().
     If a cliff/bump reflex trips, logs the event and fails gracefully so the tree can pick another target.
     """
-    def __init__(self, name: str = "ExecuteDriveToTarget", speed_mm_s: float = 50.0):
+    def __init__(self, name: str = "ExecuteDriveToTarget", speed_mm_s: float = 45.0):
         super().__init__(name)
         self.speed_mm_s = speed_mm_s
         self._is_running = False
@@ -108,13 +142,14 @@ class ExecuteIdleObservationNode(Node):
     """
     Action Node:
     Executes a reactive curiosity arc sweep and brief dwell pause at the reached waypoint.
+    Updates REMIND visual memory attended timestamp.
     """
     def __init__(
         self,
         name: str = "ExecuteIdleObservation",
         angle_range_deg: float = 35.0,
         head_tilt_deg: float = 12.0,
-        dwell_time_s: float = 1.0,
+        dwell_time_s: float = 0.5,
     ):
         super().__init__(name)
         self.angle_range_deg = angle_range_deg
@@ -132,6 +167,12 @@ class ExecuteIdleObservationNode(Node):
             head_tilt_deg=self.head_tilt_deg,
             speed_deg_s=30.0,
         )
+
+        # Update REMIND attended timestamp
+        target_id = blackboard.get("target_id")
+        if target_id:
+            remind_engine.mark_attended(target_id)
+            print(f"[BehaviorTree/REMIND] Marked object '{target_id}' as attended.")
 
         if res.get("status") in ("success", "dry_run"):
             if self.dwell_time_s > 0:

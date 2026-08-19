@@ -1,5 +1,5 @@
 """
-Behavior Tree and Autonomous Decision Subsystem (Phase 3)
+Behavior Tree and Autonomous Decision Subsystem
 """
 
 from .tree import (
@@ -16,6 +16,9 @@ from .idle_engine import IdleBehaviorEngine, idle_engine
 from .nodes import (
     IsBatteryLowCondition,
     ExecuteDockingAction,
+    CheckVisibleAnchorCondition,
+    ExecuteSLAMOffsetCorrectionAction,
+    SelectDynamicWanderTargetNode,
     SelectNextWanderTargetNode,
     ExecuteDriveToTargetNode,
     ExecuteIdleObservationNode,
@@ -35,6 +38,9 @@ __all__ = [
     "idle_engine",
     "IsBatteryLowCondition",
     "ExecuteDockingAction",
+    "CheckVisibleAnchorCondition",
+    "ExecuteSLAMOffsetCorrectionAction",
+    "SelectDynamicWanderTargetNode",
     "SelectNextWanderTargetNode",
     "ExecuteDriveToTargetNode",
     "ExecuteIdleObservationNode",

@@ -1,6 +1,6 @@
 """
 Autonomous Cozmo Subproject Package
-Contains high-level idle behaviors, behavior trees, spatial memory, and reactive motion primitives.
+Contains high-level idle behaviors, behavior trees, spatial memory, REMIND vision, and reactive motion primitives.
 """
 
 # Kinematic Motion Primitives (Phases 1 & 2)
@@ -36,9 +36,23 @@ from .behavior import (
     idle_engine,
     IsBatteryLowCondition,
     ExecuteDockingAction,
+    CheckVisibleAnchorCondition,
+    ExecuteSLAMOffsetCorrectionAction,
+    SelectDynamicWanderTargetNode,
     SelectNextWanderTargetNode,
     ExecuteDriveToTargetNode,
     ExecuteIdleObservationNode,
+)
+
+# REMIND Visual Memory & Landmark SLAM (Phase 4)
+from .vision import (
+    DINOExtractor,
+    VisualMemoryItem,
+    TemporalDebouncer,
+    REMINDMemoryEngine,
+    remind_engine,
+    LandmarkSLAM,
+    landmark_slam,
 )
 
 __all__ = [
@@ -71,7 +85,18 @@ __all__ = [
     "idle_engine",
     "IsBatteryLowCondition",
     "ExecuteDockingAction",
+    "CheckVisibleAnchorCondition",
+    "ExecuteSLAMOffsetCorrectionAction",
+    "SelectDynamicWanderTargetNode",
     "SelectNextWanderTargetNode",
     "ExecuteDriveToTargetNode",
     "ExecuteIdleObservationNode",
+    # Vision
+    "DINOExtractor",
+    "VisualMemoryItem",
+    "TemporalDebouncer",
+    "REMINDMemoryEngine",
+    "remind_engine",
+    "LandmarkSLAM",
+    "landmark_slam",
 ]
