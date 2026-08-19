@@ -3,15 +3,38 @@ import webbrowser
 import asyncio
 import glob
 from core.routing.layer1.registry import reflex_registry
+from core.routing.layer2.tool_vector_db import tool_rag_registry
 from actions.physical.speak import respond
 
-@reflex_registry.reflex("setup_gaming", ["set my laptop for gaming",
+tool_rag_registry.register_tool_schema(
+    name="setup_gaming",
+    description="Prepares the laptop for gaming, launching Steam, CS2, and Discord. Use when the user wants to play games, launch game launcher, or start gaming session."
+)
+tool_rag_registry.register_tool_schema(
+    name="setup_study",
+    description="Prepares the workstation for studying, opening Moodle, Gemini, NotebookLM, YouTube, or study materials and notes."
+)
+tool_rag_registry.register_tool_schema(
+    name="setup_coding",
+    description="Prepares the developer workspace, launching PyCharm IDE, GitHub, and coding resources for writing code or software programming."
+)
+
+@reflex_registry.reflex(
+    "setup_gaming",
+    [
+        "set my laptop for gaming",
         "gaming mode",
         "open steam and discord",
         "time to game",
         "prepare for gaming",
         "setups game",
-        "gaming work",])
+        "gaming work",
+        "launch steam and discord for game time",
+        "prepare for gaming mode",
+        "set it for gaming",
+    ],
+    score_threshold=0.80
+)
 async def setup_gaming():
     """Launches gaming applications like Steam and Discord."""
     await respond("Launching gaming setup...")
@@ -28,13 +51,22 @@ async def setup_gaming():
     except Exception as e:
         await respond(f"Error launching gaming setup: {e}")
 
-@reflex_registry.reflex("setup_study", ["set it for study",
+@reflex_registry.reflex(
+    "setup_study",
+    [
+        "set it for study",
         "study mode",
         "time to study",
         "prepare my laptop for study",
         "open my study tabs",
         "study work",
-        "setups study",])
+        "setups study",
+        "open my moodle and study tabs",
+        "prepare for studying mode",
+        "set my laptop for study",
+    ],
+    score_threshold=0.80
+)
 async def setup_study():
     """Opens study-related websites."""
     await respond("Launching study setup...")
@@ -48,12 +80,21 @@ async def setup_study():
     except Exception as e:
         await respond(f"Error launching study setup: {e}")
 
-@reflex_registry.reflex("setup_coding", ["set it for coding",
+@reflex_registry.reflex(
+    "setup_coding",
+    [
+        "set it for coding",
         "set my laptop for coding",
         "coding mode",
         "time to code",
         "prepare for coding",
-        "setups code",])
+        "setups code",
+        "prepare my laptop for programming and open pycharm",
+        "launch my coding setup with github and ide",
+        "coding setup",
+    ],
+    score_threshold=0.80
+)
 async def setup_coding():
     await respond("Launching coding setup...")
     try:

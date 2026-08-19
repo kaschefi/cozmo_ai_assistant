@@ -15,7 +15,7 @@ qwen25 = get_llm("WEATHER_LLM_MODEL", "qwen2.5:3b", temperature=0)
 
 tool_rag_registry.register_tool_schema(
     name="weather_node",
-    description="Provides real-time weather updates, climate forecasts, temperature, precipitation, rain, snow, or wind details."
+    description="Provides real-time weather conditions, climate forecasts, temperature (in Celsius), precipitation, rain, snow, storm, or wind reports for any specified city (defaults to Vienna)."
 )
 
 def get_weather_prompt(state) -> list:

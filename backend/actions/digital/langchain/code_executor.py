@@ -153,7 +153,7 @@ Example Transformations:
 #  Arithmetic & Calculation Dimension
 tool_rag_registry.register_tool_schema(
     name="code_executor_node",
-    description="Mathematical calculations, algebra, fractions, percentages, averages, exact arithmetic, and geometry radius computations."
+    description="Mathematical calculations, arithmetic computations, calculating square root of numbers, multiplication, division, algebra, fractions, percentages, averages, exact arithmetic, and geometry radius computations."
 )
 
 #  Logic, Rules, & Algorithms Dimension

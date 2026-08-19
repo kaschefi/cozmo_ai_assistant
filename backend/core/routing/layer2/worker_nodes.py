@@ -153,11 +153,171 @@ def code_executor_node(state: AgentState):
     return {"messages": [AIMessage(content=reply)]}
 
 
+def todolist_node(state: AgentState):
+    from actions.digital.langgraph.todolist_agent import run_todolist_agent
+    last_message = state["messages"][-1].content
+    reply = run_todolist_agent(last_message)
+    return {"messages": [AIMessage(content=reply)]}
+
+
+def move_forward_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import move_forward
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(move_forward(distance_mm=100.0))
+    except Exception:
+        res = "Moving forward."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def move_backward_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import move_backward
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(move_backward(distance_mm=100.0))
+    except Exception:
+        res = "Moving backward."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def turn_left_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import turn_left
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(turn_left(angle_degrees=90.0))
+    except Exception:
+        res = "Turning left."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def turn_right_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import turn_right
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(turn_right(angle_degrees=90.0))
+    except Exception:
+        res = "Turning right."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def turn_around_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import turn_around
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(turn_around())
+    except Exception:
+        res = "Turning around."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def stop_movement_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import stop_movement
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(stop_movement())
+    except Exception:
+        res = "Stopping all movement."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def dock_with_charger_node(state: AgentState):
+    import asyncio
+    from actions.physical.charger import dock_with_charger
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(dock_with_charger())
+    except Exception:
+        res = "Docking with charger."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def arc_sweep_node(state: AgentState):
+    import asyncio
+    from actions.physical.movement import arc_sweep
+    try:
+        loop = asyncio.get_event_loop()
+        res = loop.run_until_complete(arc_sweep())
+    except Exception:
+        res = "Scanning surroundings."
+    return {"messages": [AIMessage(content=str(res))]}
+
+
+def setup_gaming_node(state: AgentState):
+    import asyncio
+    from actions.digital.setups import setup_gaming
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(setup_gaming())
+        res = "Gaming setup launched."
+    except Exception as e:
+        res = f"Gaming setup error: {e}"
+    return {"messages": [AIMessage(content=res)]}
+
+
+def setup_study_node(state: AgentState):
+    import asyncio
+    from actions.digital.setups import setup_study
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(setup_study())
+        res = "Study setup launched."
+    except Exception as e:
+        res = f"Study setup error: {e}"
+    return {"messages": [AIMessage(content=res)]}
+
+
+def setup_coding_node(state: AgentState):
+    import asyncio
+    from actions.digital.setups import setup_coding
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(setup_coding())
+        res = "Coding setup launched."
+    except Exception as e:
+        res = f"Coding setup error: {e}"
+    return {"messages": [AIMessage(content=res)]}
+
+
+def tell_time_node(state: AgentState):
+    from datetime import datetime
+    current_time = datetime.now().strftime("%I:%M %p")
+    return {"messages": [AIMessage(content=f"The time is exactly {current_time}.")]}
+
+
+def get_date_node(state: AgentState):
+    from datetime import datetime
+    today = datetime.now().strftime("%A, %B %d, %Y")
+    return {"messages": [AIMessage(content=f"Today is {today}.")]}
+
+
 TOOL_REGISTRY = {
+    # Cognitive agent tools
     "calendar_node": calendar_node,
     "web_search_node": web_search_node,
     "weather_node": weather_node,
     "code_executor_node": code_executor_node,
+    "todolist_node": todolist_node,
+    # Physical movement fallbacks
+    "move_forward": move_forward_node,
+    "move_backward": move_backward_node,
+    "turn_left": turn_left_node,
+    "turn_right": turn_right_node,
+    "turn_around": turn_around_node,
+    "stop_movement": stop_movement_node,
+    "dock_with_charger": dock_with_charger_node,
+    "arc_sweep": arc_sweep_node,
+    # Digital setups and system fallbacks
+    "setup_gaming": setup_gaming_node,
+    "setup_study": setup_study_node,
+    "setup_coding": setup_coding_node,
+    "tell_time": tell_time_node,
+    "get_date": get_date_node,
 }
 
 

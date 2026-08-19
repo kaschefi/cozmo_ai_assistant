@@ -15,7 +15,14 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
+from core.routing.layer2.tool_vector_db import tool_rag_registry
+
 load_dotenv()
+
+tool_rag_registry.register_tool_schema(
+    name="todolist_node",
+    description="Manages Todoist tasks, to-do lists, and personal checklists. Use when the user wants to add, create, or schedule a task, check off, mark done, finish or complete a task, delete or remove a task, list active or pending tasks, view items left on checklist, or organize project to-dos."
+)
 
 class ChatRequest(BaseModel):
     message: str

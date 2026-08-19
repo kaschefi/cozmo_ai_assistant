@@ -8,6 +8,38 @@ try:
 except Exception:
     reflex_registry = None
 
+from core.routing.layer2.tool_vector_db import tool_rag_registry
+
+# Register Layer 2 Fallback Schemas for Physical Controls
+tool_rag_registry.register_tool_schema(
+    name="move_forward",
+    description="Drives or rolls the Cozmo robot forward by a distance. Use when the user commands the robot to move forward, crawl forward, advance, or drive ahead."
+)
+tool_rag_registry.register_tool_schema(
+    name="move_backward",
+    description="Drives, rolls, or reverses the Cozmo robot backward. Use when the user commands the robot to move backward, back up, reverse position, or drive back."
+)
+tool_rag_registry.register_tool_schema(
+    name="turn_left",
+    description="Rotates or pivots the Cozmo robot 90 degrees to the left (counterclockwise). Use when the user commands the robot to turn left, pivot left, or look left."
+)
+tool_rag_registry.register_tool_schema(
+    name="turn_right",
+    description="Rotates or pivots the Cozmo robot 90 degrees to the right (clockwise). Use when the user commands the robot to turn right, pivot right, or look right."
+)
+tool_rag_registry.register_tool_schema(
+    name="turn_around",
+    description="Rotates the Cozmo robot 180 degrees to face backwards. Use when the user commands the robot to turn around, face the wall behind, do a 180, or flip heading."
+)
+tool_rag_registry.register_tool_schema(
+    name="stop_movement",
+    description="Emergency stops and immediately halts all robot motors and wheel movement. Use when the user commands the robot to stop, halt, freeze, stand still, or brake."
+)
+tool_rag_registry.register_tool_schema(
+    name="arc_sweep",
+    description="Scans the surrounding environment and sweeps an arc with the camera. Use when the user commands the robot to scan the area, sweep arc, survey the room, or look around."
+)
+
 # --- Head & Lift Movement Bounds ---
 DEFAULT_DRIVE_SPEED = 50.0    # mm/s
 DEFAULT_TURN_SPEED = 90.0     # deg/s
@@ -77,7 +109,21 @@ def move_lift(speed: float, duration: float = 1.0):
 # -----------------------------------------------------------------------------
 # Drive & Turn Control (CRITICAL REFLEX PATH)
 # -----------------------------------------------------------------------------
-@reflex_registry.reflex("move_forward", ["move forward", "go forward", "drive forward", "step forward"])
+@reflex_registry.reflex(
+    "move_forward",
+    [
+        "move forward",
+        "go forward",
+        "drive forward",
+        "step forward",
+        "drive straight ahead",
+        "move forward 20 centimeters",
+        "move forward a bit",
+        "step forward a little bit",
+        "drive ahead",
+    ],
+    score_threshold=0.80
+)
 async def move_forward(distance_mm: float = 100.0, speed_mm_s: float = DEFAULT_DRIVE_SPEED):
     cli = cozmo_manager.get_robot()
     if not cli: return {"error": "Robot not connected"}
@@ -90,6 +136,22 @@ async def move_forward(distance_mm: float = 100.0, speed_mm_s: float = DEFAULT_D
     return {"status": "success", "action": "move_forward", "distance_mm": distance_mm}
 
 
+@reflex_registry.reflex(
+    "move_backward",
+    [
+        "move backward",
+        "drive backward",
+        "drive back",
+        "move back",
+        "go backward",
+        "go back",
+        "step back",
+        "back up",
+        "please back up now",
+        "move back 15 cm",
+    ],
+    score_threshold=0.80
+)
 async def move_backward(distance_mm: float = 100.0, speed_mm_s: float = DEFAULT_DRIVE_SPEED):
     return await move_forward(distance_mm=-abs(distance_mm), speed_mm_s=speed_mm_s)
 
@@ -112,17 +174,53 @@ def turn_in_place(angle_degrees: float, speed_deg_s: float = DEFAULT_TURN_SPEED)
     return {"status": "success", "action": "turn_in_place", "angle_degrees": angle_degrees}
 
 
-@reflex_registry.reflex("turn_left", ["turn left", "rotate left", "spin left", "look left"])
+@reflex_registry.reflex(
+    "turn_left",
+    [
+        "turn left",
+        "rotate left",
+        "spin left",
+        "look left",
+        "rotate 90 degrees to the left",
+        "spin left and face the window",
+        "turn to the left",
+    ],
+    score_threshold=0.80
+)
 async def turn_left(angle_degrees: float = 90.0, speed_deg_s: float = DEFAULT_TURN_SPEED):
     return turn_in_place(angle_degrees=abs(angle_degrees), speed_deg_s=speed_deg_s)
 
 
-@reflex_registry.reflex("turn_right", ["turn right", "rotate right", "spin right", "look right"])
+@reflex_registry.reflex(
+    "turn_right",
+    [
+        "turn right",
+        "rotate right",
+        "spin right",
+        "look right",
+        "rotate to the right",
+        "spin right 90 degrees",
+        "turn to the right",
+    ],
+    score_threshold=0.80
+)
 async def turn_right(angle_degrees: float = 90.0, speed_deg_s: float = DEFAULT_TURN_SPEED):
     return turn_in_place(angle_degrees=-abs(angle_degrees), speed_deg_s=speed_deg_s)
 
 
-@reflex_registry.reflex("turn_around", ["turn around", "spin around", "do a 180", "about face"])
+@reflex_registry.reflex(
+    "turn_around",
+    [
+        "turn around",
+        "spin around",
+        "do a 180",
+        "about face",
+        "do a 180 degree turn",
+        "about face and turn backwards",
+        "turn back",
+    ],
+    score_threshold=0.80
+)
 async def turn_around(speed_deg_s: float = DEFAULT_TURN_SPEED):
     return turn_in_place(angle_degrees=180.0, speed_deg_s=speed_deg_s)
 
@@ -142,7 +240,21 @@ def drive_wheels(left_speed: float, right_speed: float, duration: float = 0.0):
 # -----------------------------------------------------------------------------
 # Emergency Stop (MUST ALWAYS WORK - BYPASSES REFLEX CHECKS)
 # -----------------------------------------------------------------------------
-@reflex_registry.reflex("stop_movement", ["stop", "halt", "freeze", "stop moving", "break"])
+@reflex_registry.reflex(
+    "stop_movement",
+    [
+        "stop",
+        "halt",
+        "freeze",
+        "stop moving",
+        "break",
+        "stop moving immediately",
+        "halt all motors right now",
+        "freeze and stop",
+        "emergency stop",
+    ],
+    score_threshold=0.80
+)
 async def stop_movement():
     cli = cozmo_manager.get_robot()
     if not cli: return {"error": "Robot not connected"}
@@ -169,13 +281,26 @@ def drive_to(target_x: float, target_y: float, speed_mm_s: float = DEFAULT_DRIVE
 def look_at(target_x: float, target_y: float, target_z: float = 0.0, speed_deg_s: float = DEFAULT_TURN_SPEED):
     return _look_at(target_x=target_x, target_y=target_y, target_z=target_z, speed_deg_s=speed_deg_s)
 
-def _register_reflex(name, utterances, score_threshold=0.85, speech=""):
+def _register_reflex(name, utterances, score_threshold=0.80, speech=""):
     if reflex_registry:
         return reflex_registry.reflex(name, utterances, score_threshold=score_threshold, speech=speech)
     def dummy_decorator(func):
         return func
     return dummy_decorator
 
-@_register_reflex("arc_sweep", ["scan area", "sweep arc", "look around", "observe surroundings"])
+@_register_reflex(
+    "arc_sweep",
+    [
+        "scan area",
+        "sweep arc",
+        "look around",
+        "observe surroundings",
+        "scan the surrounding area",
+        "sweep arc and observe the room",
+        "look around your surroundings",
+        "look around the area",
+    ],
+    score_threshold=0.80
+)
 async def arc_sweep(angle_range_deg: float = 60.0, head_tilt_deg: float = 10.0):
     return _arc_sweep(angle_range_deg=angle_range_deg, head_tilt_deg=head_tilt_deg)

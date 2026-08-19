@@ -8,7 +8,7 @@ load_dotenv()
 
 tool_rag_registry.register_tool_schema(
     name="calendar_node",
-    description="Manages Google Calendar. Use this if the user wants to check, create, move, change, or delete meetings, events, appointments, or schedules."
+    description="Manages Google Calendar operations. Use this if the user wants to check, create, schedule a meeting, event or appointment, move, reschedule, change, or delete meetings, events, appointments, or check for scheduling conflicts and view calendar agenda."
 )
 def call_n8n_calendar(user_input: str) -> str:
     """
@@ -37,7 +37,7 @@ def call_n8n_calendar(user_input: str) -> str:
 
 tool_rag_registry.register_tool_schema(
     name="web_search_node",
-    description="Searches the live web for general real-time information, breaking news, sports updates, stock prices, or current events that alter over time."
+    description="Searches the live web for real-time information, breaking news, finance, interest rates, economic decisions, politics, sports updates, match scores, stock prices, or current events that alter over time."
 )
 def call_web_search(user_input: str) -> str:
     """

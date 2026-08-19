@@ -41,7 +41,7 @@ class ToolVectorRegistry:
         if self._tools_source:
             self.db = FAISS.from_documents(self._tools_source, self.embeddings)
 
-    def search_relevant_tools(self, user_query: str, k: int = 3, distance_threshold: float = 0.86) -> list[dict]:
+    def search_relevant_tools(self, user_query: str, k: int = 3, distance_threshold: float = 1.15) -> list[dict]:
         """Retrieves the top K tools closest to the user's intent, filtered by distance score."""
         if not self.db:
             return []

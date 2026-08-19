@@ -24,8 +24,8 @@ def tool_retrieval_node(state: AgentState):
     to pull only the top 2-3 matching candidates.
     """
     last_message = state["messages"][-1].content
-    # Pull top 2 most matching tools to keep the prompt absolutely razor sharp
-    matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=2)
+    # Pull top 2-3 most matching tools to keep the prompt absolutely razor sharp
+    matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=3)
     return {"active_tools": matched_tools}
 
 

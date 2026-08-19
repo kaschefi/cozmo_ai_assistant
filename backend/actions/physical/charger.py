@@ -4,6 +4,12 @@ import cv2
 import numpy as np
 from core.hardware.connection import cozmo_manager
 from core.routing.layer1.registry import reflex_registry
+from core.routing.layer2.tool_vector_db import tool_rag_registry
+
+tool_rag_registry.register_tool_schema(
+    name="dock_with_charger",
+    description="Commands the Cozmo robot to return home to its charging station, find the charger, recharge its battery, or dock itself."
+)
 
 latest_image = None
 new_frame_available = False
@@ -15,14 +21,22 @@ def on_camera_image(cli, image):
     latest_image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     new_frame_available = True
 
-@reflex_registry.reflex("dock_with_charger",[
+@reflex_registry.reflex(
+    "dock_with_charger",
+    [
         "go to sleep",
         "go to your charger",
         "dock yourself",
         "your battery is low",
         "return to base",
         "find the charger",
-    ])
+        "return to your charging dock",
+        "find the charger and dock yourself",
+        "head back to base",
+        "dock with charger",
+    ],
+    score_threshold=0.80
+)
 async def dock_with_charger():
     cli = cozmo_manager.get_robot()
     if not cli:
