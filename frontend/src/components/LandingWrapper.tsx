@@ -44,14 +44,25 @@ export const LandingWrapper: React.FC = () => {
 
   return (
     <div
-      className="relative w-screen h-screen bg-gradient-to-br from-[#08090c] via-[#0e1015] to-[#050608] overflow-hidden flex flex-col justify-center items-center"
+      className="relative w-screen h-screen bg-[#020407] overflow-hidden flex flex-col justify-center items-center"
       data-testid="landing-wrapper"
       data-mouse-x={x}
       data-mouse-y={y}
     >
-      {/* Subtle digital matrix grid overlay (Cyan dots, 5% opacity) */}
+      {/* Black Ice Glacial Gradient Layer */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 80% 60% at 75% 30%, rgba(0, 243, 255, 0.12) 0%, rgba(8, 60, 77, 0.25) 35%, transparent 75%),
+            linear-gradient(135deg, #020407 0%, #030a12 35%, #061926 70%, #082838 100%)
+          `
+        }}
+      />
+
+      {/* Subtle digital matrix grid overlay (Cyan dots, 4% opacity) */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-5"
+        className="absolute inset-0 pointer-events-none opacity-[0.04]"
         style={{
           backgroundImage: 'radial-gradient(circle, #00f3ff 1.2px, transparent 1.2px)',
           backgroundSize: '24px 24px'
@@ -60,7 +71,7 @@ export const LandingWrapper: React.FC = () => {
 
       {/* Center Piece Face Plate Container */}
       <div
-        className="relative w-[90vw] h-[22.5vw] md:w-[42rem] md:h-[10.5rem] bg-black/40 border border-slate-800/50 backdrop-blur-md rounded-[2.5vw] md:rounded-3xl shadow-[0_0_60px_rgba(8,51,68,0.3),0_0_30px_rgba(0,243,255,0.15)] flex justify-center items-center transition-all duration-300"
+        className="relative w-[90vw] h-[22.5vw] md:w-[42rem] md:h-[10.5rem] bg-[#030d14]/70 border border-cyan-500/30 backdrop-blur-xl rounded-[2.5vw] md:rounded-3xl shadow-[0_0_60px_rgba(0,0,0,0.8),0_0_30px_rgba(0,243,255,0.2),inset_0_1px_0_rgba(255,255,255,0.2)] flex justify-center items-center transition-all duration-300"
       >
         {/* Interactive Eye Container */}
         <div

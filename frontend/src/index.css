@@ -13,25 +13,230 @@
   --color-brand-border: var(--brand-border);
 }
 
-:root {
+:root,
+[data-theme="default"] {
   /* =========================================================================
-     🎨 GLOBAL BRAND THEME PALETTE
-     Change '--brand-primary' to test different colors across the entire project!
-     Examples:
-       Cobalt Blue:   --brand-primary: #1c39bb;  --brand-light: #506df8;
-       Amber/Gold:    --brand-primary: #FFBF00;  --brand-light: #fcd34d;
-       Purple/Violet: --brand-primary: #7c3aed;  --brand-light: #a78bfa;
-       Emerald Green: --brand-primary: #059669;  --brand-light: #34d399;
-       Crimson Red:   --brand-primary: #e11d48;  --brand-light: #fb7185;
+     🌑 DEFAULT MINIMAL THEME PALETTE (OBSIDIAN MONOCHROME)
+     Minimal monochromatic elegance: obsidian blacks, clean neutral zinc glass, 
+     subtle borders, zero loud tints, while preserving live interactive particle cyan.
      ========================================================================= */
-  --brand-primary: #1C39Bb;
-  --brand-light: #57c5c6;
-  --brand-glow: rgba(28, 57, 187, 0.35);
-  --brand-subtle: rgba(28, 57, 187, 0.15);
-  --brand-border: rgba(28, 57, 187, 0.35);
+  --brand-primary: #ffffff;
+  --brand-secondary: #18181b;
+  --brand-light: #f4f4f5;
+  --brand-frost: #ffffff;
+  --brand-glow: rgba(255, 255, 255, 0.05);
+  --brand-subtle: transparent;
+  --brand-border: rgba(255, 255, 255, 0.08);
+  --brand-ice-dark: #030407;
+  --brand-ice-deep: #060709;
+  
+  /* Cards (Translucent Grey Frosted Glass) */
+  --brand-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-card-border: rgba(255, 255, 255, 0.13);
+  --brand-card-hover-border: rgba(255, 255, 255, 0.35);
+  --brand-card-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-card-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(255, 255, 255, 0.12);
 
-  /* 🌌 Particle Canvas Color (RGB values: "0, 243, 255" for Cyan, "28, 57, 187" for Cobalt, "255, 191, 0" for Amber) */
+  /* Badges */
+  --brand-badge-bg: rgba(255, 255, 255, 0.06);
+  --brand-badge-border: rgba(255, 255, 255, 0.14);
+  --brand-badge-text: #e4e4e7;
+
+  /* Icon boxes (Frosted grey container with subtle border) */
+  --brand-icon-bg: rgba(255, 255, 255, 0.06);
+  --brand-icon-border: rgba(255, 255, 255, 0.14);
+  --brand-icon-color: #ffffff;
+  --brand-icon-glow: rgba(255, 255, 255, 0.04);
+
+  /* Buttons (Exact Frosted Glass Card Style) */
+  --brand-btn-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-btn-border: rgba(255, 255, 255, 0.13);
+  --brand-btn-hover-border: rgba(255, 255, 255, 0.35);
+  --brand-btn-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-btn-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(255, 255, 255, 0.12);
+
+  /* Dock / Nav */
+  --brand-dock-bg: rgba(8, 8, 12, 0.85);
+  --brand-dock-border: rgba(255, 255, 255, 0.08);
+  --brand-dock-shadow: 0 12px 34px rgba(0, 0, 0, 0.7);
+  --brand-dock-active-bg: linear-gradient(135deg, #f4f4f5 0%, #d4d4d8 100%);
+  --brand-dock-active-color: #09090b;
+  --brand-dock-active-border: #ffffff;
+  --brand-dock-active-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+
+  /* Underline */
+  --brand-underline-bg: linear-gradient(to right, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1), transparent);
+
+  /* 🌌 Particle Canvas Color (PRESERVED CYAN) */
   --particle-rgb: 0, 243, 255;
+}
+
+[data-theme="black-ice"] {
+  /* =========================================================================
+     ❄️ BLACK ICE THEME PALETTE
+     Obsidian depths, glacial teal luminosity, crystalline ice fractures.
+     ========================================================================= */
+  --brand-primary: #00f3ff;
+  --brand-secondary: #083c4d;
+  --brand-light: #70f3ff;
+  --brand-frost: #e0f8ff;
+  --brand-glow: rgba(0, 243, 255, 0.4);
+  --brand-subtle: rgba(0, 243, 255, 0.12);
+  --brand-border: rgba(0, 243, 255, 0.28);
+  --brand-ice-dark: #020407;
+  --brand-ice-deep: #05141c;
+
+  /* Cards (Translucent Grey Frosted Glass with subtle background visibility) */
+  --brand-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-card-border: rgba(255, 255, 255, 0.13);
+  --brand-card-hover-border: rgba(0, 243, 255, 0.5);
+  --brand-card-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-card-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 243, 255, 0.15);
+
+  /* Badges */
+  --brand-badge-bg: rgba(255, 255, 255, 0.06);
+  --brand-badge-border: rgba(255, 255, 255, 0.14);
+  --brand-badge-text: #e0f8ff;
+
+  /* Icon boxes (Frosted grey container with subtle border & cyan accent) */
+  --brand-icon-bg: rgba(255, 255, 255, 0.06);
+  --brand-icon-border: rgba(255, 255, 255, 0.14);
+  --brand-icon-color: #00f3ff;
+  --brand-icon-glow: rgba(0, 243, 255, 0.04);
+
+  /* Buttons (Exact Frosted Glass Card Style) */
+  --brand-btn-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-btn-border: rgba(255, 255, 255, 0.13);
+  --brand-btn-hover-border: rgba(0, 243, 255, 0.5);
+  --brand-btn-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-btn-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 243, 255, 0.15);
+
+  /* Dock / Nav (Consistent Default Styling) */
+  --brand-dock-bg: rgba(8, 8, 12, 0.85);
+  --brand-dock-border: rgba(255, 255, 255, 0.08);
+  --brand-dock-shadow: 0 12px 34px rgba(0, 0, 0, 0.7);
+  --brand-dock-active-bg: linear-gradient(135deg, #f4f4f5 0%, #d4d4d8 100%);
+  --brand-dock-active-color: #09090b;
+  --brand-dock-active-border: #ffffff;
+  --brand-dock-active-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+
+  /* Underline */
+  --brand-underline-bg: linear-gradient(to right, #00f3ff, #70f3ff, transparent);
+
+  /* 🌌 Particle Canvas Color (PRESERVED CYAN) */
+  --particle-rgb: 0, 243, 255;
+}
+
+[data-theme="royal"] {
+  /* =========================================================================
+     👑 ROYAL THEME PALETTE
+     Majestic Obsidian, Radiant 24k Gold, and Crisp White.
+     ========================================================================= */
+  --brand-primary: #d4af37;
+  --brand-secondary: #1a1812;
+  --brand-light: #fef3c7;
+  --brand-frost: #ffffff;
+  --brand-glow: rgba(212, 175, 55, 0.35);
+  --brand-subtle: rgba(212, 175, 55, 0.12);
+  --brand-border: rgba(212, 175, 55, 0.3);
+  --brand-ice-dark: #030407;
+  --brand-ice-deep: #08090e;
+
+  /* Cards (Translucent Grey Frosted Glass with subtle background visibility) */
+  --brand-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-card-border: rgba(255, 255, 255, 0.13);
+  --brand-card-hover-border: rgba(212, 175, 55, 0.5);
+  --brand-card-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-card-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.15);
+
+  /* Badges */
+  --brand-badge-bg: rgba(255, 255, 255, 0.06);
+  --brand-badge-border: rgba(255, 255, 255, 0.14);
+  --brand-badge-text: #ffffff;
+
+  /* Icon boxes (Frosted grey container with subtle border & gold accent) */
+  --brand-icon-bg: rgba(255, 255, 255, 0.06);
+  --brand-icon-border: rgba(255, 255, 255, 0.14);
+  --brand-icon-color: #d4af37;
+  --brand-icon-glow: rgba(212, 175, 55, 0.04);
+
+  /* Buttons (Exact Frosted Glass Card Style) */
+  --brand-btn-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-btn-border: rgba(255, 255, 255, 0.13);
+  --brand-btn-hover-border: rgba(212, 175, 55, 0.5);
+  --brand-btn-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-btn-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(212, 175, 55, 0.15);
+
+  /* Dock / Nav (Consistent Default Styling) */
+  --brand-dock-bg: rgba(8, 8, 12, 0.85);
+  --brand-dock-border: rgba(255, 255, 255, 0.08);
+  --brand-dock-shadow: 0 12px 34px rgba(0, 0, 0, 0.7);
+  --brand-dock-active-bg: linear-gradient(135deg, #f4f4f5 0%, #d4d4d8 100%);
+  --brand-dock-active-color: #09090b;
+  --brand-dock-active-border: #ffffff;
+  --brand-dock-active-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+
+  /* Underline (Radiant Gold fading into Crisp White and Obsidian) */
+  --brand-underline-bg: linear-gradient(to right, #d4af37 0%, rgba(212, 175, 55, 0.5) 45%, rgba(255, 255, 255, 0.25) 75%, transparent 100%);
+
+  /* 🌌 Particle Canvas Color (ROYAL GOLD EYES & SWARM) */
+  --particle-rgb: 234, 179, 8;
+}
+
+[data-theme="it"] {
+  /* =========================================================================
+     💻 IT / CYBER THEME PALETTE (Sleek Minimal Edition)
+     Deep Cyber Black, Crisp Monochrome Cards, Subtle Emerald Accents (#00ff66).
+     ========================================================================= */
+  --brand-primary: #00ff66;
+  --brand-secondary: #111418;
+  --brand-light: #f4f4f5;
+  --brand-frost: #ffffff;
+  --brand-glow: rgba(0, 255, 102, 0.15);
+  --brand-subtle: rgba(255, 255, 255, 0.04);
+  --brand-border: rgba(255, 255, 255, 0.08);
+  --brand-ice-dark: #020503;
+  --brand-ice-deep: #05070a;
+
+  /* Cards (Translucent Grey Frosted Glass with subtle background visibility) */
+  --brand-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-card-border: rgba(255, 255, 255, 0.13);
+  --brand-card-hover-border: rgba(0, 255, 102, 0.45);
+  --brand-card-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-card-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 255, 102, 0.12);
+
+  /* Badges */
+  --brand-badge-bg: rgba(255, 255, 255, 0.06);
+  --brand-badge-border: rgba(255, 255, 255, 0.14);
+  --brand-badge-text: #e4e4e7;
+
+  /* Icon boxes (Frosted grey container with subtle border) */
+  --brand-icon-bg: rgba(255, 255, 255, 0.06);
+  --brand-icon-border: rgba(255, 255, 255, 0.14);
+  --brand-icon-color: #34d399;
+  --brand-icon-glow: rgba(0, 255, 102, 0.04);
+
+  /* Buttons (Exact Frosted Glass Card Style) */
+  --brand-btn-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
+  --brand-btn-border: rgba(255, 255, 255, 0.13);
+  --brand-btn-hover-border: rgba(0, 255, 102, 0.45);
+  --brand-btn-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --brand-btn-hover-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 255, 102, 0.12);
+
+  /* Dock / Nav (Consistent Default Styling) */
+  --brand-dock-bg: rgba(8, 8, 12, 0.85);
+  --brand-dock-border: rgba(255, 255, 255, 0.08);
+  --brand-dock-shadow: 0 12px 34px rgba(0, 0, 0, 0.7);
+  --brand-dock-active-bg: linear-gradient(135deg, #f4f4f5 0%, #d4d4d8 100%);
+  --brand-dock-active-color: #09090b;
+  --brand-dock-active-border: #ffffff;
+  --brand-dock-active-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+
+  /* Underline (Subtle Cyber Green fading into Crisp White and Obsidian) */
+  --brand-underline-bg: linear-gradient(to right, #00ff66 0%, rgba(0, 255, 102, 0.35) 30%, rgba(255, 255, 255, 0.15) 65%, transparent 100%);
+
+  /* 🌌 Particle Canvas Color (CYBER GREEN EYES & SWARM) */
+  --particle-rgb: 0, 255, 102;
 }
 
 .font-megrim {
@@ -44,8 +249,62 @@
   height: 2px;
   width: 100%;
   border-radius: 9999px;
-  background: linear-gradient(to right, var(--brand-primary), transparent);
+  background: var(--brand-underline-bg);
   margin-top: 0.5rem;
+}
+
+/* Frosted Glass Card */
+.black-ice-card,
+.theme-card {
+  background: var(--brand-card-bg);
+  border: 1px solid var(--brand-card-border);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  box-shadow: var(--brand-card-shadow);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.black-ice-card:hover,
+.theme-card:hover {
+  border-color: var(--brand-card-hover-border);
+  box-shadow: var(--brand-card-hover-shadow);
+  transform: translateY(-2px);
+}
+
+/* Badge */
+.black-ice-badge,
+.theme-badge {
+  background: var(--brand-badge-bg);
+  border: 1px solid var(--brand-badge-border);
+  color: var(--brand-badge-text);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Icon Box */
+.theme-icon-box {
+  background: var(--brand-icon-bg);
+  border: 1px solid var(--brand-icon-border);
+  color: var(--brand-icon-color);
+  box-shadow: 0 0 12px var(--brand-icon-glow);
+  transition: all 0.3s ease;
+}
+
+/* Button (Matching Frosted Glass Card Style) */
+.black-ice-btn,
+.theme-btn {
+  background: var(--brand-btn-bg);
+  border: 1px solid var(--brand-btn-border);
+  box-shadow: var(--brand-btn-shadow);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.black-ice-btn:hover,
+.theme-btn:hover {
+  border-color: var(--brand-btn-hover-border);
+  box-shadow: var(--brand-btn-hover-shadow);
+  transform: translateY(-2px) scale(1.02);
 }
 
 html,
@@ -56,8 +315,8 @@ body,
   width: 100%;
   min-height: 100vh;
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: #08090c;
-  /* Obsidian fallback */
+  background-color: #020407;
+  color: #f1f5f9;
 }
 
 @keyframes blink {
