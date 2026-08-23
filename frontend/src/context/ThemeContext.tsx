@@ -19,13 +19,13 @@ export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: 'black-ice',
     name: 'Black Ice',
-    description: 'Obsidian depths, glacial teal glow & crystal frost',
+    description: 'Obsidian depths, glacial cyan glow & constellation interface lines',
     previewColors: ['#020407', '#083c4d', '#00f3ff', '#e0f8ff'],
   },
   {
     id: 'royal',
     name: 'Royal',
-    description: 'Majestic obsidian, 24k gold lasers & crisp white typography',
+    description: 'Majestic obsidian, liquid 24k gold kintsugi veins & crisp white typography',
     previewColors: ['#030407', '#1a1812', '#d4af37', '#ffffff'],
   },
   {

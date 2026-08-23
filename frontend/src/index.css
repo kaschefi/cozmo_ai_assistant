@@ -29,7 +29,7 @@
   --brand-border: rgba(255, 255, 255, 0.08);
   --brand-ice-dark: #030407;
   --brand-ice-deep: #060709;
-  
+
   /* Cards (Translucent Grey Frosted Glass) */
   --brand-card-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(30, 36, 46, 0.38) 100%);
   --brand-card-border: rgba(255, 255, 255, 0.13);

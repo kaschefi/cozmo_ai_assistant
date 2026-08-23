@@ -4,17 +4,17 @@ import ProjectIntro from './ui/ProjectIntro';
 import FeatureMarquee from './ui/FeatureMarquee';
 import TalkSection from './ui/TalkSection';
 import ParticleCanvas from './ui/ParticleCanvas';
-import MatrixJunctionBackground from './ui/MatrixJunctionBackground';
+import GoldVeinsBackground from './ui/GoldVeinsBackground';
 import ParticleDriftBackground from './ui/ParticleDriftBackground';
-import CrystallineFrostBackground from './ui/CrystallineFrostBackground';
+import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
 import { useTheme } from '../context/ThemeContext';
 
 /**
  * MokaLanding component representing the main ecosystem dashboard.
  * Supports:
  * - Clean Obsidian "Default" theme
- * - Crystalline "Black Ice" theme
- * - ThreeUI Laser "Matrix Junction" WebGL Royal Gold & Obsidian theme
+ * - ThreeUI Constellation Field (Interface Lines) "Black Ice" theme
+ * - Liquid Kintsugi 24k Gold Veins "Royal" theme
  * - ThreeUI "Particle Drift" ASCII Cyber Green & Black IT theme
  */
 interface MokaLandingProps {
@@ -31,7 +31,7 @@ export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat }) => {
     <div className={`relative min-h-[220vh] ${
       isBlackIce ? 'bg-[#020407]' : isRoyal ? 'bg-[#030407]' : isIT ? 'bg-[#020503]' : 'bg-[#030407]'
     } overflow-x-hidden transition-colors duration-700`}>
-      {/* Dynamic Background Layer (Glacial Teal for Black Ice, Pure Gold/Obsidian for Royal, Pure Obsidian for Default) */}
+      {/* Dynamic Background Layer */}
       <div 
         className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700"
         style={{
@@ -53,14 +53,14 @@ export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat }) => {
         }}
       />
 
-      {/* ❄️ Interactive Crystalline Frost Fracture Background (Rendered for Black Ice) */}
+      {/* 🌌 ThreeUI Constellation Field (Interface Lines) Background (Rendered for Black Ice) */}
       {isBlackIce && (
-        <CrystallineFrostBackground className="fixed inset-0 pointer-events-none z-0" />
+        <ConstellationFieldBackground className="fixed inset-0 pointer-events-none z-0" />
       )}
 
-      {/* 👑 ThreeUI Matrix Junction WebGL Laser Background (Rendered for Royal) */}
+      {/* 👑 Liquid Kintsugi 24k Gold Veins Background (Rendered for Royal) */}
       {isRoyal && (
-        <MatrixJunctionBackground className="fixed inset-0 pointer-events-none z-0" />
+        <GoldVeinsBackground className="fixed inset-0 pointer-events-none z-0" />
       )}
 
       {/* 💻 ThreeUI Particle Drift ASCII Cyber Data Stream (Rendered for IT) */}

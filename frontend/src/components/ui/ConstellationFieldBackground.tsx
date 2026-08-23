@@ -1,38 +1,41 @@
 import React, { useEffect, useRef } from 'react';
 
 /**
- * ConstellationFieldBackground component.
- * Exact implementation of ThreeUI Constellation Field with Cyber Green & Black theme.
+ * ConstellationFieldBackground component for the "Black Ice" theme.
+ * Direct native implementation of ThreeUI ConstellationField (Variant: Interface Lines).
  * Features:
- * - Dynamic drifting constellation nodes with velocity damping and edge bouncing.
- * - Interactive pointer gravity tracker that pulls nearby constellation nodes toward the mouse cursor.
- * - Distance-based alpha link lines connecting clustered cyber nodes.
- * - Pulsing glowing node cores with soft halo glow.
- * - Cyber Green (`#00ff66`, `#10b981`) over deep cyber obsidian black (`#020503`).
+ * - Dynamic scroll-reactive opacity: ~20% at the top hero section, scaling up to ~85% on scroll.
+ * - Scroll-driven upward kinetic drift: particles accelerate upward as user scrolls through the page.
+ * - Drifting network particles with velocity vectors and boundary wrapping/bouncing.
+ * - Geometric proximity interface lines between nearby nodes with distance-based alpha.
+ * - Precision square node vertices (1.5px) in specular ice white.
+ * - Interactive cursor proximity illumination and subtle particle deflection.
+ * - Glacial Cyan (#00f3ff) and Ice White (#e0f8ff) over deep obsidian black (#020407).
  */
 
 export interface ConstellationFieldProps {
   className?: string;
-  nodeColor?: string;
-  linkColor?: string;
-  maxNodes?: number;
+  particleCount?: number;
   linkDistance?: number;
+  baseOpacity?: number; // Base opacity when at top (default: 0.20)
+  maxOpacity?: number;  // Max opacity after scroll (default: 0.75)
+  strokeWidth?: number;
 }
 
-interface Node {
+interface Particle {
   x: number;
   y: number;
   vx: number;
   vy: number;
-  radius: number;
 }
 
 export const ConstellationFieldBackground: React.FC<ConstellationFieldProps> = ({
   className = '',
-  nodeColor = '#00ff66',
-  linkColor = '#00ff66',
-  maxNodes,
-  linkDistance = 160,
+  particleCount,
+  linkDistance = 130,
+  baseOpacity = 0.20,
+  maxOpacity = 0.75,
+  strokeWidth = 1,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,12 +50,18 @@ export const ConstellationFieldBackground: React.FC<ConstellationFieldProps> = (
 
     let width = 0;
     let height = 0;
-    let nodes: Node[] = [];
-    const pointer = { x: -1000, y: -1000 };
+    let particles: Particle[] = [];
+    const mouse = { x: -1000, y: -1000, active: false };
     let animId = 0;
 
-    const computedMaxNodes =
-      maxNodes ?? (typeof window !== 'undefined' && window.innerWidth < 768 ? 45 : 90);
+    // Scroll state tracking
+    let currentScrollY = window.scrollY || 0;
+    let prevScrollY = currentScrollY;
+    let scrollVelocity = 0;
+    let dynamicOpacity = baseOpacity;
+
+    const count =
+      particleCount ?? (typeof window !== 'undefined' && window.innerWidth < 640 ? 35 : 75);
 
     function resize() {
       if (!canvas || !container) return;
@@ -70,109 +79,145 @@ export const ConstellationFieldBackground: React.FC<ConstellationFieldProps> = (
       ctx!.imageSmoothingEnabled = false;
     }
 
-    function initNodes() {
-      nodes = [];
-      for (let i = 0; i < computedMaxNodes; i++) {
-        nodes.push({
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < count; i++) {
+        particles.push({
           x: Math.random() * width,
           y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35,
-          radius: Math.random() * 2.2 + 1.6,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: -Math.random() * 0.35 - 0.08, // Initial gentle upward float
         });
       }
     }
 
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
-      pointer.x = e.clientX - rect.left;
-      pointer.y = e.clientY - rect.top;
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+      mouse.active = true;
     };
 
     const handleMouseLeave = () => {
-      pointer.x = -1000;
-      pointer.y = -1000;
+      mouse.x = -1000;
+      mouse.y = -1000;
+      mouse.active = false;
+    };
+
+    const handleScroll = () => {
+      currentScrollY = window.scrollY || 0;
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     window.addEventListener('mouseleave', handleMouseLeave, { passive: true });
+    window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', () => {
       resize();
-      initNodes();
+      initParticles();
     });
 
     resize();
-    initNodes();
+    initParticles();
 
-    function dist(a: { x: number; y: number }, b: { x: number; y: number }) {
-      return Math.hypot(a.x - b.x, a.y - b.y);
-    }
-
-    function animate() {
+    function drawLines() {
       if (!ctx) return;
+
+      // 1. Smoothly calculate scroll progress (0 at top, 1 at 550px down)
+      const scrollProgress = Math.min(1, Math.max(0, currentScrollY / 550));
+      const targetOpacity = baseOpacity + (maxOpacity - baseOpacity) * scrollProgress;
+      dynamicOpacity += (targetOpacity - dynamicOpacity) * 0.08;
+
+      // 2. Calculate scroll velocity for upward impulse
+      const scrollDelta = currentScrollY - prevScrollY;
+      prevScrollY = currentScrollY;
+      scrollVelocity += (scrollDelta - scrollVelocity) * 0.15;
+
       ctx.clearRect(0, 0, width, height);
+      ctx.lineWidth = strokeWidth;
       ctx.lineCap = 'butt';
       ctx.lineJoin = 'miter';
 
-      // 1. Draw Links
-      ctx.strokeStyle = linkColor;
-      ctx.lineWidth = 1;
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const d = dist(nodes[i], nodes[j]);
-          if (d < linkDistance) {
-            ctx.globalAlpha = 0.18 + (1 - d / linkDistance) * 0.45;
+      // 3. Update and link particles
+      const upwardScrollBoost = Math.max(0, scrollVelocity * 0.08);
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        // Upward drift + additional upward momentum when scrolling down
+        p.y += p.vy - upwardScrollBoost;
+
+        // Horizontal bounce off bounds
+        if (p.x < 0) {
+          p.x = 0;
+          p.vx *= -1;
+        } else if (p.x > width) {
+          p.x = width;
+          p.vx *= -1;
+        }
+
+        // Vertical wrapping when ascending beyond top edge
+        if (p.y < -10) {
+          p.y = height + 10;
+          p.x = Math.random() * width;
+        } else if (p.y > height + 10) {
+          p.y = -10;
+          p.x = Math.random() * width;
+        }
+
+        // Gentle cursor push & glow
+        if (mouse.active) {
+          const mdx = p.x - mouse.x;
+          const mdy = p.y - mouse.y;
+          const mdist = Math.hypot(mdx, mdy);
+          if (mdist < 140 && mdist > 0) {
+            const force = (1 - mdist / 140) * 0.45;
+            p.x += (mdx / mdist) * force;
+            p.y += (mdy / mdist) * force;
+          }
+        }
+
+        // Draw geometric connection lines to subsequent particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const p2 = particles[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.hypot(dx, dy);
+
+          if (dist < linkDistance) {
+            const lineAlpha = (0.22 + (1 - dist / linkDistance) * 0.52) * dynamicOpacity;
+
             ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
+            // Subtle glacial cyan tint with specular ice white core
+            ctx.strokeStyle = `rgba(0, 243, 255, ${lineAlpha * 0.65})`;
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(224, 248, 255, ${lineAlpha * 0.85})`;
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
           }
         }
+
+        // Draw precision square node vertices (ThreeUI signature 1.5px micro-nodes)
+        const nodeAlpha = dynamicOpacity;
+        ctx.fillStyle = `rgba(0, 243, 255, ${0.4 * nodeAlpha})`;
+        ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.9 * nodeAlpha})`;
+        ctx.fillRect(p.x - 0.75, p.y - 0.75, 1.5, 1.5);
       }
 
-      // 2. Update & Draw Nodes
-      const now = Date.now() * 0.001;
-      nodes.forEach((node) => {
-        node.x += node.vx;
-        node.y += node.vy;
-
-        // Bounce off bounds
-        if (node.x < 0 || node.x > width) node.vx *= -1;
-        if (node.y < 0 || node.y > height) node.vy *= -1;
-
-        // Gentle Pointer gravity
-        const pd = dist(node, pointer);
-        if (pd < 220) {
-          node.x -= (node.x - pointer.x) * 0.006;
-          node.y -= (node.y - pointer.y) * 0.006;
-        }
-
-        // Draw Node (Cyber Green Glow & Core)
-        const pulse = 0.78 + Math.sin(now + node.x * 0.05) * 0.22;
-        ctx.fillStyle = nodeColor;
-
-        // Halo
-        ctx.globalAlpha = pulse * 0.28;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius * 2.4, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Core
-        ctx.globalAlpha = pulse;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      ctx.globalAlpha = 1;
-      animId = requestAnimationFrame(animate);
+      animId = requestAnimationFrame(drawLines);
     }
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!prefersReducedMotion) {
-      animate();
+      drawLines();
     } else {
-      animate();
+      drawLines();
       cancelAnimationFrame(animId);
     }
 
@@ -180,21 +225,23 @@ export const ConstellationFieldBackground: React.FC<ConstellationFieldProps> = (
       cancelAnimationFrame(animId);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseleave', handleMouseLeave);
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', resize);
     };
-  }, [linkColor, nodeColor, maxNodes, linkDistance]);
+  }, [baseOpacity, maxOpacity, linkDistance, particleCount, strokeWidth]);
 
   return (
     <div
       ref={containerRef}
       className={`fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden ${className}`}
-      style={{ background: '#020503' }}
+      style={{ background: '#020407' }}
     >
-      {/* Background cyber radial glow */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-40"
+      {/* Glacial Cyan Ambient Depth Glow */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-25"
         style={{
-          background: 'radial-gradient(ellipse at 50% 40%, rgba(0, 255, 102, 0.08) 0%, rgba(2, 5, 3, 0.95) 80%)'
+          background:
+            'radial-gradient(ellipse at 50% 40%, rgba(0, 243, 255, 0.1) 0%, rgba(2, 4, 7, 0.95) 75%)',
         }}
       />
       <canvas ref={canvasRef} className="w-full h-full block relative z-10" />

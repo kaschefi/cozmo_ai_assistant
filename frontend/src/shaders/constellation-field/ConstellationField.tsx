@@ -1,6 +1,8 @@
 import type { ConstellationFieldProps } from '../../components/ui/ConstellationFieldBackground';
 import ConstellationFieldBackground from '../../components/ui/ConstellationFieldBackground';
 
+export { ConstellationFieldBackground, type ConstellationFieldProps };
+
 export function ConstellationField(props: ConstellationFieldProps) {
   return <ConstellationFieldBackground {...props} />;
 }
