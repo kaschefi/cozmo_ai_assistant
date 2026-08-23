@@ -1,0 +1,891 @@
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import * as THREE from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import type { RobotPose, VisualAnchorData, ObstacleData } from './SemanticGridMap';
+
+export interface Cozmo3DWorldMapProps {
+  robot: RobotPose;
+  anchors: VisualAnchorData[];
+  obstacles: ObstacleData[];
+  path?: number[][];
+  onPointClick?: (worldX: number, worldY: number) => void;
+  onAnchorClick?: (anchor: VisualAnchorData) => void;
+  className?: string;
+}
+
+export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
+  robot,
+  anchors,
+  obstacles,
+  path = [],
+  onPointClick,
+  onAnchorClick,
+  className = '',
+}) => {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [cameraMode, setCameraMode] = useState<'free' | 'follow' | 'top' | 'iso'>('free');
+  const [isLoadingModel, setIsLoadingModel] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isDemoDriving, setIsDemoDriving] = useState<boolean>(false);
+  const [demoDistance, setDemoDistance] = useState<number>(0);
+
+  // References for live rendering
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
+  const cozmoModelRef = useRef<THREE.Group | null>(null);
+  const cozmoBodyMeshRef = useRef<THREE.Group | null>(null);
+  const anchorsGroupRef = useRef<THREE.Group | null>(null);
+  const obstaclesGroupRef = useRef<THREE.Group | null>(null);
+  const pathLineRef = useRef<THREE.Line | null>(null);
+  const trailLineRef = useRef<THREE.Line | null>(null);
+  const headlightRef = useRef<THREE.SpotLight | null>(null);
+  const headlightTargetRef = useRef<THREE.Object3D | null>(null);
+  const groundPlaneRef = useRef<THREE.Mesh | null>(null);
+
+  // Robot telemetry refs for smooth interpolation in RAF
+  const robotTargetPos = useRef({ x: 0, z: 0, rotY: 0 });
+  const robotCurrentPos = useRef({ x: 0, z: 0, rotY: 0 });
+  const cameraModeRef = useRef<'free' | 'follow' | 'top' | 'iso'>('free');
+  const trailPointsRef = useRef<THREE.Vector3[]>([]);
+
+  // Demo Drive Simulation state ref
+  const demoDriveRef = useRef<{
+    active: boolean;
+    startX: number;
+    startZ: number;
+    startHeading: number;
+    distanceDriven: number;
+    targetDistance: number; // 10 meters (10.0 in 3D world units)
+    speed: number;
+  }>({
+    active: false,
+    startX: 0,
+    startZ: 0,
+    startHeading: 0,
+    distanceDriven: 0,
+    targetDistance: 10.0,
+    speed: 0.8, // 0.8 m/s
+  });
+
+  // Update camera mode ref
+  useEffect(() => {
+    cameraModeRef.current = cameraMode;
+    const controls = controlsRef.current;
+    const camera = cameraRef.current;
+    const cozmo = cozmoModelRef.current;
+    if (!controls || !camera) return;
+
+    if (cameraMode === 'top') {
+      const targetX = cozmo ? cozmo.position.x : 0;
+      const targetZ = cozmo ? cozmo.position.z : 0;
+      camera.position.set(targetX, 3.0, targetZ + 0.001);
+      controls.target.set(targetX, 0, targetZ);
+      controls.update();
+    } else if (cameraMode === 'iso') {
+      const targetX = cozmo ? cozmo.position.x : 0;
+      const targetZ = cozmo ? cozmo.position.z : 0;
+      camera.position.set(targetX + 1.2, 1.4, targetZ + 1.2);
+      controls.target.set(targetX, 0, targetZ);
+      controls.update();
+    }
+  }, [cameraMode]);
+
+  // Convert telemetry mm to 3D world meters (unless demo simulation is overriding)
+  useEffect(() => {
+    if (demoDriveRef.current.active) return;
+
+    const worldX = (robot.x || 0) / 1000;
+    const worldZ = -(robot.y || 0) / 1000;
+    const thetaRad = ((robot.theta_deg || 0) * Math.PI) / 180;
+    robotTargetPos.current = {
+      x: worldX,
+      z: worldZ,
+      rotY: thetaRad,
+    };
+
+    // Breadcrumb trail
+    const p = new THREE.Vector3(worldX, 0.005, worldZ);
+    const last = trailPointsRef.current[trailPointsRef.current.length - 1];
+    if (!last || last.distanceTo(p) > 0.02) {
+      trailPointsRef.current.push(p);
+      if (trailPointsRef.current.length > 300) {
+        trailPointsRef.current.shift();
+      }
+      if (trailLineRef.current) {
+        trailLineRef.current.geometry.setFromPoints(trailPointsRef.current);
+      }
+    }
+  }, [robot.x, robot.y, robot.theta_deg]);
+
+  // Start / Stop 10 Meter Demo Drive
+  const handleToggleDemoDrive = useCallback(() => {
+    if (demoDriveRef.current.active) {
+      // Stop demo
+      demoDriveRef.current.active = false;
+      setIsDemoDriving(false);
+    } else {
+      // Start 10m demo drive
+      const cur = robotCurrentPos.current;
+      demoDriveRef.current = {
+        active: true,
+        startX: cur.x,
+        startZ: cur.z,
+        startHeading: cur.rotY,
+        distanceDriven: 0,
+        targetDistance: 10.0, // 10 meters
+        speed: 0.75, // meters per second
+      };
+      setIsDemoDriving(true);
+      setDemoDistance(0);
+    }
+  }, []);
+
+  // Main Three.js Scene Initialization
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    // 1. Scene
+    const scene = new THREE.Scene();
+    sceneRef.current = scene;
+    scene.background = new THREE.Color(0x060911);
+    scene.fog = new THREE.FogExp2(0x060911, 0.18);
+
+    // 2. Camera
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.02, 60);
+    camera.position.set(0.8, 0.9, 1.1);
+    cameraRef.current = camera;
+
+    // 3. Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    container.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // 4. Controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.minDistance = 0.15;
+    controls.maxDistance = 25;
+    controls.target.set(0, 0.04, 0);
+    controlsRef.current = controls;
+
+    // 5. Lighting
+    const ambientLight = new THREE.AmbientLight(0xddeeff, 1.2);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    dirLight.position.set(4, 8, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 0.1;
+    dirLight.shadow.camera.far = 30;
+    dirLight.shadow.camera.left = -6;
+    dirLight.shadow.camera.right = 6;
+    dirLight.shadow.camera.top = 6;
+    dirLight.shadow.camera.bottom = -6;
+    dirLight.shadow.bias = -0.0005;
+    scene.add(dirLight);
+
+    const rimLight = new THREE.DirectionalLight(0x00d4ff, 1.5);
+    rimLight.position.set(-6, 4, -6);
+    scene.add(rimLight);
+
+    const bounceLight = new THREE.DirectionalLight(0xffaa44, 0.4);
+    bounceLight.position.set(0, -2, 0);
+    scene.add(bounceLight);
+
+    // 6. Ground & Cyber Grid
+    const groundGeo = new THREE.PlaneGeometry(60, 60);
+    const groundMat = new THREE.MeshStandardMaterial({
+      color: 0x070b14,
+      roughness: 0.85,
+      metalness: 0.2,
+    });
+    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
+    groundPlaneRef.current = groundMesh;
+
+    // Major & Minor Grid
+    const minorGrid = new THREE.GridHelper(30, 300, 0x1a334d, 0x0f2030);
+    minorGrid.position.y = 0.001;
+    scene.add(minorGrid);
+
+    const majorGrid = new THREE.GridHelper(30, 30, 0x00f0ff, 0x006688);
+    majorGrid.position.y = 0.002;
+    scene.add(majorGrid);
+
+    // Concentric Range Rings (0.5m, 1.0m, 2.0m, 5.0m, 10.0m)
+    const ringsGroup = new THREE.Group();
+    [0.5, 1.0, 2.0, 5.0, 10.0].forEach((r) => {
+      const ringGeo = new THREE.RingGeometry(r - 0.004, r + 0.004, 64);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x00d4ff,
+        transparent: true,
+        opacity: 0.25,
+        side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.003;
+      ringsGroup.add(ring);
+    });
+    scene.add(ringsGroup);
+
+    // Dynamic Trail Line
+    const trailMat = new THREE.LineBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.7,
+      linewidth: 2,
+    });
+    const trailGeo = new THREE.BufferGeometry();
+    const trailLine = new THREE.Line(trailGeo, trailMat);
+    scene.add(trailLine);
+    trailLineRef.current = trailLine;
+
+    // Planned Path Line
+    const pathMat = new THREE.LineDashedMaterial({
+      color: 0xffb700,
+      dashSize: 0.05,
+      gapSize: 0.03,
+      transparent: true,
+      opacity: 0.8,
+    });
+    const pathGeo = new THREE.BufferGeometry();
+    const pathLine = new THREE.Line(pathGeo, pathMat);
+    scene.add(pathLine);
+    pathLineRef.current = pathLine;
+
+    // Groups for dynamic anchors and obstacles
+    const anchorsGroup = new THREE.Group();
+    scene.add(anchorsGroup);
+    anchorsGroupRef.current = anchorsGroup;
+
+    const obstaclesGroup = new THREE.Group();
+    scene.add(obstaclesGroup);
+    obstaclesGroupRef.current = obstaclesGroup;
+
+    // 7. Load Cozmo 3D Model (.mtl + .obj)
+    const mtlLoader = new MTLLoader();
+    mtlLoader.setPath('/models/cozmo/');
+    mtlLoader.setResourcePath('/models/cozmo/');
+
+    mtlLoader.load(
+      '3DModel.mtl?v=flush4',
+      (materials) => {
+        materials.preload();
+        const objLoader = new OBJLoader();
+        objLoader.setMaterials(materials);
+        objLoader.setPath('/models/cozmo/');
+
+        objLoader.load(
+          '3DModel.obj?v=flush4',
+          (object) => {
+            object.traverse((child) => {
+              if (child instanceof THREE.Mesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.material) {
+                  if (Array.isArray(child.material)) {
+                    child.material.forEach((m) => {
+                      m.side = THREE.DoubleSide;
+                      m.roughness = 0.65;
+                      m.metalness = 0.15;
+                    });
+                  } else {
+                    child.material.side = THREE.DoubleSide;
+                    child.material.roughness = 0.65;
+                    child.material.metalness = 0.15;
+                  }
+                }
+              }
+            });
+
+            // Parent container for world navigation (X, Z position + Y heading)
+            const cozmoContainer = new THREE.Group();
+
+            // Inner body container for procedural micro-physics (suspension rumble, tilt, roll)
+            const cozmoBody = new THREE.Group();
+            cozmoBody.add(object);
+            cozmoContainer.add(cozmoBody);
+            cozmoBodyMeshRef.current = cozmoBody;
+
+            // Glowing Ground Shadow
+            const shadowGeo = new THREE.PlaneGeometry(0.14, 0.14);
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              const grad = ctx.createRadialGradient(32, 32, 4, 32, 32, 32);
+              grad.addColorStop(0, 'rgba(0, 240, 255, 0.6)');
+              grad.addColorStop(0.4, 'rgba(0, 150, 255, 0.3)');
+              grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+              ctx.fillStyle = grad;
+              ctx.fillRect(0, 0, 64, 64);
+            }
+            const shadowTex = new THREE.CanvasTexture(canvas);
+            const shadowMat = new THREE.MeshBasicMaterial({
+              map: shadowTex,
+              transparent: true,
+              opacity: 0.7,
+              depthWrite: false,
+            });
+            const groundHalo = new THREE.Mesh(shadowGeo, shadowMat);
+            groundHalo.rotation.x = -Math.PI / 2;
+            groundHalo.position.y = 0.003;
+            cozmoContainer.add(groundHalo);
+
+            // Cozmo Headlight Beam
+            const headlight = new THREE.SpotLight(0xaae8ff, 3.5, 2.5, Math.PI / 4.5, 0.4, 1.2);
+            headlight.position.set(0, 0.045, 0.04);
+            headlight.castShadow = true;
+            headlight.shadow.bias = -0.001;
+
+            const headlightTarget = new THREE.Object3D();
+            headlightTarget.position.set(0, 0.0, 1.2);
+            cozmoContainer.add(headlightTarget);
+            headlight.target = headlightTarget;
+            cozmoContainer.add(headlight);
+            headlightRef.current = headlight;
+            headlightTargetRef.current = headlightTarget;
+
+            scene.add(cozmoContainer);
+            cozmoModelRef.current = cozmoContainer;
+            setIsLoadingModel(false);
+          },
+          undefined,
+          (err) => {
+            console.error('Error loading 3DModel.obj:', err);
+            setLoadError('Failed to load 3D Cozmo OBJ model.');
+            setIsLoadingModel(false);
+          }
+        );
+      },
+      undefined,
+      (err) => {
+        console.error('Error loading 3DModel.mtl:', err);
+        setLoadError('Failed to load 3D Cozmo material.');
+        setIsLoadingModel(false);
+      }
+    );
+
+    // 8. Animation & Render Loop with Procedural Physics
+    let animationFrameId: number;
+    const clock = new THREE.Clock();
+
+    const animate = () => {
+      animationFrameId = requestAnimationFrame(animate);
+      const delta = Math.min(0.05, clock.getDelta());
+      const time = clock.getElapsedTime();
+
+      // Demo 10m Drive Step
+      const demo = demoDriveRef.current;
+      if (demo.active) {
+        // Drive forward in the direction of heading
+        const stepDist = demo.speed * delta;
+        demo.distanceDriven += stepDist;
+        setDemoDistance(demo.distanceDriven);
+
+        // Turn slightly along a curved 10m path for realistic visual interest
+        const turnRate = Math.sin(demo.distanceDriven * 0.8) * 0.25;
+        demo.startHeading += turnRate * delta;
+
+        // Move target along heading
+        const forwardX = Math.sin(demo.startHeading);
+        const forwardZ = Math.cos(demo.startHeading);
+        robotTargetPos.current.x += forwardX * stepDist;
+        robotTargetPos.current.z += forwardZ * stepDist;
+        robotTargetPos.current.rotY = demo.startHeading;
+
+        // Breadcrumbs during demo
+        const p = new THREE.Vector3(robotTargetPos.current.x, 0.005, robotTargetPos.current.z);
+        const last = trailPointsRef.current[trailPointsRef.current.length - 1];
+        if (!last || last.distanceTo(p) > 0.03) {
+          trailPointsRef.current.push(p);
+          if (trailPointsRef.current.length > 300) trailPointsRef.current.shift();
+          if (trailLineRef.current) trailLineRef.current.geometry.setFromPoints(trailPointsRef.current);
+        }
+
+        if (demo.distanceDriven >= demo.targetDistance) {
+          demo.active = false;
+          setIsDemoDriving(false);
+        }
+      }
+
+      // Smooth lerp robot position & rotation
+      const cozmo = cozmoModelRef.current;
+      const cozmoBody = cozmoBodyMeshRef.current;
+      if (cozmo) {
+        const target = robotTargetPos.current;
+        const cur = robotCurrentPos.current;
+
+        const prevX = cur.x;
+        const prevZ = cur.z;
+
+        cur.x += (target.x - cur.x) * Math.min(1, delta * 14);
+        cur.z += (target.z - cur.z) * Math.min(1, delta * 14);
+
+        // Shortest angle rotation lerp
+        let diffRot = target.rotY - cur.rotY;
+        while (diffRot < -Math.PI) diffRot += Math.PI * 2;
+        while (diffRot > Math.PI) diffRot -= Math.PI * 2;
+        cur.rotY += diffRot * Math.min(1, delta * 12);
+
+        cozmo.position.set(cur.x, 0, cur.z);
+        cozmo.rotation.y = cur.rotY;
+
+        // ==========================================
+        // PROCEDURAL VEHICLE MOTION & MICRO-PHYSICS
+        // ==========================================
+        if (cozmoBody) {
+          const moveDelta = Math.hypot(cur.x - prevX, cur.z - prevZ);
+          const currentSpeed = delta > 0 ? moveDelta / delta : 0;
+          const isMoving = currentSpeed > 0.015 || Math.abs(diffRot) > 0.03;
+
+          if (isMoving) {
+            // 1. Traction Tread Vibration: High-frequency chassis vibration
+            const treadFreq = 42;
+            const vibrationY = Math.sin(time * treadFreq) * 0.00065;
+            const vibrationRoll = Math.sin(time * (treadFreq * 0.7)) * 0.008;
+
+            // 2. Acceleration / Inertia Pitch: Front tilts forward on speed
+            const pitch = -Math.min(0.045, currentSpeed * 0.06);
+
+            // 3. Banking Roll into turns
+            const turnRoll = Math.max(-0.06, Math.min(0.06, diffRot * 0.35));
+
+            cozmoBody.position.y = vibrationY;
+            cozmoBody.rotation.x = pitch;
+            cozmoBody.rotation.z = turnRoll + vibrationRoll;
+
+            // Pulse headlight intensity with driving power
+            if (headlightRef.current) {
+              headlightRef.current.intensity = 3.5 + Math.sin(time * 20) * 0.4;
+            }
+          } else {
+            // Idle breathing micro-hover
+            const idleHover = Math.sin(time * 2.2) * 0.0003;
+            cozmoBody.position.y = idleHover;
+            cozmoBody.rotation.x = THREE.MathUtils.lerp(cozmoBody.rotation.x, 0, delta * 8);
+            cozmoBody.rotation.z = THREE.MathUtils.lerp(cozmoBody.rotation.z, 0, delta * 8);
+
+            if (headlightRef.current) {
+              headlightRef.current.intensity = 3.2;
+            }
+          }
+        }
+
+        // Camera Follow Mode logic
+        if (cameraModeRef.current === 'follow' && controlsRef.current && cameraRef.current) {
+          const followDist = 0.65;
+          const followHeight = 0.40;
+          const camX = cur.x - Math.sin(cur.rotY) * followDist;
+          const camZ = cur.z - Math.cos(cur.rotY) * followDist;
+
+          cameraRef.current.position.lerp(new THREE.Vector3(camX, followHeight, camZ), 0.09);
+          controlsRef.current.target.lerp(new THREE.Vector3(cur.x, 0.05, cur.z), 0.09);
+        }
+      }
+
+      // Pulse effects on anchors
+      if (anchorsGroupRef.current) {
+        anchorsGroupRef.current.children.forEach((anchorObj) => {
+          const halo = anchorObj.getObjectByName('halo');
+          if (halo) {
+            const scale = 1 + Math.sin(time * 3) * 0.12;
+            halo.scale.set(scale, scale, scale);
+          }
+          const diamond = anchorObj.getObjectByName('diamond');
+          if (diamond) {
+            diamond.rotation.y = time * 1.5;
+            diamond.position.y = 0.08 + Math.sin(time * 2.5) * 0.015;
+          }
+        });
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    };
+
+    animate();
+
+    // 9. Resize Handler
+    const handleResize = () => {
+      if (!container || !camera || !renderer) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
+
+    // Cleanup
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      resizeObserver.disconnect();
+      if (renderer.domElement && container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+    };
+  }, []);
+
+  // Update Visual Anchors in 3D Scene
+  useEffect(() => {
+    const group = anchorsGroupRef.current;
+    if (!group) return;
+
+    while (group.children.length > 0) {
+      group.remove(group.children[0]);
+    }
+
+    anchors.forEach((anchor) => {
+      const wx = (anchor.x || 0) / 1000;
+      const wz = -(anchor.y || 0) / 1000;
+
+      const anchorObj = new THREE.Group();
+      anchorObj.position.set(wx, 0, wz);
+      anchorObj.userData = { anchor };
+
+      const isCharger = anchor.label.toLowerCase().includes('charger') || anchor.label.toLowerCase().includes('dock');
+      const baseColor = isCharger ? 0x10b981 : 0x00d4ff;
+
+      // 1. Floating Diamond
+      const diamondGeo = new THREE.OctahedronGeometry(0.025, 0);
+      const diamondMat = new THREE.MeshStandardMaterial({
+        color: baseColor,
+        emissive: baseColor,
+        emissiveIntensity: 0.6,
+        roughness: 0.2,
+        metalness: 0.8,
+      });
+      const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+      diamond.name = 'diamond';
+      diamond.position.y = 0.08;
+      diamond.castShadow = true;
+      anchorObj.add(diamond);
+
+      // 2. Light beam pedestal
+      const stemGeo = new THREE.CylinderGeometry(0.002, 0.002, 0.08, 8);
+      const stemMat = new THREE.MeshBasicMaterial({
+        color: baseColor,
+        transparent: true,
+        opacity: 0.5,
+      });
+      const stem = new THREE.Mesh(stemGeo, stemMat);
+      stem.position.y = 0.04;
+      anchorObj.add(stem);
+
+      // 3. Ground Halo Ring
+      const ringGeo = new THREE.RingGeometry(0.035, 0.045, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: baseColor,
+        transparent: true,
+        opacity: 0.7,
+        side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.004;
+      ring.name = 'halo';
+      anchorObj.add(ring);
+
+      // 4. Billboard Text Label Sprite
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'rgba(10, 16, 26, 0.85)';
+        ctx.roundRect(4, 4, 248, 56, 12);
+        ctx.fill();
+        ctx.strokeStyle = isCharger ? '#10b981' : '#00d4ff';
+        ctx.lineWidth = 3;
+        ctx.roundRect(4, 4, 248, 56, 12);
+        ctx.stroke();
+
+        ctx.font = 'bold 22px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(anchor.label.toUpperCase(), 128, 32);
+      }
+      const labelTex = new THREE.CanvasTexture(canvas);
+      const spriteMat = new THREE.SpriteMaterial({ map: labelTex, transparent: true });
+      const sprite = new THREE.Sprite(spriteMat);
+      sprite.position.set(0, 0.14, 0);
+      sprite.scale.set(0.18, 0.045, 1);
+      anchorObj.add(sprite);
+
+      group.add(anchorObj);
+    });
+  }, [anchors]);
+
+  // Update Obstacles in 3D Scene
+  useEffect(() => {
+    const group = obstaclesGroupRef.current;
+    if (!group) return;
+
+    while (group.children.length > 0) {
+      group.remove(group.children[0]);
+    }
+
+    obstacles.forEach((obs) => {
+      const wx = (obs.x || 0) / 1000;
+      const wz = -(obs.y || 0) / 1000;
+      const radiusM = Math.max(0.03, (obs.radius || 40) / 1000);
+
+      const obsObj = new THREE.Group();
+      obsObj.position.set(wx, 0, wz);
+
+      const cylGeo = new THREE.CylinderGeometry(radiusM, radiusM, 0.08, 24);
+      const cylMat = new THREE.MeshStandardMaterial({
+        color: 0xef4444,
+        emissive: 0xef4444,
+        emissiveIntensity: 0.4,
+        transparent: true,
+        opacity: 0.35,
+        roughness: 0.3,
+      });
+      const cyl = new THREE.Mesh(cylGeo, cylMat);
+      cyl.position.y = 0.04;
+      obsObj.add(cyl);
+
+      const ringGeo = new THREE.RingGeometry(radiusM - 0.005, radiusM + 0.005, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xff3b30,
+        side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.081;
+      obsObj.add(ring);
+
+      group.add(obsObj);
+    });
+  }, [obstacles]);
+
+  // Update Planned Path in 3D Scene
+  useEffect(() => {
+    const pathLine = pathLineRef.current;
+    if (!pathLine) return;
+
+    if (path && path.length > 1) {
+      const points = path.map((pt) => new THREE.Vector3(pt[0] / 1000, 0.008, -pt[1] / 1000));
+      pathLine.geometry.setFromPoints(points);
+      pathLine.computeLineDistances();
+      pathLine.visible = true;
+    } else {
+      pathLine.visible = false;
+    }
+  }, [path]);
+
+  // Mouse Interaction: Click to Drive or Click Anchor
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      const container = containerRef.current;
+      const camera = cameraRef.current;
+      const ground = groundPlaneRef.current;
+      const anchorsGroup = anchorsGroupRef.current;
+      if (!container || !camera || !ground) return;
+
+      const rect = container.getBoundingClientRect();
+      const mouse = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1
+      );
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(mouse, camera);
+
+      // Check anchor click first
+      if (anchorsGroup && onAnchorClick) {
+        const anchorIntersects = raycaster.intersectObjects(anchorsGroup.children, true);
+        if (anchorIntersects.length > 0) {
+          let topObj: THREE.Object3D | null = anchorIntersects[0].object;
+          while (topObj && !topObj.userData.anchor && topObj.parent !== anchorsGroup) {
+            topObj = topObj.parent;
+          }
+          if (topObj && topObj.userData.anchor) {
+            onAnchorClick(topObj.userData.anchor);
+            return;
+          }
+        }
+      }
+
+      // Check ground click for drive command
+      if (onPointClick) {
+        const groundIntersects = raycaster.intersectObject(ground);
+        if (groundIntersects.length > 0) {
+          const pt = groundIntersects[0].point;
+          const worldX_mm = Math.round(pt.x * 1000);
+          const worldY_mm = Math.round(-pt.z * 1000);
+          onPointClick(worldX_mm, worldY_mm);
+        }
+      }
+    },
+    [onPointClick, onAnchorClick]
+  );
+
+  // Recenter Camera on Cozmo
+  const handleRecenter = useCallback(() => {
+    const controls = controlsRef.current;
+    const camera = cameraRef.current;
+    const cozmo = cozmoModelRef.current;
+    if (!controls || !camera) return;
+
+    const targetX = cozmo ? cozmo.position.x : 0;
+    const targetZ = cozmo ? cozmo.position.z : 0;
+
+    controls.target.set(targetX, 0.04, targetZ);
+    camera.position.set(targetX + 0.6, 0.7, targetZ + 0.8);
+    controls.update();
+    setCameraMode('free');
+  }, []);
+
+  return (
+    <div className={`relative w-full h-full min-h-[460px] overflow-hidden select-none ${className}`}>
+      {/* 3D WebGL Canvas Container */}
+      <div
+        ref={containerRef}
+        onPointerDown={handlePointerDown}
+        className="w-full h-full cursor-crosshair active:cursor-grabbing"
+      />
+
+      {/* Loading Overlay */}
+      {isLoadingModel && (
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-20 pointer-events-none">
+          <div className="w-10 h-10 border-3 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin" />
+          <span className="text-xs font-mono text-cyan-300 tracking-wider">LOADING COZMO 3D MODEL...</span>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {loadError && (
+        <div className="absolute top-4 left-4 right-4 bg-red-950/80 border border-red-500/40 rounded-xl p-3 text-xs text-red-200 font-mono z-20">
+          {loadError}
+        </div>
+      )}
+
+      {/* Top Floating Controls & Camera Mode Selector */}
+      <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-2xl z-10">
+        <button
+          onClick={() => setCameraMode('free')}
+          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
+            cameraMode === 'free'
+              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+          title="Free 360 Orbit Camera"
+        >
+          Free Orbit
+        </button>
+        <button
+          onClick={() => setCameraMode('follow')}
+          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
+            cameraMode === 'follow'
+              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+          title="Follow Behind Cozmo"
+        >
+          Follow Cam
+        </button>
+        <button
+          onClick={() => setCameraMode('iso')}
+          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
+            cameraMode === 'iso'
+              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+          title="Isometric View"
+        >
+          Isometric
+        </button>
+        <button
+          onClick={() => setCameraMode('top')}
+          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
+            cameraMode === 'top'
+              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+          title="Top-Down Bird's Eye View"
+        >
+          Top-Down
+        </button>
+      </div>
+
+      {/* Top Right Controls: 10m Drive Demo & Recenter */}
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        {/* 10m Drive Simulation Button */}
+        <button
+          onClick={handleToggleDemoDrive}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold shadow-xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md ${
+            isDemoDriving
+              ? 'bg-amber-500/30 text-amber-300 border-amber-400/50 shadow-[0_0_15px_rgba(245,158,11,0.35)] animate-pulse'
+              : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30 hover:bg-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+          }`}
+          title="Test Driving Micro-Physics over 10 meters"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          {isDemoDriving ? `Driving: ${demoDistance.toFixed(1)}m / 10.0m [Stop]` : 'Drive 10m Demo'}
+        </button>
+
+        {/* Recenter Button */}
+        <button
+          onClick={handleRecenter}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 border border-white/10 text-xs font-mono text-cyan-400 shadow-xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          Recenter
+        </button>
+      </div>
+
+      {/* Bottom HUD Overlay */}
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
+        <div className="bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-slate-300 flex items-center gap-3 shadow-xl">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            3D Holographic World
+          </span>
+          <span className="text-slate-500">|</span>
+          <span className="text-cyan-300">Procedural Vehicle Dynamics Active</span>
+        </div>
+
+        <div className="bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-cyan-300 shadow-xl">
+          Grid: 100mm / 1000mm
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Cozmo3DWorldMap;

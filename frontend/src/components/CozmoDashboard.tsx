@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SemanticGridMap, { type VisualAnchorData, type ObstacleData, type RobotPose } from './SemanticGridMap';
+import Cozmo3DWorldMap from './Cozmo3DWorldMap';
 import Header from './ui/Header';
 import { useTheme } from '../context/ThemeContext';
 import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
@@ -64,6 +65,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
   const [showTeachModal, setShowTeachModal] = useState<boolean>(false);
   const [clickPos, setClickPos] = useState<{ x: number; y: number } | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('Connecting to Cozmo WebSocket...');
+  const [mapViewMode, setMapViewMode] = useState<'2d' | '3d'>('3d');
   const [_activeTab, _setActiveTab] = useState<'stream' | 'map' | 'split'>('split');
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -691,17 +693,53 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
         {/* Row Layout: 2/3 Map and 1/3 Visual Anchors */}
         <div className="flex flex-col lg:flex-row gap-6 w-full max-w-full items-stretch">
-          {/* 2/3 Width: 2D Semantic World Map */}
+          {/* 2/3 Width: World Map (2D Grid or 3D Cozmo Model) */}
           <div className="w-full lg:w-2/3 min-w-0 theme-card rounded-2xl overflow-hidden flex flex-col min-h-[520px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.1]">
             <div className="h-12 bg-white/[0.03] border-b border-white/[0.08] px-5 flex items-center justify-between text-xs backdrop-blur-xl">
-              <span className="font-bold text-white flex items-center gap-2 font-mono tracking-wider text-sm">
-                <svg className={`w-4 h-4 ${isRoyal ? 'text-amber-400' : isIT ? 'text-emerald-400' : 'text-cyan-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                  <line x1="8" y1="2" x2="8" y2="18" />
-                  <line x1="16" y1="6" x2="16" y2="22" />
-                </svg>
-                <span>2D SEMANTIC WORLD MAP</span>
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-white flex items-center gap-2 font-mono tracking-wider text-sm">
+                  <svg className={`w-4 h-4 ${isRoyal ? 'text-amber-400' : isIT ? 'text-emerald-400' : 'text-cyan-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                    <line x1="8" y1="2" x2="8" y2="18" />
+                    <line x1="16" y1="6" x2="16" y2="22" />
+                  </svg>
+                  <span>{mapViewMode === '3d' ? '3D COZMO WORLD MAP' : '2D SEMANTIC WORLD MAP'}</span>
+                </span>
+
+                {/* 2D / 3D Mode Toggle Switch */}
+                <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-white/10 ml-2">
+                  <button
+                    onClick={() => setMapViewMode('2d')}
+                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-semibold transition-all ${
+                      mapViewMode === '2d'
+                        ? isRoyal
+                          ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                          : isIT
+                          ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                          : 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    2D GRID
+                  </button>
+                  <button
+                    onClick={() => setMapViewMode('3d')}
+                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-semibold transition-all flex items-center gap-1 ${
+                      mapViewMode === '3d'
+                        ? isRoyal
+                          ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
+                          : isIT
+                          ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                          : 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    3D COZMO
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center gap-3">
                 <span className="theme-badge px-3 py-1 rounded-lg text-xs font-mono text-slate-300">
                   Pose: ({telemetry.robot.x.toFixed(0)}, {telemetry.robot.y.toFixed(0)})mm | Heading: {telemetry.robot.theta_deg.toFixed(0)}°
@@ -710,20 +748,37 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
             </div>
 
             <div className="flex-1 relative min-h-[460px]">
-              <SemanticGridMap
-                robot={telemetry.robot}
-                anchors={telemetry.anchors}
-                obstacles={telemetry.obstacles}
-                path={telemetry.path}
-                onPointClick={(wx, wy) => {
-                  sendCommand('drive', { target_x: wx, target_y: wy });
-                }}
-                onAnchorClick={(a) => {
-                  if (a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')) {
-                    sendCommand('dock');
-                  }
-                }}
-              />
+              {mapViewMode === '2d' ? (
+                <SemanticGridMap
+                  robot={telemetry.robot}
+                  anchors={telemetry.anchors}
+                  obstacles={telemetry.obstacles}
+                  path={telemetry.path}
+                  onPointClick={(wx, wy) => {
+                    sendCommand('drive', { target_x: wx, target_y: wy });
+                  }}
+                  onAnchorClick={(a) => {
+                    if (a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')) {
+                      sendCommand('dock');
+                    }
+                  }}
+                />
+              ) : (
+                <Cozmo3DWorldMap
+                  robot={telemetry.robot}
+                  anchors={telemetry.anchors}
+                  obstacles={telemetry.obstacles}
+                  path={telemetry.path}
+                  onPointClick={(wx, wy) => {
+                    sendCommand('drive', { target_x: wx, target_y: wy });
+                  }}
+                  onAnchorClick={(a) => {
+                    if (a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')) {
+                      sendCommand('dock');
+                    }
+                  }}
+                />
+              )}
             </div>
           </div>
 

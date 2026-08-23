@@ -47,7 +47,7 @@ interface GoldFleck {
 export const GoldVeinsBackground: React.FC<GoldVeinsProps> = ({
   className = '',
   baseOpacity = 0.10,
-  maxOpacity = 0.65,
+  maxOpacity = 0.40,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
