@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatedTopDock } from '../shaders/animated-top-dock/AnimatedTopDock';
+import ThemeSelector from './ui/ThemeSelector';
+import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
+import GoldVeinsBackground from './ui/GoldVeinsBackground';
+import ParticleDriftBackground from './ui/ParticleDriftBackground';
+import { useTheme } from '../context/ThemeContext';
 import '../shaders/threeui.css';
 
 interface Message {
-
   id: string;
   sender: 'user' | 'moka';
   text: string;
@@ -17,6 +21,11 @@ interface ChatInterfaceProps {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding }) => {
+  const { theme } = useTheme();
+  const isBlackIce = theme === 'black-ice';
+  const isRoyal = theme === 'royal';
+  const isIT = theme === 'it';
+
   const [isConversationStarted, setIsConversationStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
@@ -82,7 +91,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       const next = headerStateRef.current === 'moka' ? 'eyes' : 'moka';
       setHeaderState(next);
       headerStateRef.current = next;
-    }, 15000);
+    }, 4000);
 
     return () => clearInterval(interval);
   }, [isConversationStarted]);
@@ -135,14 +144,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // Suggested starter prompts
-  /* const suggestions = [
-    "Tell me about Moka's memory system.",
-    "How does OpenCV auto-docking work?",
-    "Which local LLMs can Moka run?",
-    "What workflows can Moka automate?"
-  ]; */
-
   // Scroll to bottom helper
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -193,8 +194,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     tempCtx.fillStyle = '#ffffff';
 
     // Left and Right eye locations
-    drawRoundedRect(tempCtx, 280, 180, 240, 240, 45);
-    drawRoundedRect(tempCtx, 680, 180, 240, 240, 45);
+    drawRoundedRect(tempCtx, 280, 180, 240, 240, 40);
+    drawRoundedRect(tempCtx, 680, 180, 240, 240, 40);
 
     const eyeImgData = tempCtx.getImageData(0, 0, logicalW, logicalH);
     const eyeData = eyeImgData.data;
@@ -258,12 +259,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       speedOffset: number;
     }
 
-    const particles: EyeParticle[] = eyeTargets.map((target, idx) => {
-      const isMokaActive = idx < shuffledMoka.length;
-      const mokaT = shuffledMoka[idx % shuffledMoka.length];
+    const particles: EyeParticle[] = eyeTargets.map((target, i) => {
+      const isMokaActive = i < shuffledMoka.length;
+      const mokaT = isMokaActive ? shuffledMoka[i] : { x: 0, y: 0 };
       return {
-        x: target.x,
-        y: target.y,
+        x: target.x + (Math.random() - 0.5) * 50,
+        y: target.y + (Math.random() - 0.5) * 50,
         eyeX: target.x,
         eyeY: target.y,
         mokaX: mokaT.x,
@@ -319,44 +320,40 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         }
       } else {
         blinkFactor = 1.0;
-        if (Math.random() < 0.004 * dt) {
-          blinkTimer = 20;
+        if (Math.random() < 0.006 * dt) {
+          blinkTimer = 20; // total 20 frames for blink
         }
       }
 
-      // Smooth mouse tracking
-      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * Math.min(0.08 * dt, 1);
-      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * Math.min(0.08 * dt, 1);
+      // Smooth mouse damping
+      const mouseSpeed = 0.08 * dt;
+      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * mouseSpeed;
+      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * mouseSpeed;
 
-      const isConversationStartedVal = isConversationStartedRef.current;
-      const eyesCenterY = height * 0.32;
+      // Scale matrix to fit screen width and height uniformly with margins matching original home page
       const scale = Math.min(width / logicalW, height / logicalH) * 0.82;
       const offsetX = (width - logicalW * scale) / 2;
-      const offsetY = eyesCenterY - (logicalH / 2) * scale;
+      const offsetY = (height - logicalH * scale) / 2;
+
+      const isConversationStartedVal = isConversationStartedRef.current;
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-
         let targetX = 0;
         let targetY = 0;
         let pTargetAlpha = 1.0;
 
         if (!isConversationStartedVal) {
-          // Eye shape centers
+          // Centered Big Eyes
           const cx = p.eyeX < 600 ? 400 : 800;
           const cy = 300;
 
           const dx = p.eyeX - cx;
           const dy = p.eyeY - cy;
 
-          // Steer with mouse coordinates
-          const isLeftEye = p.eyeX < 600;
-          const eyeScale = isLeftEye
-            ? (1.0 - mouseRef.current.x * 0.15)
-            : (1.0 + mouseRef.current.x * 0.15);
-
+          // Organic scaling with idle breathing
+          const eyeScale = 1.0 + Math.sin(time * 0.04 + p.seed) * 0.015;
           const scaledX = cx + dx * eyeScale;
-          // Blink vertically towards local center cy
           const scaledY = cy + dy * eyeScale * blinkFactor;
 
           // Apply mouse shift
@@ -393,11 +390,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             const dx_eye = p.eyeX - cx;
             const dy_eye = p.eyeY - cy;
 
-            const isLeftEye = p.eyeX < 600;
-            const eyeScale = isLeftEye
-              ? (1.0 - mouseRef.current.x * 0.15)
-              : (1.0 + mouseRef.current.x * 0.15);
-
+            const eyeScale = 1.0;
             const scaledX = cx + dx_eye * eyeScale;
             const scaledY = cy + dy_eye * eyeScale * blinkFactor;
 
@@ -417,17 +410,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           }
         }
 
-        // Mouse avoidance repelling force (applied in screen pixel space relative to target coordinates)
+        // Mouse avoidance repelling force
         const dxMouse = targetX - mousePosTargetRef.current.x;
         const dyMouse = targetY - mousePosTargetRef.current.y;
         const distMouse = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
 
         let avoidX = 0;
         let avoidY = 0;
-        const avoidanceRadius = 60; // push radius in pixels
+        const avoidanceRadius = 60;
         if (distMouse < avoidanceRadius && distMouse > 0) {
-          const force = (avoidanceRadius - distMouse) / avoidanceRadius; // 0 to 1
-          const strength = force * 50; // push distance in pixels
+          const force = (avoidanceRadius - distMouse) / avoidanceRadius;
+          const strength = force * 50;
           avoidX = (dxMouse / distMouse) * strength;
           avoidY = (dyMouse / distMouse) * strength;
         }
@@ -445,10 +438,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         p.alpha += (pTargetAlpha - p.alpha) * Math.min(0.12 * dt, 1);
 
         if (p.alpha > 0.01) {
-          // Render dot (scaled down for the logo shape to keep typography detail sharp)
-          const currentSize = isConversationStartedVal
-            ? Math.max(0.8, p.size * 0.65 * scale)
-            : Math.max(1.0, p.size * scale);
+          const isScaledDown = isConversationStartedVal;
+          const currentSize = isScaledDown ? p.size * 0.72 * scale : p.size * scale;
+
+          // Draw soft glowing outer aura (subtler size and opacity to avoid over-glowing)
+          ctx.fillStyle = `rgba(${rgb}, ${p.alpha * 0.12})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, currentSize * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Draw bright core dot
           ctx.fillStyle = `rgba(${rgb}, ${p.alpha})`;
           ctx.beginPath();
           ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
@@ -495,13 +494,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         const cleaned = userMsg.toLowerCase();
 
         if (cleaned.includes('memory') || cleaned.includes('short-term') || cleaned.includes('long-term')) {
-          reply = "Moka uses a dual-layer memory system: PostgresSaver indexes recent message threads, while our local FastEmbed implementation manages long-term RAG lookups across files.";
+          reply = "MoKa uses a dual-layer memory system: PostgresSaver indexes recent message threads, while our local FastEmbed implementation manages long-term RAG lookups across files.";
         } else if (cleaned.includes('cozmo') || cleaned.includes('robot') || cleaned.includes('control')) {
           reply = "My low-latency physical bridge is active. I can steering-dock to the charger using cv2 HSV filters, query paths, or animate OLED face expressions.";
         } else if (cleaned.includes('llm') || cleaned.includes('ollama') || cleaned.includes('model')) {
-          reply = "Moka is connected to your local Ollama engine. I am currently running Qwen 2.5 (7B) for deep cognition and Gemma 2 for lower latency routing checkpoints.";
+          reply = "MoKa is connected to your local Ollama engine. I am currently running Qwen 2.5 (7B) for deep cognition and Gemma 2 for lower latency routing checkpoints.";
         } else if (cleaned.includes('hello') || cleaned.includes('hi') || cleaned.includes('hey')) {
-          reply = "Hello! I am Moka, your local autonomous AI companion. I'm connected to the local Ollama brain. How can I assist you with your workspace or Cozmo today?";
+          reply = "Hello! I am MoKa, your local autonomous AI companion. I'm connected to the local Ollama brain. How can I assist you with your workspace or Cozmo today?";
         } else if (cleaned.includes('capabilities') || cleaned.includes('feature') || cleaned.includes('can you do')) {
           reply = "I manage voice triggers ('hey buddy'), index FAISS vectors, trigger workstations, coordinate Google Calendar via n8n, and run OpenAPI auto-docking cycles.";
         }
@@ -518,10 +517,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         ]);
         setIsMokaTyping(false);
         resolve();
-      }, 1500);
+      }, 1200);
     });
   }, []);
 
+  // Process message stream with backend
   const processMessage = useCallback(async (messageId: string, text: string, timestamp: string) => {
     setIsMokaTyping(true);
 
@@ -533,74 +533,61 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         headers['X-Moka-Token'] = token;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
           message: text,
-          session_id: 'web_session',
           mute: isMuted,
-        }),
+          muted: isMuted
+        })
       });
 
-      if (!response.ok || !response.body) {
-        throw new Error(`Server returned HTTP ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const replyId = Math.random().toString();
-      const replyTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const mokaMsgId = (Date.now() + 1).toString();
+      const mokaTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-      // Append empty response bubble that populates as tokens arrive
       setMessages(prev => [
         ...prev,
         {
-          id: replyId,
+          id: mokaMsgId,
           sender: 'moka',
           text: '',
-          timestamp: replyTimestamp
+          timestamp: mokaTimestamp
         }
       ]);
-      setIsMokaTyping(false);
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
+      const contentType = response.headers.get('content-type') || '';
+      let replyText = '';
 
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed.startsWith('data:')) continue;
-          const dataStr = trimmed.replace(/^data:\s*/, '');
-          if (dataStr === '[DONE]') break;
-
-          try {
-            const parsed = JSON.parse(dataStr);
-            if (parsed.token) {
-              const tokenText = parsed.token;
-              setMessages(prev =>
-                prev.map(msg =>
-                  msg.id === replyId
-                    ? { ...msg, text: msg.text + tokenText }
-                    : msg
-                )
-              );
-            }
-          } catch {
-            // Ignore unparseable non-json SSE lines
-          }
+      if (contentType.includes('application/json')) {
+        const data = await response.json();
+        replyText = data.response !== undefined ? data.response : (data.message !== undefined ? data.message : (data.text !== undefined ? data.text : JSON.stringify(data)));
+      } else {
+        const rawText = await response.text();
+        try {
+          const parsed = JSON.parse(rawText);
+          replyText = parsed.response !== undefined ? parsed.response : (parsed.message !== undefined ? parsed.message : (parsed.text !== undefined ? parsed.text : rawText));
+        } catch {
+          replyText = rawText;
         }
       }
+
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === mokaMsgId
+            ? { ...msg, text: replyText }
+            : msg
+        )
+      );
+
+      setIsMokaTyping(false);
     } catch (error) {
       console.warn("Backend API stream error:", error);
       if (!isConnectedRef.current) {
-        // Roll back: remove user message from chat stream and prepend back to pending queue
         setMessages(prev => prev.filter(m => m.id !== messageId));
         setPendingQueue(prev => [
           { id: messageId, text, timestamp },
@@ -620,6 +607,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
     if (!isConversationStarted) {
       setIsConversationStarted(true);
+      isConversationStartedRef.current = true;
     }
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -632,10 +620,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     if (!textToSend) setInputText('');
 
     if (isMokaTyping || pendingQueue.length > 0 || !isConnected) {
-      // Put message on hold in queue
       setPendingQueue(prev => [...prev, newMessage]);
     } else {
-      // Direct send
       const userMessage: Message = {
         id: newMessage.id,
         sender: 'user',
@@ -647,12 +633,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     }
   };
 
-  // Delete pending/on-hold message from queue
   const handleDeletePendingMessage = (id: string) => {
     setPendingQueue(prev => prev.filter(m => m.id !== id));
   };
 
-  // Queue loop: whenever agent is idle, connection is there, and queue has elements, process the next one
+  // Queue loop
   useEffect(() => {
     if (isConnected && !isMokaTyping && pendingQueue.length > 0) {
       const nextMsg = pendingQueue[0];
@@ -669,7 +654,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     }
   }, [isConnected, isMokaTyping, pendingQueue, processMessage]);
 
-  // Keypress listener for Enter and Spacebar voice trigger
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSendMessage();
@@ -677,20 +661,37 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   };
 
   return (
-    <div className="relative w-screen h-screen bg-[#08090c] bg-gradient-to-br from-[#08090c] via-[#0e1015] to-[#050608] overflow-hidden flex flex-col">
-      {/* Subtle digital grid overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03] z-10"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #00f3ff 1px, transparent 1px)',
-          backgroundSize: '30px 30px'
-        }}
-      />
+    <div className={`relative w-screen h-screen ${
+      isBlackIce ? 'bg-[#020407]' : isRoyal ? 'bg-[#030407]' : isIT ? 'bg-[#020503]' : 'bg-[#030407]'
+    } overflow-hidden flex flex-col transition-colors duration-700 font-sans selection:bg-[var(--brand-primary)]/30 selection:text-white`}>
+      
 
-      {/* Persistent Header */}
+      {/* Dynamic Theme Background Shaders (10% opacity at rest, 50% opacity when conversation is active) */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700 ease-in-out"
+        style={{ opacity: isConversationStarted ? 0.50 : 0.10 }}
+      >
+        {/* 🌌 ThreeUI Constellation Field Background for Black Ice */}
+        {isBlackIce && (
+          <ConstellationFieldBackground className="w-full h-full" baseOpacity={1.0} maxOpacity={1.0} />
+        )}
+
+        {/* 👑 Liquid Kintsugi Gold Veins Background for Royal */}
+        {isRoyal && (
+          <GoldVeinsBackground className="w-full h-full" baseOpacity={1.0} maxOpacity={1.0} />
+        )}
+
+        {/* 💻 ThreeUI Particle Drift ASCII Background for IT */}
+        {isIT && (
+          <ParticleDriftBackground className="w-full h-full" />
+        )}
+      </div>
+
+
+      {/* Sticky Top Navigation Header */}
       <header
         data-identity-state={headerState}
-        className="fixed top-0 left-0 w-full h-20 bg-[#08090c]/95 border-b border-[#1c1e29]/70 backdrop-blur-md z-30 flex items-center justify-between px-6 md:px-10 overflow-visible"
+        className="fixed top-0 left-0 w-full h-20 md:h-24 bg-[#03060a]/85 border-b border-white/[0.06] backdrop-blur-2xl z-30 flex items-center justify-between px-6 md:px-10 overflow-visible"
       >
         {/* Left Side: Particle Logo Area */}
         <div className="flex items-center gap-3.5">
@@ -708,22 +709,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           <AnimatedTopDock defaultActive="chat" />
         </div>
 
-        {/* Right Side: Core Brain State & Token */}
+        {/* Right Side: Core Brain State, Token & Theme Selector */}
         <div className="flex items-center gap-3 md:gap-4">
-
-          <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide">
+          <div className="hidden sm:flex items-center gap-2 text-xs md:text-sm text-slate-300 font-medium tracking-wide bg-white/[0.04] border border-white/[0.08] px-3 py-1.5 rounded-full backdrop-blur-md">
             <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
-              ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'
+              ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]'
               : 'bg-rose-500 shadow-[0_0_8px_#f43f5e]'
               }`} />
-            Core Brain: {isConnected ? 'Connected' : 'Connecting...'}
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+              Core: <span className={isConnected ? "text-emerald-400 font-semibold" : "text-rose-400 font-semibold"}>{isConnected ? 'Active' : 'Offline'}</span>
+            </span>
           </div>
 
           {token && (
-            <div className="text-[10px] md:text-xs text-cyan-400 bg-cyan-950/40 border border-cyan-800/60 px-2 py-0.5 rounded font-mono" title={token}>
-              Token: {token.length > 8 ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : token} (Local)
+            <div className="hidden md:block text-[10px] text-cyan-300 bg-cyan-950/40 border border-cyan-800/60 px-2.5 py-1 rounded-full font-mono" title={token}>
+              Token: {token.length > 8 ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : token}
             </div>
           )}
+
+          <ThemeSelector />
         </div>
       </header>
 
@@ -733,133 +737,143 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         className="fixed inset-0 w-full h-full block pointer-events-none z-45"
       />
 
-      {/* Scrollable Conversation Stream Wrapper (Full Width) */}
-      <div
-        className={`w-full flex-1 overflow-y-auto transition-all duration-700 delay-200 ${isConversationStarted ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-      >
-        {/* Centered Conversation Stream Content */}
-        <div
-          className={`px-6 pt-24 pb-32 max-w-2xl mx-auto w-full flex flex-col gap-4 transition-all duration-700 delay-200 ${isConversationStarted ? 'translate-y-0' : 'translate-y-10'
-            }`}
-        >
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
-                }`}
-            >
-              {/* Sender tag */}
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
-                {msg.sender === 'user' ? 'You' : 'Moka'}
-              </span>
-              {/* Message bubble */}
+      {/* Scrollable Conversation Stream Wrapper (Active State) */}
+      {isConversationStarted && (
+        <div className="w-full flex-1 overflow-y-auto z-10 transition-all duration-700">
+          <div className="px-6 pt-28 pb-32 max-w-2xl mx-auto w-full flex flex-col gap-4">
+            {messages.map((msg) => (
               <div
-                className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${msg.sender === 'user'
-                  ? 'bg-slate-900/65 border border-cyan-500/20 text-white shadow-[0_0_15px_rgba(0,243,255,0.04)] rounded-tr-none'
-                  : 'bg-slate-950/70 border border-slate-800/70 text-slate-300 rounded-tl-none'
+                key={msg.id}
+                className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+              >
+                {/* Sender tag */}
+                <span className="text-[10px] text-slate-400 font-mono font-semibold uppercase tracking-wider mb-1 px-1 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full ${msg.sender === 'user' ? 'bg-[var(--brand-primary)]' : 'bg-slate-400'}`} />
+                  {msg.sender === 'user' ? 'You' : 'MoKa'}
+                </span>
+
+                {/* Message bubble */}
+                <div
+                  className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${
+                    msg.sender === 'user'
+                      ? 'theme-card text-white rounded-tr-none'
+                      : 'rounded-tl-none text-slate-200'
                   }`}
-              >
-                {msg.text}
-              </div>
-              {/* Timestamp & Actions */}
-              {msg.sender === 'user' ? (
-                <div className="w-full flex items-center justify-between mt-1 px-1">
-                  <button
-                    onClick={() => handleSendMessage(msg.text)}
-                    className="p-1 rounded text-slate-500 hover:text-cyan-400 hover:bg-slate-900/60 transition-all cursor-pointer flex items-center justify-center group"
-                    title="Resend this message"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5 transition-transform duration-500 ease-out group-hover:rotate-180"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2.5}
+                  style={msg.sender === 'moka' ? {
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 20, 28, 0.65) 100%)',
+                    backdropFilter: 'blur(32px) saturate(160%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+                    border: '1px solid rgba(255, 255, 255, 0.09)',
+                    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
+                  } : undefined}
+                >
+                  {msg.text}
+                </div>
+
+                {/* Timestamp & Actions */}
+                {msg.sender === 'user' ? (
+                  <div className="w-full flex items-center justify-between mt-1 px-1">
+                    <button
+                      onClick={() => handleSendMessage(msg.text)}
+                      className="p-1 rounded text-slate-500 hover:text-[var(--brand-primary)] hover:bg-white/[0.05] transition-all cursor-pointer flex items-center justify-center group"
+                      title="Resend this message"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-                      />
-                    </svg>
-                  </button>
-                  <span className="text-[9px] text-slate-600">{msg.timestamp}</span>
-                </div>
-              ) : (
-                <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
-              )}
-            </div>
-          ))}
-
-          {/* Render pending/on-hold queued messages */}
-          {pendingQueue.map((msg) => (
-            <div
-              key={msg.id}
-              className="flex flex-col max-w-[85%] self-end items-end transition-all duration-300"
-            >
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
-                You
-              </span>
-              <div
-                className="p-4 rounded-2xl text-sm md:text-base leading-relaxed bg-[#0a0f24]/50 border border-dashed border-slate-700/60 text-slate-400 rounded-tr-none flex flex-col gap-2 min-w-[220px]"
-              >
-                <div>{msg.text}</div>
-                <div className="flex items-center justify-between gap-4 mt-1 pt-1.5 border-t border-slate-800/40">
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium font-sans">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                    Queued (On Hold)
+                      <svg
+                        className="w-3.5 h-3.5 transition-transform duration-500 ease-out group-hover:rotate-180"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                        />
+                      </svg>
+                    </button>
+                    <span className="text-[9px] font-mono text-slate-500">{msg.timestamp}</span>
                   </div>
-                  <button
-                    onClick={() => handleDeletePendingMessage(msg.id)}
-                    className="px-2 py-0.5 rounded border border-red-500/30 hover:border-red-400 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1 font-semibold"
-                    title="Cancel and delete from queue"
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                    Cancel
-                  </button>
+                ) : (
+                  <span className="text-[9px] font-mono text-slate-500 mt-1 px-1">{msg.timestamp}</span>
+                )}
+              </div>
+            ))}
+
+            {/* Render pending/on-hold queued messages */}
+            {pendingQueue.map((msg) => (
+              <div
+                key={msg.id}
+                className="flex flex-col max-w-[85%] self-end items-end transition-all duration-300"
+              >
+                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
+                  You
+                </span>
+                <div
+                  className="p-4 rounded-2xl text-sm md:text-base leading-relaxed bg-[#0a0f24]/50 border border-dashed border-slate-700/60 text-slate-400 rounded-tr-none flex flex-col gap-2 min-w-[220px]"
+                >
+                  <div>{msg.text}</div>
+                  <div className="flex items-center justify-between gap-4 mt-1 pt-1.5 border-t border-slate-800/40">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium font-sans">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                      Queued (On Hold)
+                    </div>
+                    <button
+                      onClick={() => handleDeletePendingMessage(msg.id)}
+                      className="px-2 py-0.5 rounded border border-red-500/30 hover:border-red-400 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                      title="Cancel and delete from queue"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
+              </div>
+            ))}
+
+            {/* Typing indicator bubble */}
+            {isMokaTyping && (
+              <div className="flex flex-col self-start items-start max-w-[85%]">
+                <span className="text-[10px] text-slate-400 font-mono font-semibold uppercase tracking-wider mb-1 px-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)]" />
+                  MoKa
+                </span>
+                <div
+                  className="p-4 rounded-2xl rounded-tl-none flex gap-2 items-center justify-center min-w-[64px]"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 20, 28, 0.65) 100%)',
+                    backdropFilter: 'blur(32px)',
+                    border: '1px solid rgba(255, 255, 255, 0.09)',
+                  }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
-              <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
-            </div>
-          ))}
+            )}
 
-          {/* Typing indicator bubble */}
-          {isMokaTyping && (
-            <div className="flex flex-col self-start items-start max-w-[85%]">
-              <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
-                Moka
-              </span>
-              <div className="p-4 rounded-2xl rounded-tl-none bg-slate-950/70 border border-slate-800/70 flex gap-1.5 items-center justify-center min-w-[60px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
-
-
+      )}
 
       {/* Sliding Input Box Container */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${isConversationStarted
-          ? 'bottom-6 max-w-2xl'
-          : 'bottom-10 max-w-lg'
-          }`}
+        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${
+          isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
+        }`}
       >
-        <div className="w-full flex items-center bg-black/50 border border-cyan-500/25 rounded-3xl p-2.5 backdrop-blur-md shadow-[0_20px_50px_rgba(0,0,0,0.8)] focus-within:border-cyan-400/50 focus-within:shadow-[0_0_35px_rgba(0,243,255,0.2)] transition-all duration-300 gap-3">
+        <div className="w-full flex items-center theme-card rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] focus-within:border-[var(--brand-card-hover-border)] focus-within:shadow-[0_0_35px_var(--brand-glow)] transition-all duration-300 gap-3">
           <button
             onClick={handleToggleMute}
-            className={`w-10 h-10 rounded-full border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${
+            className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${
               isMuted
                 ? 'bg-rose-950/60 border-rose-500/40 text-rose-400'
-                : 'bg-slate-900/80 border-slate-700/80 text-cyan-400 hover:border-cyan-400'
+                : 'theme-icon-box text-[var(--brand-primary)]'
             }`}
             title={isMuted ? "Unmute speech output" : "Mute speech output"}
             aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
@@ -881,16 +895,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Message MoKa..."
-            className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-500 font-sans"
+            className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-400 font-sans"
           />
 
           <button
             onClick={() => handleSendMessage()}
             disabled={!inputText.trim()}
-            className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 text-black flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer shadow-[0_0_20px_rgba(0,243,255,0.4)] active:scale-95 flex-shrink-0"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer active:scale-95 flex-shrink-0 text-black font-bold"
+            style={{
+              background: 'var(--brand-primary)',
+              boxShadow: '0 0 20px var(--brand-glow)'
+            }}
             aria-label="Send"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </button>
