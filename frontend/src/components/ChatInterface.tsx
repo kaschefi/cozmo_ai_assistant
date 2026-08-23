@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { AnimatedTopDock } from '../shaders/animated-top-dock/AnimatedTopDock';
+import '../shaders/threeui.css';
 
 interface Message {
+
   id: string;
   sender: 'user' | 'moka';
   text: string;
@@ -687,42 +690,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       {/* Persistent Header */}
       <header
         data-identity-state={headerState}
-        className="fixed top-0 left-0 w-full h-20 bg-[#08090c]/95 border-b border-[#1c1e29]/70 backdrop-blur-md z-30 flex items-center justify-between px-6 md:px-10"
+        className="fixed top-0 left-0 w-full h-20 bg-[#08090c]/95 border-b border-[#1c1e29]/70 backdrop-blur-md z-30 flex items-center justify-between px-6 md:px-10 overflow-visible"
       >
-        {/* Left Side: Particle Logo Area & Home Navigation */}
+        {/* Left Side: Particle Logo Area */}
         <div className="flex items-center gap-3.5">
-          {/* Clickable slot for the floating particle MOKA logo / mini-eyes */}
           <div
             onClick={onBackToLanding}
-            className="w-36 h-10 cursor-pointer"
+            className="w-28 sm:w-36 h-10 cursor-pointer"
             title="Back to Home"
             role="button"
             tabIndex={0}
           />
+        </div>
 
-          <div className="h-5 w-px bg-slate-800 hidden sm:block" />
-
-          <button
-            onClick={onBackToLanding}
-            className="px-3.5 py-1.5 rounded-xl border border-slate-800/80 bg-slate-950/60 hover:bg-slate-900/80 hover:border-cyan-500/40 text-xs md:text-sm font-semibold tracking-wide text-slate-300 hover:text-cyan-300 transition-all duration-300 cursor-pointer flex items-center gap-2 group shadow-sm hover:shadow-[0_0_15px_rgba(0,243,255,0.12)] active:scale-95"
-            title="Back to Home"
-            aria-label="Back to Home"
-          >
-            <svg
-              className="w-3.5 h-3.5 text-cyan-400 transition-transform duration-300 group-hover:-translate-x-0.5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            <span>Home</span>
-          </button>
+        {/* Center: ThreeUI AnimatedTopDock */}
+        <div className="flex-1 flex justify-center items-center overflow-visible">
+          <AnimatedTopDock defaultActive="chat" />
         </div>
 
         {/* Right Side: Core Brain State & Token */}
         <div className="flex items-center gap-3 md:gap-4">
+
           <div className="flex items-center gap-2 text-xs md:text-sm text-slate-400 font-medium tracking-wide">
             <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
               ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]'

@@ -221,8 +221,9 @@ export const FeatureMarquee: React.FC = () => {
   );
 
   return (
-    <div className="w-full flex flex-col gap-12 relative z-20">
+    <div id="features" className="w-full flex flex-col gap-12 relative z-20 scroll-mt-28">
       {/* Centered Heading */}
+
       <div className="text-center max-w-2xl mx-auto px-4 mb-2 flex flex-col items-center">
         <div className="relative inline-block mb-3">
           <h2 className="font-megrim text-4xl md:text-5xl font-bold text-white tracking-wider leading-tight">

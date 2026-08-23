@@ -7,9 +7,10 @@ interface TalkSectionProps {
 export const TalkSection: React.FC<TalkSectionProps> = ({ onStartChat }) => {
   return (
     <div
-      id="talk-section"
-      className="w-full py-24 border-t border-slate-900/60 flex flex-col items-start gap-6 min-h-[40vh] relative z-20"
+      id="talk"
+      className="w-full py-24 border-t border-slate-900/60 flex flex-col items-start gap-6 min-h-[40vh] relative z-20 scroll-mt-28"
     >
+
       <div className="flex flex-col items-start gap-2">
         <div className="relative inline-block mb-1">
           <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight">

@@ -55,6 +55,68 @@ class VisualAnchor:
         return vec
 
 
+@dataclass
+class TransientObstacle:
+    """Represents an unnamed floor obstacle or physical clutter."""
+    id: str
+    x: float
+    y: float
+    radius: float = 25.0
+    first_seen: float = field(default_factory=time.time)
+    last_seen: float = field(default_factory=time.time)
+    confidence: float = 0.80
+    observation_count: int = 1
+
+
+def estimate_ground_position(
+    bbox_norm: Tuple[float, float, float, float],
+    robot_pose: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+    head_angle_rad: float = 0.26,  # ~15 degrees
+    cam_height_mm: float = 45.0,
+    fov_v_deg: float = 47.0,
+    fov_h_deg: float = 60.0,
+) -> Tuple[float, float, float]:
+    """
+    Inverse Perspective Ground Contact Raycasting (Pinhole Model on Floor Plane z=0):
+    Calculates the 2D world coordinates (X_world, Y_world, distance_mm) of an object
+    based on the bottom edge of its bounding box touching the floor.
+    """
+    ymin, xmin, ymax, xmax = bbox_norm
+    rx, ry, r_theta_deg = robot_pose
+    r_theta_rad = math.radians(r_theta_deg)
+
+    # 1. Vertical ground ray angle
+    fov_v_rad = math.radians(fov_v_deg)
+    y_bottom = float(ymax)  # Ground contact point
+    phi_elev = -(y_bottom - 0.5) * fov_v_rad
+    total_angle = -(head_angle_rad + phi_elev)
+
+    # Prevent division by zero if looking above horizontal
+    if total_angle < math.radians(2.0):
+        total_angle = math.radians(2.0)
+
+    # 2. Forward ground distance
+    d_forward = cam_height_mm / math.tan(total_angle)
+    d_forward = max(35.0, min(1200.0, d_forward))
+
+    # 3. Horizontal azimuth angle and lateral offset
+    fov_h_rad = math.radians(fov_h_deg)
+    x_center = (xmin + xmax) / 2.0
+    phi_azimuth = (x_center - 0.5) * fov_h_rad
+    d_lateral = d_forward * math.tan(phi_azimuth)
+
+    # 4. Transform to global world coordinates using robot heading
+    cos_t = math.cos(r_theta_rad)
+    sin_t = math.sin(r_theta_rad)
+
+    world_x = rx + (cos_t * d_forward - sin_t * d_lateral)
+    world_y = ry + (sin_t * d_forward + cos_t * d_lateral)
+    dist_total = math.hypot(d_forward, d_lateral)
+
+    return float(world_x), float(world_y), float(dist_total)
+
+
+
 class VisualAnchorStore:
     """
     Thread-safe persistent JSON store for Cozmo's semantic visual memory.
@@ -325,6 +387,102 @@ class VisualAnchorStore:
             return False
 
 
+    def update_or_relocate_anchor(
+        self,
+        label: str,
+        observed_x: float,
+        observed_y: float,
+        confidence: float = 0.85,
+        smoothing_alpha: float = 0.65,
+    ) -> Optional[VisualAnchor]:
+        """
+        Dynamically updates the spatial position of an observed anchor.
+        If the object was moved/relocated by > 35mm, smoothly updates coordinates
+        and marks an updated timestamp without creating duplicate ghost landmarks!
+        """
+        with self._lock:
+            anchor = self._anchors.get(label)
+            if not anchor:
+                return None
+
+            old_x, old_y = anchor.estimated_x, anchor.estimated_y
+            disp = math.hypot(observed_x - old_x, observed_y - old_y)
+
+            # If anchor moved noticeably (> 35mm) with high confidence, relocate it
+            if disp > 35.0 and confidence >= anchor.confidence_threshold:
+                # Apply smoothing filter
+                anchor.estimated_x = float(smoothing_alpha * observed_x + (1.0 - smoothing_alpha) * old_x)
+                anchor.estimated_y = float(smoothing_alpha * observed_y + (1.0 - smoothing_alpha) * old_y)
+                anchor.last_seen_at = time.time()
+                anchor.observation_count += 1
+                self.save_to_disk()
+            else:
+                # Minor drift update
+                anchor.last_seen_at = time.time()
+                anchor.observation_count += 1
+                if disp > 5.0:
+                    anchor.estimated_x = float(0.2 * observed_x + 0.8 * old_x)
+                    anchor.estimated_y = float(0.2 * observed_y + 0.8 * old_y)
+
+            return anchor
+
+    def register_or_update_obstacle(
+        self,
+        obs_x: float,
+        obs_y: float,
+        confidence: float = 0.80,
+        radius: float = 25.0,
+    ) -> TransientObstacle:
+        """Registers a newly discovered floor obstacle or updates an existing nearby obstacle."""
+        with self._lock:
+            if not hasattr(self, "_obstacles"):
+                self._obstacles: Dict[str, TransientObstacle] = {}
+
+            now = time.time()
+            # Check if close to an existing obstacle (< 40mm)
+            for obs_id, obs in self._obstacles.items():
+                if math.hypot(obs.x - obs_x, obs.y - obs_y) < 40.0:
+                    obs.x = 0.5 * obs.x + 0.5 * obs_x
+                    obs.y = 0.5 * obs.y + 0.5 * obs_y
+                    obs.last_seen = now
+                    obs.observation_count += 1
+                    obs.confidence = max(obs.confidence, confidence)
+                    return obs
+
+            # Create new obstacle
+            new_id = f"obs_{len(self._obstacles) + 1}_{int(now) % 10000}"
+            new_obs = TransientObstacle(
+                id=new_id,
+                x=float(obs_x),
+                y=float(obs_y),
+                radius=float(radius),
+                first_seen=now,
+                last_seen=now,
+                confidence=float(confidence),
+                observation_count=1,
+            )
+            self._obstacles[new_id] = new_obs
+            return new_obs
+
+    def list_obstacles(self) -> List[TransientObstacle]:
+        """Returns all currently tracked ground obstacles."""
+        with self._lock:
+            if not hasattr(self, "_obstacles"):
+                self._obstacles = {}
+            return list(self._obstacles.values())
+
+    def prune_stale_obstacles(self, max_age_s: float = 60.0) -> int:
+        """Removes transient obstacles that haven't been seen recently."""
+        with self._lock:
+            if not hasattr(self, "_obstacles"):
+                self._obstacles = {}
+                return 0
+            now = time.time()
+            to_del = [k for k, v in self._obstacles.items() if now - v.last_seen > max_age_s]
+            for k in to_del:
+                del self._obstacles[k]
+            return len(to_del)
+
     def get_anchor(self, label: str) -> Optional[VisualAnchor]:
         """Returns the anchor object for a given label."""
         with self._lock:
@@ -345,11 +503,14 @@ class VisualAnchorStore:
             return list(self._anchors.values())
 
     def clear(self):
-        """Clears all stored anchors."""
+        """Clears all stored anchors and obstacles."""
         with self._lock:
             self._anchors.clear()
+            if hasattr(self, "_obstacles"):
+                self._obstacles.clear()
             self.save_to_disk()
 
 
 # Global Singleton Visual Anchor Store
 visual_anchor_store = VisualAnchorStore()
+

@@ -6,8 +6,9 @@ import React from 'react';
  */
 export const ProjectIntro: React.FC = () => {
   return (
-    <section className="w-full bg-transparent py-20 relative overflow-hidden border-y border-slate-900/80">
+    <section id="project-intro" className="w-full bg-transparent py-20 relative overflow-hidden border-y border-slate-900/80">
       {/* Ambient background glows mapped to theme variable */}
+
       <div
         className="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[140px] pointer-events-none"
         style={{ backgroundColor: 'var(--brand-subtle)' }}

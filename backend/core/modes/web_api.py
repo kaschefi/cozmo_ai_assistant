@@ -173,6 +173,16 @@ async def mute_endpoint():
             detail=f"An error occurred while interrupting speech: {str(e)}"
         )
 
+# Mount Cozmo Autonomous Vision & Mission Control API
+try:
+    from core.modes.cozmo_api import cozmo_router, cozmo_ws_router
+    app.include_router(cozmo_router)
+    app.include_router(cozmo_ws_router)
+    print("[Web API] Mounted Cozmo Autonomous Vision & Telemetry endpoints (/api/cozmo & /ws/cozmo).")
+except Exception as e:
+    print(f"[Web API Warning] Could not mount Cozmo endpoints: {e}")
+
 if __name__ == "__main__":
     print("Launching MoKa Web API server on http://127.0.0.1:8000...")
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
