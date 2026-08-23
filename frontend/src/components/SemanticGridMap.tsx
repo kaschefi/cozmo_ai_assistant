@@ -229,12 +229,11 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       ctx.arc(cx, cy, 10, 0, Math.PI * 2);
       ctx.fill();
 
-      // Anchor Icon / Glyph
+      // Anchor Center Point
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(isDock ? '⚡' : '★', cx, cy);
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+      ctx.fill();
 
       // Anchor Label Badge
       ctx.font = 'bold 11px sans-serif';
@@ -252,15 +251,15 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
     });
 
     // 7. Draw Cozmo Robot Avatar with Glowing Camera Field-of-View Cone
-    const rob = worldToCanvas(robot.x, robot.y);
     const radHeading = (robot.theta_deg * Math.PI) / 180;
+    const robCx = centerX + robot.x * scale;
+    const robCy = centerY - robot.y * scale;
 
     ctx.save();
+    ctx.translate(robCx, robCy);
+    ctx.rotate(-radHeading);
 
-    ctx.translate(rob.cx, rob.cy);
-    ctx.rotate(-radHeading); // Invert for canvas coordinate rotation
-
-    // Camera FOV Cone (~60 degrees horizontal FOV, 300mm length)
+    // Camera FOV Cone (~60 degrees horizontal FOV, 220mm length)
     const fovLen = 220 * scale;
     const fovHalfAngle = (30 * Math.PI) / 180;
     const grad = ctx.createRadialGradient(0, 0, 10, 0, 0, fovLen);
@@ -414,16 +413,16 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
         </button>
         <button
           onClick={handleRecenter}
-          className="px-2 h-7 flex items-center justify-center bg-slate-800 hover:bg-cyan-600 text-cyan-300 hover:text-white rounded text-xs transition"
+          className="px-2.5 h-7 flex items-center justify-center bg-slate-800 hover:bg-cyan-600 text-cyan-300 hover:text-white rounded text-xs font-mono transition"
           title="Center on Robot"
         >
-          🎯 Center
+          Recenter
         </button>
       </div>
 
       {/* Bottom Hint */}
-      <div className="absolute bottom-2 left-3 text-[11px] text-cyan-400/60 pointer-events-none select-none">
-        💡 Click on map to drive Cozmo to coordinate | Drag to Pan | Scroll to Zoom
+      <div className="absolute bottom-2 left-3 text-[11px] text-slate-400 font-mono pointer-events-none select-none">
+        Click on map to drive Cozmo to coordinate | Drag to Pan | Scroll to Zoom
       </div>
     </div>
   );
