@@ -1,4 +1,18 @@
 from autonomous_cozmo.vision.dino_extractor import DINOExtractor
+from autonomous_cozmo.vision.dino_heatmap import (
+    DINOPrecisionExtractor,
+    DINOHeatmapVisualizer,
+    enhance_cozmo_frame,
+    render_cozmo_frame_heatmap,
+    dino_heatmap_extractor,
+    dino_heatmap_visualizer,
+    DEFAULT_COZMO_CAM_PARAMS,
+)
+from autonomous_cozmo.vision.anchor_store import (
+    VisualAnchor,
+    VisualAnchorStore,
+    visual_anchor_store,
+)
 from autonomous_cozmo.vision.remind_engine import (
     VisualMemoryItem,
     TemporalDebouncer,
@@ -12,6 +26,16 @@ from autonomous_cozmo.vision.landmark_slam import (
 
 __all__ = [
     "DINOExtractor",
+    "DINOPrecisionExtractor",
+    "DINOHeatmapVisualizer",
+    "enhance_cozmo_frame",
+    "render_cozmo_frame_heatmap",
+    "dino_heatmap_extractor",
+    "dino_heatmap_visualizer",
+    "DEFAULT_COZMO_CAM_PARAMS",
+    "VisualAnchor",
+    "VisualAnchorStore",
+    "visual_anchor_store",
     "VisualMemoryItem",
     "TemporalDebouncer",
     "REMINDMemoryEngine",
@@ -19,3 +43,5 @@ __all__ = [
     "LandmarkSLAM",
     "landmark_slam",
 ]
+
+

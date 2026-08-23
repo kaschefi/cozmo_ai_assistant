@@ -44,9 +44,19 @@ from .behavior import (
     ExecuteIdleObservationNode,
 )
 
-# REMIND Visual Memory & Landmark SLAM (Phase 4)
+# REMIND Visual Memory & Landmark SLAM (Phase 4 & 5)
 from .vision import (
     DINOExtractor,
+    DINOPrecisionExtractor,
+    DINOHeatmapVisualizer,
+    enhance_cozmo_frame,
+    render_cozmo_frame_heatmap,
+    dino_heatmap_extractor,
+    dino_heatmap_visualizer,
+    DEFAULT_COZMO_CAM_PARAMS,
+    VisualAnchor,
+    VisualAnchorStore,
+    visual_anchor_store,
     VisualMemoryItem,
     TemporalDebouncer,
     REMINDMemoryEngine,
@@ -93,6 +103,16 @@ __all__ = [
     "ExecuteIdleObservationNode",
     # Vision
     "DINOExtractor",
+    "DINOPrecisionExtractor",
+    "DINOHeatmapVisualizer",
+    "enhance_cozmo_frame",
+    "render_cozmo_frame_heatmap",
+    "dino_heatmap_extractor",
+    "dino_heatmap_visualizer",
+    "DEFAULT_COZMO_CAM_PARAMS",
+    "VisualAnchor",
+    "VisualAnchorStore",
+    "visual_anchor_store",
     "VisualMemoryItem",
     "TemporalDebouncer",
     "REMINDMemoryEngine",
@@ -100,3 +120,5 @@ __all__ = [
     "LandmarkSLAM",
     "landmark_slam",
 ]
+
+

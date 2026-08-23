@@ -1,0 +1,355 @@
+"""
+Moka AI Assistant - Autonomous Cozmo Vision Subsystem
+Persistent Visual Anchor & Semantic Object Store (visual_anchors.json).
+
+Provides:
+1. VisualAnchor: Dataclass representing a persistently grounded visual landmark or object.
+2. VisualAnchorStore: Thread-safe persistent JSON database that serializes DINO 384-D semantic embeddings,
+   desk coordinates, timestamps, and confidence metrics to disk. Supports real-time cosine similarity
+   re-identification and pose updating.
+"""
+
+import os
+import json
+import time
+import uuid
+import math
+import threading
+from dataclasses import dataclass, field, asdict
+from typing import Dict, List, Optional, Tuple, Any, Union
+import numpy as np
+
+
+# Terminal formatting colors
+GREEN = "\033[92m"
+BLUE = "\033[94m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+CYAN = "\033[96m"
+MAGENTA = "\033[95m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+
+@dataclass
+class VisualAnchor:
+    """Represents a permanently stored visual landmark or named desk object."""
+    label: str
+    feature_vector: List[float]
+    estimated_x: float = 0.0
+    estimated_y: float = 0.0
+    estimated_theta_deg: float = 0.0
+    confidence_threshold: float = 0.72
+    is_permanent: bool = True
+    created_at: float = field(default_factory=time.time)
+    last_seen_at: float = field(default_factory=time.time)
+    observation_count: int = 1
+    notes: str = ""
+
+    def get_numpy_vector(self) -> np.ndarray:
+        """Returns the feature vector as an L2-normalized float32 numpy array."""
+        vec = np.array(self.feature_vector, dtype=np.float32)
+        norm = np.linalg.norm(vec)
+        if norm > 1e-6:
+            vec /= norm
+        return vec
+
+
+class VisualAnchorStore:
+    """
+    Thread-safe persistent JSON store for Cozmo's semantic visual memory.
+    Saves and loads labeled visual embeddings from disk (backend/data/visual_anchors.json).
+    """
+
+    DEFAULT_STORE_PATH = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../../backend/data/visual_anchors.json")
+    )
+
+    def __init__(self, store_path: Optional[str] = None):
+        self.store_path = os.path.abspath(store_path or self.DEFAULT_STORE_PATH)
+        self._lock = threading.RLock()
+        self._anchors: Dict[str, VisualAnchor] = {}
+        self._ensure_storage_dir()
+        self.load_anchors()
+
+    def _ensure_storage_dir(self):
+        """Creates parent directories if they don't exist."""
+        os.makedirs(os.path.dirname(self.store_path), exist_ok=True)
+
+    def load_anchors(self) -> Dict[str, VisualAnchor]:
+        """Loads stored visual anchors from the JSON file."""
+        with self._lock:
+            if not os.path.exists(self.store_path):
+                self._anchors = {}
+                return self._anchors
+
+            try:
+                with open(self.store_path, "r", encoding="utf-8") as f:
+                    raw_data = json.load(f)
+
+                self._anchors = {}
+                for key, item in raw_data.items():
+                    self._anchors[key] = VisualAnchor(
+                        label=item.get("label", key),
+                        feature_vector=item.get("feature_vector", []),
+                        estimated_x=float(item.get("estimated_x", 0.0)),
+                        estimated_y=float(item.get("estimated_y", 0.0)),
+                        estimated_theta_deg=float(item.get("estimated_theta_deg", 0.0)),
+                        confidence_threshold=float(item.get("confidence_threshold", 0.72)),
+                        is_permanent=bool(item.get("is_permanent", True)),
+                        created_at=float(item.get("created_at", time.time())),
+                        last_seen_at=float(item.get("last_seen_at", time.time())),
+                        observation_count=int(item.get("observation_count", 1)),
+                        notes=str(item.get("notes", "")),
+                    )
+                return self._anchors
+            except Exception as e:
+                print(f"{YELLOW}[VisualAnchorStore] Warning loading {self.store_path}: {e}. Starting fresh.{RESET}")
+                self._anchors = {}
+                return self._anchors
+
+    def save_to_disk(self):
+        """Atomically saves in-memory anchors to the JSON file with Windows file-lock retry."""
+        with self._lock:
+            self._ensure_storage_dir()
+            data_dict = {}
+            for key, anchor in self._anchors.items():
+                data_dict[key] = asdict(anchor)
+
+            temp_path = f"{self.store_path}.{uuid.uuid4().hex[:8]}.tmp"
+            try:
+                with open(temp_path, "w", encoding="utf-8") as f:
+                    json.dump(data_dict, f, indent=2)
+                
+                # Retry loop for Windows file lock tolerance
+                for attempt in range(4):
+                    try:
+                        if os.path.exists(self.store_path):
+                            os.replace(temp_path, self.store_path)
+                        else:
+                            os.rename(temp_path, self.store_path)
+                        self._last_disk_save_time = time.time()
+                        break
+                    except (PermissionError, OSError) as e:
+                        if attempt == 3:
+                            # Fallback: direct write
+                            try:
+                                with open(self.store_path, "w", encoding="utf-8") as f:
+                                    json.dump(data_dict, f, indent=2)
+                                self._last_disk_save_time = time.time()
+                            except Exception as direct_err:
+                                print(f"{YELLOW}[VisualAnchorStore] Disk write fallback failed: {direct_err}{RESET}")
+                        else:
+                            time.sleep(0.04 * (attempt + 1))
+            except Exception as outer_err:
+                print(f"{YELLOW}[VisualAnchorStore] Warning saving anchors: {outer_err}{RESET}")
+            finally:
+                if os.path.exists(temp_path):
+                    try:
+                        os.remove(temp_path)
+                    except Exception:
+                        pass
+
+
+    def save_anchor(
+        self,
+        label: str,
+        feature_vector: Union[np.ndarray, List[float]],
+        x: float = 0.0,
+        y: float = 0.0,
+        theta_deg: float = 0.0,
+        confidence_threshold: float = 0.72,
+        is_permanent: bool = True,
+        notes: str = "",
+    ) -> VisualAnchor:
+        """
+        Stores or updates a labeled visual anchor in memory and persists to disk.
+        """
+        clean_label = label.strip()
+        if isinstance(feature_vector, np.ndarray):
+            norm = np.linalg.norm(feature_vector)
+            if norm > 1e-6:
+                vec = (feature_vector / norm).tolist()
+            else:
+                vec = feature_vector.tolist()
+        else:
+            vec = list(feature_vector)
+
+        with self._lock:
+            existing = self._anchors.get(clean_label)
+            now = time.time()
+            if existing:
+                existing.feature_vector = vec
+                existing.estimated_x = float(x)
+                existing.estimated_y = float(y)
+                existing.estimated_theta_deg = float(theta_deg)
+                existing.confidence_threshold = float(confidence_threshold)
+                existing.last_seen_at = now
+                existing.observation_count += 1
+                existing.notes = notes or existing.notes
+                anchor = existing
+            else:
+                anchor = VisualAnchor(
+                    label=clean_label,
+                    feature_vector=vec,
+                    estimated_x=float(x),
+                    estimated_y=float(y),
+                    estimated_theta_deg=float(theta_deg),
+                    confidence_threshold=float(confidence_threshold),
+                    is_permanent=is_permanent,
+                    created_at=now,
+                    last_seen_at=now,
+                    observation_count=1,
+                    notes=notes,
+                )
+                self._anchors[clean_label] = anchor
+
+            self.save_to_disk()
+            return anchor
+
+    def identify(
+        self,
+        feature_vector: np.ndarray,
+        min_similarity: Optional[float] = None,
+    ) -> Tuple[Optional[str], float, Optional[VisualAnchor]]:
+        """
+        Compares an observed feature vector against all stored anchors using Cosine Similarity.
+        Returns: (matched_label, similarity_score, matched_anchor_obj) or (None, max_sim, None)
+        """
+        with self._lock:
+            if not self._anchors:
+                return None, 0.0, None
+
+            feat_norm = feature_vector / (np.linalg.norm(feature_vector) + 1e-8)
+            best_sim = -1.0
+            best_anchor = None
+            best_label = None
+
+            for label, anchor in self._anchors.items():
+                anchor_vec = anchor.get_numpy_vector()
+                sim = float(np.dot(feat_norm, anchor_vec))
+                threshold = min_similarity if min_similarity is not None else anchor.confidence_threshold
+
+                if sim > best_sim:
+                    best_sim = sim
+                    if sim >= threshold:
+                        best_label = label
+                        best_anchor = anchor
+                    else:
+                        best_label = None
+                        best_anchor = None
+
+            if best_anchor is not None:
+                # Update observation metadata
+                best_anchor.last_seen_at = time.time()
+                best_anchor.observation_count += 1
+                return best_label, best_sim, best_anchor
+
+            return None, max(0.0, best_sim), None
+
+    def detect_objects_in_patches(
+        self,
+        patch_tokens_grid: np.ndarray,
+        min_patch_similarity: float = 0.74,
+        min_matching_patches: int = 2,
+    ) -> List[Dict[str, Any]]:
+        """
+        Scans all spatial patches across the frame against stored visual anchors.
+        Returns localized bounding boxes (normalized [ymin, xmin, ymax, xmax])
+        for all recognized objects in the scene!
+        """
+        with self._lock:
+            if not self._anchors or patch_tokens_grid is None:
+                return []
+
+            grid_h, grid_w, dim = patch_tokens_grid.shape
+            detections = []
+
+            for label, anchor in self._anchors.items():
+                anchor_vec = anchor.get_numpy_vector()
+                # Compute dot product across all grid patches (grid_h, grid_w)
+                sim_map = np.dot(patch_tokens_grid, anchor_vec)
+                threshold = max(min_patch_similarity, anchor.confidence_threshold)
+                match_mask = (sim_map >= threshold)
+                match_count = int(np.count_nonzero(match_mask))
+
+                if match_count >= min_matching_patches:
+                    coords = np.argwhere(match_mask)
+                    r_min, c_min = coords.min(axis=0)
+                    r_max, c_max = coords.max(axis=0) + 1
+
+                    ymin = float(r_min / grid_h)
+                    xmin = float(c_min / grid_w)
+                    ymax = float(r_max / grid_h)
+                    xmax = float(c_max / grid_w)
+
+                    conf = float(np.mean(sim_map[match_mask]))
+                    anchor.last_seen_at = time.time()
+                    anchor.observation_count += 1
+
+                    detections.append({
+                        "label": label,
+                        "confidence": conf,
+                        "bbox_norm": (ymin, xmin, ymax, xmax),
+                        "num_patches": match_count,
+                        "anchor": anchor,
+                    })
+
+            return detections
+
+    def update_anchor_pose(
+        self,
+        label: str,
+        new_x: float,
+        new_y: float,
+        new_theta_deg: Optional[float] = None,
+        force_save: bool = False,
+    ) -> bool:
+        """Updates stored desk coordinates for a recognized anchor with throttled disk persistence."""
+        with self._lock:
+            anchor = self._anchors.get(label)
+            if anchor:
+                old_x, old_y = anchor.estimated_x, anchor.estimated_y
+                anchor.estimated_x = float(new_x)
+                anchor.estimated_y = float(new_y)
+                if new_theta_deg is not None:
+                    anchor.estimated_theta_deg = float(new_theta_deg)
+                anchor.last_seen_at = time.time()
+
+                # Debounce disk writes (only write if moved > 25mm or > 5s elapsed)
+                dist = math.hypot(anchor.estimated_x - old_x, anchor.estimated_y - old_y)
+                last_save = getattr(self, "_last_disk_save_time", 0.0)
+                if force_save or dist > 25.0 or (time.time() - last_save > 5.0):
+                    self.save_to_disk()
+                return True
+            return False
+
+
+    def get_anchor(self, label: str) -> Optional[VisualAnchor]:
+        """Returns the anchor object for a given label."""
+        with self._lock:
+            return self._anchors.get(label)
+
+    def delete_anchor(self, label: str) -> bool:
+        """Deletes an anchor from storage."""
+        with self._lock:
+            if label in self._anchors:
+                del self._anchors[label]
+                self.save_to_disk()
+                return True
+            return False
+
+    def list_anchors(self) -> List[VisualAnchor]:
+        """Returns a list of all currently stored visual anchors."""
+        with self._lock:
+            return list(self._anchors.values())
+
+    def clear(self):
+        """Clears all stored anchors."""
+        with self._lock:
+            self._anchors.clear()
+            self.save_to_disk()
+
+
+# Global Singleton Visual Anchor Store
+visual_anchor_store = VisualAnchorStore()

@@ -283,14 +283,8 @@ class ReflexSafetyGuard:
                         except (ValueError, TypeError):
                             pass
 
-        # Debug Logger (~2 prints/sec while running)
-        if getattr(self, "_debug_counter", 0) % 15 == 0:
-            pitch_deg = math.degrees(pitch_rad)
-            print(
-                f"[IMU DEBUG] pitch: {pitch_rad:5.2f} rad ({pitch_deg:5.1f}°) | accel_x: {accel_x:7.1f} | L_speed: {l_speed:4.1f} mmps")
-        self._debug_counter = getattr(self, "_debug_counter", 0) + 1
-
         is_forward_driving = (self.cmd_lwheel > 20.0 and self.cmd_rwheel > 20.0)
+
 
         # Adaptive resting baseline tracking when stationary
         if abs(l_speed) < 3.0 and not is_forward_driving:

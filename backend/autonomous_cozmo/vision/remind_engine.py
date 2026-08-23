@@ -4,11 +4,16 @@ import queue
 import threading
 import uuid
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, Union
 import numpy as np
 from PIL import Image
 
 from autonomous_cozmo.vision.dino_extractor import DINOExtractor
+from autonomous_cozmo.vision.anchor_store import (
+    VisualAnchor,
+    VisualAnchorStore,
+    visual_anchor_store,
+)
 
 # Terminal formatting colors
 GREEN = "\033[92m"
@@ -99,8 +104,9 @@ class TemporalDebouncer:
 
 class REMINDMemoryEngine:
     """
-    Dynamic Visual Memory & Replay Indexer.
+    Dynamic Visual Memory & Replay Indexer with Persistent Anchor Grounding.
     Exposes an asynchronous query API for Behavior Trees and visual landmark tracking:
+    - teach_anchor(label, img/feat, x, y): permanently learns an object to disk.
     - get_novel_objects()
     - get_least_recently_attended()
     - get_object_pose(id)
@@ -117,10 +123,12 @@ class REMINDMemoryEngine:
         match_similarity: float = DEFAULT_MATCH_SIMILARITY,
         required_consecutive_frames: int = 3,
         extractor: Optional[DINOExtractor] = None,
+        anchor_store: Optional[VisualAnchorStore] = None,
     ):
         self.novelty_threshold = novelty_threshold
         self.match_similarity = match_similarity
         self.extractor = extractor or DINOExtractor()
+        self.anchor_store = anchor_store or visual_anchor_store
         self.debouncer = TemporalDebouncer(
             required_consecutive_frames=required_consecutive_frames,
             similarity_threshold=match_similarity,
@@ -129,11 +137,59 @@ class REMINDMemoryEngine:
         self._lock = threading.RLock()
         self.memory_bank: Dict[str, VisualMemoryItem] = {}
 
+        # Auto-load persistent anchors from visual_anchors.json
+        self._load_persistent_anchors()
+
+        # Real-time Visual Heatmap Cache & Live Streamer
+        self.latest_patch_heatmap: Optional[np.ndarray] = None
+        self.latest_composite_frame: Optional[np.ndarray] = None
+        self.latest_telemetry: Dict[str, Any] = {}
+        self.show_live_window: bool = False
+        self.frame_count: int = 0
+        self._visualizer = None
+
         # Asynchronous frame worker queue
         self._frame_queue = queue.Queue(maxsize=2)
         self._worker_running = True
         self._worker_thread = threading.Thread(target=self._async_frame_worker, daemon=True)
         self._worker_thread.start()
+
+    def _load_persistent_anchors(self):
+        """Populates memory bank with saved anchors from disk on startup."""
+        stored = self.anchor_store.load_anchors()
+        for label, anchor in stored.items():
+            anchor_id = f"anchor_{label.lower().replace(' ', '_')}"
+            vec = anchor.get_numpy_vector()
+            self.memory_bank[anchor_id] = VisualMemoryItem(
+                id=anchor_id,
+                name=label,
+                feature_vector=vec,
+                estimated_x=anchor.estimated_x,
+                estimated_y=anchor.estimated_y,
+                confidence=1.0,
+                is_anchor=True,
+                is_verified=True,
+                attended_by_robot=True,
+            )
+
+
+    def enable_live_window(self, enable: bool = True):
+        """Toggles real-time OpenCV desktop window displaying what Cozmo sees with DINO heatmap."""
+        self.show_live_window = enable
+        if not enable:
+            try:
+                import cv2
+                cv2.destroyWindow("Cozmo Retinal Vision - DINO Heatmap")
+            except Exception:
+                pass
+
+    def get_latest_view(self) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Dict[str, Any]]:
+        """
+        Returns the latest visual state: (composite_bgr, patch_color_rgb, telemetry_dict).
+        Thread-safe.
+        """
+        with self._lock:
+            return self.latest_composite_frame, self.latest_patch_heatmap, self.latest_telemetry
 
     def process_frame_async(self, pil_image: Image.Image, robot_pose: Tuple[float, float, float]):
         """
@@ -152,7 +208,7 @@ class REMINDMemoryEngine:
             pass
 
     def _async_frame_worker(self):
-        """Background thread extracting DINO features and updating visual memory."""
+        """Background thread extracting DINO features, generating heatmaps, and updating visual memory."""
         while self._worker_running:
             try:
                 item = self._frame_queue.get(timeout=0.2)
@@ -161,17 +217,67 @@ class REMINDMemoryEngine:
 
             pil_img, (curr_x, curr_y, curr_theta_deg) = item
             try:
-                feat = self.extractor.extract_features(pil_img)
-                self.process_feature(feat, curr_x, curr_y, curr_theta_deg)
+                self.frame_count += 1
+                t0 = time.time()
+
+                # Extract features + patch heatmap
+                if hasattr(self.extractor, "extract_with_heatmap"):
+                    feat, patch_rgb = self.extractor.extract_with_heatmap(pil_img)
+                else:
+                    feat = self.extractor.extract_features(pil_img)
+                    patch_rgb = getattr(self.extractor, "latest_patch_color_grid", None)
+
+                latency_ms = (time.time() - t0) * 1000.0
+
+                # Process observation in visual memory
+                nov, item_id, sim = self.process_feature(feat, curr_x, curr_y, curr_theta_deg)
+
+                # Render composite visualization
+                from autonomous_cozmo.vision.dino_heatmap import DINOHeatmapVisualizer, enhance_cozmo_frame
+                if self._visualizer is None:
+                    self._visualizer = DINOHeatmapVisualizer()
+
+                import cv2
+                raw_bgr = cv2.cvtColor(np.array(pil_img.convert("RGB")), cv2.COLOR_RGB2BGR)
+                calibrated_bgr = enhance_cozmo_frame(raw_bgr)
+
+                classification = "NOVEL OBJECT" if nov > 0.60 else ("PARTIAL" if nov > 0.35 else "FAMILIAR ANCHOR")
+                composite_bgr = self._visualizer.render_composite(
+                    frame_bgr=calibrated_bgr,
+                    patch_color_rgb=patch_rgb,
+                    novelty_score=nov,
+                    classification=classification,
+                    active_memories=len(self.memory_bank),
+                    latency_ms=latency_ms,
+                    model_name=getattr(self.extractor, "model_name", "DINO"),
+                    frame_count=self.frame_count,
+                )
+
+                with self._lock:
+                    self.latest_patch_heatmap = patch_rgb
+                    self.latest_composite_frame = composite_bgr
+                    self.latest_telemetry = {
+                        "novelty": nov,
+                        "classification": classification,
+                        "latency_ms": latency_ms,
+                        "active_memories": len(self.memory_bank),
+                        "frame_count": self.frame_count,
+                        "matched_item_id": item_id,
+                    }
+
+                if self.show_live_window and composite_bgr is not None:
+                    cv2.imshow("Cozmo Retinal Vision - DINO Heatmap", composite_bgr)
+                    cv2.waitKey(1)
+
             except Exception as e:
                 print(f"{YELLOW}[REMIND Worker Warning] {e}{RESET}")
 
     def process_feature(
         self,
         feature_vector: np.ndarray,
-        curr_x: float,
-        curr_y: float,
-        curr_theta_deg: float,
+        curr_x: float = 0.0,
+        curr_y: float = 0.0,
+        curr_theta_deg: float = 0.0,
         estimated_distance_mm: float = 120.0,
         explicit_target_x: Optional[float] = None,
         explicit_target_y: Optional[float] = None,
@@ -193,6 +299,33 @@ class REMINDMemoryEngine:
             target_y = curr_y + estimated_distance_mm * math.sin(heading_rad)
 
         is_confirmed, debounced_id = self.debouncer.process_observation(feature_vector, target_x, target_y)
+
+        # 1. Check if feature matches a known persistent labeled anchor (e.g. ChargingDock, CoffeeMug)
+        matched_label, anchor_sim, anchor_obj = self.anchor_store.identify(feature_vector, min_similarity=self.match_similarity)
+        if matched_label is not None and anchor_obj is not None:
+            anchor_id = f"anchor_{matched_label.lower().replace(' ', '_')}"
+            with self._lock:
+                if anchor_id in self.memory_bank:
+                    item = self.memory_bank[anchor_id]
+                    item.observation_count += 1
+                    item.estimated_x = 0.8 * item.estimated_x + 0.2 * target_x
+                    item.estimated_y = 0.8 * item.estimated_y + 0.2 * target_y
+                    item.last_attended_time = time.time()
+                else:
+                    self.memory_bank[anchor_id] = VisualMemoryItem(
+                        id=anchor_id,
+                        name=matched_label,
+                        feature_vector=anchor_obj.get_numpy_vector(),
+                        estimated_x=target_x,
+                        estimated_y=target_y,
+                        confidence=anchor_sim,
+                        is_anchor=True,
+                        is_verified=True,
+                        attended_by_robot=True,
+                    )
+                self.anchor_store.update_anchor_pose(matched_label, self.memory_bank[anchor_id].estimated_x, self.memory_bank[anchor_id].estimated_y)
+            novelty_score = float(np.clip(1.0 - anchor_sim, 0.0, 1.0))
+            return novelty_score, anchor_id, anchor_sim
 
         with self._lock:
             if len(self.memory_bank) == 0:
@@ -248,32 +381,81 @@ class REMINDMemoryEngine:
 
             return novelty_score, best_id, max_sim
 
-    def register_anchor(
+    def teach_anchor(
         self,
-        name: str,
-        x: float,
-        y: float,
-        feature_vector: Optional[np.ndarray] = None,
-    ) -> str:
-        """Registers a fixed environmental anchor (e.g. Charging Dock, Monitor Stand)."""
-        with self._lock:
-            anchor_id = f"anchor_{name.lower().replace(' ', '_')}"
-            if feature_vector is None:
-                feature_vector = np.zeros(self.extractor.embedding_dim, dtype=np.float32)
-                feature_vector[0] = 1.0
+        label: str,
+        image_or_feat: Union[Image.Image, np.ndarray],
+        x: float = 0.0,
+        y: float = 0.0,
+        theta_deg: float = 0.0,
+        is_permanent: bool = True,
+        notes: str = "",
+    ) -> VisualAnchor:
+        """
+        Teaches Cozmo a named visual object/anchor and persists it permanently to visual_anchors.json.
+        """
+        if isinstance(image_or_feat, (Image.Image, np.ndarray)) and not (isinstance(image_or_feat, np.ndarray) and image_or_feat.ndim == 1 and len(image_or_feat) == 384):
+            # Input is an image/frame
+            if isinstance(image_or_feat, np.ndarray):
+                import cv2
+                rgb = cv2.cvtColor(image_or_feat, cv2.COLOR_BGR2RGB) if image_or_feat.shape[2] == 3 else image_or_feat
+                pil_img = Image.fromarray(rgb)
+            else:
+                pil_img = image_or_feat
+            feature_vector = self.extractor.extract_features(pil_img)
+        else:
+            feature_vector = np.array(image_or_feat, dtype=np.float32)
 
-            item = VisualMemoryItem(
+        # Save to persistent store
+        anchor = self.anchor_store.save_anchor(
+            label=label,
+            feature_vector=feature_vector,
+            x=x,
+            y=y,
+            theta_deg=theta_deg,
+            is_permanent=is_permanent,
+            notes=notes,
+        )
+
+        # Register in active memory bank
+        anchor_id = f"anchor_{label.lower().replace(' ', '_')}"
+        with self._lock:
+            self.memory_bank[anchor_id] = VisualMemoryItem(
                 id=anchor_id,
-                name=name,
-                feature_vector=feature_vector,
+                name=label,
+                feature_vector=anchor.get_numpy_vector(),
                 estimated_x=float(x),
                 estimated_y=float(y),
                 is_anchor=True,
                 is_verified=True,
                 attended_by_robot=True,
             )
-            self.memory_bank[anchor_id] = item
-            return anchor_id
+
+        print(f"{GREEN}[REMIND] Successfully taught & persisted anchor '{label}' at ({x:.1f}, {y:.1f})!{RESET}")
+        return anchor
+
+    def register_anchor(
+        self,
+        name: str,
+        x: float,
+        y: float,
+        feature_vector: Optional[np.ndarray] = None,
+        is_permanent: bool = True,
+    ) -> str:
+        """Registers a fixed environmental anchor (e.g. Charging Dock, Monitor Stand) and saves to disk."""
+        if feature_vector is None:
+            feature_vector = np.zeros(self.extractor.embedding_dim, dtype=np.float32)
+            feature_vector[0] = 1.0
+
+        self.teach_anchor(
+            label=name,
+            image_or_feat=feature_vector,
+            x=x,
+            y=y,
+            is_permanent=is_permanent,
+        )
+        return f"anchor_{name.lower().replace(' ', '_')}"
+
 
     def get_novel_objects(self, min_novelty_score: float = 0.35) -> List[VisualMemoryItem]:
         """

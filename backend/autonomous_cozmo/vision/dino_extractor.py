@@ -118,47 +118,34 @@ class DINOExtractor:
 
     def extract_features(self, pil_image: Image.Image) -> np.ndarray:
         """
-        Extracts an L2-normalized 384-dimensional feature vector from a PIL Image.
+        Extracts an L2-normalized 384-dimensional feature vector from a PIL Image
+        AND automatically updates the latest stabilized patch color heatmap.
         Thread-safe.
         """
-        if not self._initialized:
-            self._init_model()
+        feat, mask = self.extract_with_heatmap(pil_image)
+        self.latest_patch_color_grid = mask
+        return feat
 
-        with self._lock:
-            if self.is_mock:
-                return self._extract_fallback_features(pil_image)
-
-            try:
-                import torch
-                if self.processor is not None:
-                    # Hugging Face Transformers pipeline
-                    inputs = self.processor(images=pil_image, return_tensors="pt")
-                    if hasattr(self, "device") and self.device == "cuda":
-                        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-                    with torch.no_grad():
-                        outputs = self.model(**inputs)
-                        if hasattr(outputs, "last_hidden_state"):
-                            feat = outputs.last_hidden_state.mean(dim=1)
-                        elif hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
-                            feat = outputs.pooler_output
-                        else:
-                            feat = outputs[0].mean(dim=1)
-
-                        feat_norm = torch.nn.functional.normalize(feat, p=2, dim=-1)
-                        return feat_norm.squeeze(0).cpu().numpy().astype(np.float32)
-                else:
-                    # TorchHub DINOv2 pipeline
-                    tensor = self.transform(pil_image).unsqueeze(0).to(self.device)
-                    with torch.no_grad():
-                        patch_tokens = self.model.get_intermediate_layers(tensor, n=1)[0].squeeze(0)
-                        patch_tokens_norm = torch.nn.functional.normalize(patch_tokens, p=2, dim=1)
-                        global_feat = patch_tokens_norm.mean(dim=0, keepdim=True)
-                        global_feat_norm = torch.nn.functional.normalize(global_feat, p=2, dim=1)
-                        return global_feat_norm.squeeze(0).cpu().numpy().astype(np.float32)
-
-            except Exception as e:
-                print(f"{RED}[DINO Extraction Error] {e}. Falling back to color descriptor.{RESET}")
-                return self._extract_fallback_features(pil_image)
+    def extract_with_heatmap(
+        self,
+        pil_image: Image.Image,
+        is_calibrating: bool = False,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Extracts both L2-normalized 384-D global feature vector and stabilized patch color heatmap grid.
+        Returns: (global_feat_norm [384], patch_color_grid [grid_h, grid_w, 3])
+        """
+        if not hasattr(self, "_precision_extractor") or self._precision_extractor is None:
+            from autonomous_cozmo.vision.dino_heatmap import DINOPrecisionExtractor
+            backend_choice = "dinov3" if "dinov3" in (self.model_name or "").lower() else "dinov2"
+            self._precision_extractor = DINOPrecisionExtractor(
+                backend=backend_choice,
+                calibration_frames=15,
+                lazy_init=True,
+            )
+        feat, mask = self._precision_extractor.extract(pil_image, is_calibrating=is_calibrating)
+        self.latest_patch_color_grid = mask
+        return feat, mask
 
     def _extract_fallback_features(self, pil_image: Image.Image) -> np.ndarray:
         """Fast, deterministic image feature vector (384-D) based on spatial color histograms."""
@@ -177,9 +164,11 @@ class DINOExtractor:
                 feats.extend(hist_r)
                 feats.extend(hist_g)
                 feats.extend(hist_b)
+                feats.extend(hist_b)
 
         vec = np.array(feats, dtype=np.float32)
         norm = np.linalg.norm(vec)
         if norm > 1e-6:
             vec = vec / norm
         return vec
+

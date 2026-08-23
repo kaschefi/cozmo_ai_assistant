@@ -1,7 +1,7 @@
 from langsmith import Client
 from langsmith.evaluation import evaluate
 from test.digital.llm_as_judge import exact_match_evaluator
-from actions.digital.code_executor import code_executor
+from actions.digital.langchain import code_executor
 DATASET_NAME = "code_executor_Edge_Cases"
 
 
