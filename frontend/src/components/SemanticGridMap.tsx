@@ -214,33 +214,62 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       const isDock = a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock');
 
       ctx.save();
-      const color = isDock ? '#ffe600' : '#00e5ff';
+      const color = isDock ? '#10b981' : '#00e5ff';
 
-      // Outer Pulse Ring
-      ctx.strokeStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 10;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 14, 0, Math.PI * 2);
-      ctx.stroke();
+      if (isDock) {
+        // 2D Charging Dock Cradle Footprint
+        const dockW = 40 * scale;
+        const dockH = 45 * scale;
 
-      // Inner Icon Circle
-      ctx.fillStyle = isDock ? 'rgba(255, 230, 0, 0.3)' : 'rgba(0, 229, 255, 0.3)';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 10, 0, Math.PI * 2);
-      ctx.fill();
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 1.5;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 8;
+        ctx.strokeRect(cx - dockW / 2, cy - dockH / 2, dockW, dockH);
+        ctx.fillRect(cx - dockW / 2, cy - dockH / 2, dockW, dockH);
 
-      // Anchor Center Point
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+        // Gold charging pin indicators
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath();
+        ctx.arc(cx - dockW * 0.25, cy - dockH * 0.35, 2, 0, Math.PI * 2);
+        ctx.arc(cx + dockW * 0.25, cy - dockH * 0.35, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Dock Center Power Icon
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⚡', cx, cy);
+      } else {
+        // Outer Pulse Ring
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 10;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner Icon Circle
+        ctx.fillStyle = 'rgba(0, 229, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Anchor Center Point
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // Anchor Label Badge
       ctx.font = 'bold 11px sans-serif';
       ctx.shadowBlur = 0;
-      const textWidth = ctx.measureText(a.label.toUpperCase()).width;
+      const displayLabel = isDock ? '⚡ CHARGER' : a.label.toUpperCase();
+      const textWidth = ctx.measureText(displayLabel).width;
       ctx.fillStyle = 'rgba(15, 20, 30, 0.9)';
       ctx.fillRect(cx - textWidth / 2 - 6, cy + 18, textWidth + 12, 18);
       ctx.strokeStyle = color;
@@ -248,7 +277,9 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       ctx.strokeRect(cx - textWidth / 2 - 6, cy + 18, textWidth + 12, 18);
 
       ctx.fillStyle = color;
-      ctx.fillText(a.label.toUpperCase(), cx, cy + 27);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(displayLabel, cx, cy + 27);
       ctx.restore();
     });
 

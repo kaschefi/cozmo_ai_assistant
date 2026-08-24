@@ -12,6 +12,9 @@ from autonomous_cozmo.vision.anchor_store import (
     VisualAnchor,
     VisualAnchorStore,
     visual_anchor_store,
+    estimate_ground_position,
+    DEFAULT_CHARGER_DISTANCE_MM,
+    get_default_charger_pose,
 )
 from autonomous_cozmo.vision.remind_engine import (
     VisualMemoryItem,
@@ -36,6 +39,9 @@ __all__ = [
     "VisualAnchor",
     "VisualAnchorStore",
     "visual_anchor_store",
+    "estimate_ground_position",
+    "DEFAULT_CHARGER_DISTANCE_MM",
+    "get_default_charger_pose",
     "VisualMemoryItem",
     "TemporalDebouncer",
     "REMINDMemoryEngine",

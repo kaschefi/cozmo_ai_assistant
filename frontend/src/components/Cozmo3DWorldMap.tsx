@@ -37,6 +37,8 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   const controlsRef = useRef<OrbitControls | null>(null);
   const cozmoModelRef = useRef<THREE.Group | null>(null);
   const cozmoBodyMeshRef = useRef<THREE.Group | null>(null);
+  const chargerModelTemplateRef = useRef<THREE.Group | null>(null);
+  const [chargerModelLoaded, setChargerModelLoaded] = useState<boolean>(false);
   const anchorsGroupRef = useRef<THREE.Group | null>(null);
   const obstaclesGroupRef = useRef<THREE.Group | null>(null);
   const pathLineRef = useRef<THREE.Line | null>(null);
@@ -282,6 +284,9 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
               }
             });
 
+            // Rotate Cozmo model 180 degrees (object.rotation.y = Math.PI / 2)
+            object.rotation.y = Math.PI / 2;
+
             // Parent container for world navigation (X, Z position + Y heading)
             const cozmoContainer = new THREE.Group();
 
@@ -318,14 +323,14 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
             groundHalo.position.y = 0.003;
             cozmoContainer.add(groundHalo);
 
-            // Cozmo Headlight Beam
+            // Cozmo Headlight Beam (facing forward with Cozmo's rotated front)
             const headlight = new THREE.SpotLight(0xaae8ff, 3.5, 2.5, Math.PI / 4.5, 0.4, 1.2);
-            headlight.position.set(0, 0.045, 0.04);
+            headlight.position.set(-0.04, 0.045, 0);
             headlight.castShadow = true;
             headlight.shadow.bias = -0.001;
 
             const headlightTarget = new THREE.Object3D();
-            headlightTarget.position.set(0, 0.0, 1.2);
+            headlightTarget.position.set(-1.2, 0.0, 0);
             cozmoContainer.add(headlightTarget);
             headlight.target = headlightTarget;
             cozmoContainer.add(headlight);
@@ -348,6 +353,47 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         console.error('Error loading 3DModel.mtl:', err);
         setIsLoadingModel(false);
       }
+    );
+
+    // 7b. Load Charger 3D Model (.mtl + .obj from 3DModel/Models/charger/OBJ)
+    const chargerMtlLoader = new MTLLoader();
+    chargerMtlLoader.setPath('/models/charger/');
+    chargerMtlLoader.setResourcePath('/models/charger/');
+
+    chargerMtlLoader.load(
+      '3DModel.mtl?v=charger_v1',
+      (materials) => {
+        materials.preload();
+        const chargerObjLoader = new OBJLoader();
+        chargerObjLoader.setMaterials(materials);
+        chargerObjLoader.setPath('/models/charger/');
+
+        chargerObjLoader.load(
+          '3DModel.obj?v=charger_v1',
+          (chargerObj) => {
+            chargerObj.traverse((child) => {
+              if (child instanceof THREE.Mesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                if (child.material) {
+                  const mats = Array.isArray(child.material) ? child.material : [child.material];
+                  mats.forEach((m) => {
+                    m.side = THREE.DoubleSide;
+                    m.roughness = 0.55;
+                    m.metalness = 0.25;
+                  });
+                }
+              }
+            });
+            chargerModelTemplateRef.current = chargerObj;
+            setChargerModelLoaded(true);
+          },
+          undefined,
+          (err) => console.error('Error loading charger 3DModel.obj:', err)
+        );
+      },
+      undefined,
+      (err) => console.error('Error loading charger 3DModel.mtl:', err)
     );
 
     // 8. Animation & Render Loop with Procedural Physics
@@ -534,53 +580,99 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       const isCharger = anchor.label.toLowerCase().includes('charger') || anchor.label.toLowerCase().includes('dock');
       const baseColor = isCharger ? 0x10b981 : 0x00d4ff;
 
-      // 1. Floating Diamond
-      const diamondGeo = new THREE.OctahedronGeometry(0.025, 0);
-      const diamondMat = new THREE.MeshStandardMaterial({
-        color: baseColor,
-        emissive: baseColor,
-        emissiveIntensity: 0.6,
-        roughness: 0.2,
-        metalness: 0.8,
-      });
-      const diamond = new THREE.Mesh(diamondGeo, diamondMat);
-      diamond.name = 'diamond';
-      diamond.position.y = 0.08;
-      diamond.castShadow = true;
-      anchorObj.add(diamond);
+      if (isCharger) {
+        // ==========================================
+        // DEDICATED 3D CHARGER OBJ MODEL
+        // ==========================================
+        if (chargerModelTemplateRef.current) {
+          const chargerMesh = chargerModelTemplateRef.current.clone(true);
+          // Rotate charger 180 degrees (chargerMesh.rotation.y = Math.PI / 2)
+          chargerMesh.rotation.y = Math.PI / 2;
+          chargerMesh.position.set(0, 0, 0);
+          anchorObj.add(chargerMesh);
+        } else {
+          // Procedural fallback dock cradle while OBJ loads
+          const dockGroup = new THREE.Group();
+          const baseGeo = new THREE.BoxGeometry(0.085, 0.008, 0.095);
+          const baseMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.7 });
+          const dockBase = new THREE.Mesh(baseGeo, baseMat);
+          dockBase.position.y = 0.004;
+          dockGroup.add(dockBase);
 
-      // 2. Light beam pedestal
-      const stemGeo = new THREE.CylinderGeometry(0.002, 0.002, 0.08, 8);
-      const stemMat = new THREE.MeshBasicMaterial({
-        color: baseColor,
-        transparent: true,
-        opacity: 0.5,
-      });
-      const stem = new THREE.Mesh(stemGeo, stemMat);
-      stem.position.y = 0.04;
-      anchorObj.add(stem);
+          const backGeo = new THREE.BoxGeometry(0.085, 0.038, 0.014);
+          const backWall = new THREE.Mesh(backGeo, baseMat);
+          backWall.position.set(0, 0.022, 0.040);
+          dockGroup.add(backWall);
 
-      // 3. Ground Halo Ring
-      const ringGeo = new THREE.RingGeometry(0.035, 0.045, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: baseColor,
-        transparent: true,
-        opacity: 0.7,
-        side: THREE.DoubleSide,
-      });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.004;
-      ring.name = 'halo';
-      anchorObj.add(ring);
+          dockGroup.rotation.y = Math.PI;
+          anchorObj.add(dockGroup);
+        }
 
-      // 4. Billboard Text Label Sprite
+        // Docking Guidance Halo Ring
+        const ringGeo = new THREE.RingGeometry(0.048, 0.058, 32);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0x10b981,
+          transparent: true,
+          opacity: 0.85,
+          side: THREE.DoubleSide,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.003;
+        ring.name = 'halo';
+        anchorObj.add(ring);
+      } else {
+        // ==========================================
+        // FLOATING SEMANTIC OBJECT DIAMOND LANDMARK
+        // ==========================================
+        // 1. Floating Diamond
+        const diamondGeo = new THREE.OctahedronGeometry(0.025, 0);
+        const diamondMat = new THREE.MeshStandardMaterial({
+          color: baseColor,
+          emissive: baseColor,
+          emissiveIntensity: 0.6,
+          roughness: 0.2,
+          metalness: 0.8,
+        });
+        const diamond = new THREE.Mesh(diamondGeo, diamondMat);
+        diamond.name = 'diamond';
+        diamond.position.y = 0.08;
+        diamond.castShadow = true;
+        anchorObj.add(diamond);
+
+        // 2. Light beam pedestal
+        const stemGeo = new THREE.CylinderGeometry(0.002, 0.002, 0.08, 8);
+        const stemMat = new THREE.MeshBasicMaterial({
+          color: baseColor,
+          transparent: true,
+          opacity: 0.5,
+        });
+        const stem = new THREE.Mesh(stemGeo, stemMat);
+        stem.position.y = 0.04;
+        anchorObj.add(stem);
+
+        // 3. Ground Halo Ring
+        const ringGeo = new THREE.RingGeometry(0.035, 0.045, 32);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: baseColor,
+          transparent: true,
+          opacity: 0.7,
+          side: THREE.DoubleSide,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.004;
+        ring.name = 'halo';
+        anchorObj.add(ring);
+      }
+
+      // Billboard Text Label Sprite
       const canvas = document.createElement('canvas');
       canvas.width = 256;
       canvas.height = 64;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = 'rgba(10, 16, 26, 0.85)';
+        ctx.fillStyle = 'rgba(10, 16, 26, 0.88)';
         ctx.roundRect(4, 4, 248, 56, 12);
         ctx.fill();
         ctx.strokeStyle = isCharger ? '#10b981' : '#00d4ff';
@@ -588,22 +680,23 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         ctx.roundRect(4, 4, 248, 56, 12);
         ctx.stroke();
 
-        ctx.font = 'bold 22px monospace';
+        ctx.font = 'bold 20px monospace';
         ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(anchor.label.toUpperCase(), 128, 32);
+        const displayLabel = isCharger ? '⚡ CHARGER' : anchor.label.toUpperCase();
+        ctx.fillText(displayLabel, 128, 32);
       }
       const labelTex = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: labelTex, transparent: true });
       const sprite = new THREE.Sprite(spriteMat);
-      sprite.position.set(0, 0.14, 0);
+      sprite.position.set(0, isCharger ? 0.09 : 0.14, 0);
       sprite.scale.set(0.18, 0.045, 1);
       anchorObj.add(sprite);
 
       group.add(anchorObj);
     });
-  }, [anchors]);
+  }, [anchors, chargerModelLoaded]);
 
   // Update Obstacles in 3D Scene
   useEffect(() => {

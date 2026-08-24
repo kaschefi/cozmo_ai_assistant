@@ -8,9 +8,13 @@ import GoldVeinsBackground from './ui/GoldVeinsBackground';
 import ParticleDriftBackground from './ui/ParticleDriftBackground';
 
 interface TelemetryData {
+  camera_source?: 'cozmo' | 'webcam';
   robot: RobotPose & {
     battery_voltage: number;
     headlight_on: boolean;
+    show_heatmap?: boolean;
+    webcam_enabled?: boolean;
+    camera_source?: 'cozmo' | 'webcam';
     state: string;
     action: string;
     lift_height_mm: number;
@@ -51,9 +55,12 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       battery_voltage: 4.10,
       headlight_on: false,
       is_connected: false,
+      webcam_enabled: true,
       state: 'STANDBY',
       action: 'IDLE',
+      camera_source: 'cozmo',
     },
+    camera_source: 'cozmo',
     anchors: [],
     obstacles: [],
     detections: [],
@@ -61,6 +68,9 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
   });
 
   const [wsConnected, setWsConnected] = useState<boolean>(false);
+  const [cameraSource, setCameraSource] = useState<'cozmo' | 'webcam'>('cozmo');
+  const [webcamEnabled, setWebcamEnabled] = useState<boolean>(true);
+  const [streamKey, setStreamKey] = useState<number>(Date.now());
   const [teachLabel, setTeachLabel] = useState<string>('');
   const [showTeachModal, setShowTeachModal] = useState<boolean>(false);
   const [clickPos, setClickPos] = useState<{ x: number; y: number } | null>(null);
@@ -71,8 +81,29 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
   const apiHost = window.location.hostname || 'localhost';
   const apiPort = '8000';
-  const streamUrl = `http://${apiHost}:${apiPort}/api/cozmo/video_feed`;
+  const streamUrl = `http://${apiHost}:${apiPort}/api/cozmo/video_feed?source=${cameraSource}&v=${streamKey}`;
   const wsUrl = `ws://${apiHost}:${apiPort}/ws/cozmo/telemetry`;
+
+  // Sync initial status (camera source & webcam enabled) on mount
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/status`);
+        if (res.ok) {
+          const data = await res.json();
+          if (typeof data.webcam_enabled === 'boolean') {
+            setWebcamEnabled(data.webcam_enabled);
+          }
+          if (data.camera_source) {
+            setCameraSource(data.camera_source);
+          }
+        }
+      } catch (e) {
+        // ignore if offline
+      }
+    };
+    fetchStatus();
+  }, [apiHost, apiPort]);
 
   // Establish WebSocket Connection
   useEffect(() => {
@@ -92,6 +123,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
         try {
           const data = JSON.parse(event.data);
           setTelemetry(data);
+          if (typeof data.robot?.webcam_enabled === 'boolean') {
+            setWebcamEnabled(data.robot.webcam_enabled);
+          } else if (typeof data.webcam_enabled === 'boolean') {
+            setWebcamEnabled(data.webcam_enabled);
+          }
         } catch (e) {
           // ignore malformed JSON
         }
@@ -130,6 +166,13 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       console.error('Command failed:', e);
     }
   }, [apiHost, apiPort]);
+
+  // Camera Source Switcher Handler
+  const handleSetCameraSource = useCallback(async (newSource: 'cozmo' | 'webcam') => {
+    setCameraSource(newSource);
+    await sendCommand('set_camera_source', { source: newSource });
+    setStreamKey(Date.now());
+  }, [sendCommand]);
 
   // Keyboard Shortcuts (WASD Drive + Head Tilt + Space Stop)
   useEffect(() => {
@@ -173,13 +216,26 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [sendCommand, telemetry.robot.head_pitch_deg]);
 
-  // Handle Video Click to Teach
+  // Handle Video Click to Teach (Dual Pane Aware: Left = Camera Video, Right = Heatmap)
   const handleVideoClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = (e.clientX - rect.left) / rect.width;
+    const rawClickX = (e.clientX - rect.left) / rect.width;
     const clickY = (e.clientY - rect.top) / rect.height;
-    setClickPos({ x: clickX, y: clickY });
+    // Map normalized X coordinates seamlessly from either pane (0..0.5 or 0.5..1.0)
+    const normX = rawClickX < 0.5 ? rawClickX * 2.0 : (rawClickX - 0.5) * 2.0;
+    const clampedX = Math.max(0, Math.min(1, normX));
+    const clampedY = Math.max(0, Math.min(1, clickY));
+
+    setClickPos({ x: clampedX, y: clampedY });
+    // Immediately trigger backend segmentation to display the purple box over the clicked object
+    sendCommand('select_point', { click_x: clampedX, click_y: clampedY });
     setShowTeachModal(true);
+  };
+
+  const handleCancelTeach = () => {
+    sendCommand('clear_selection');
+    setShowTeachModal(false);
+    setTeachLabel('');
   };
 
   const handleSaveTeach = async () => {
@@ -419,9 +475,19 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                 }`}
               />
               <span className="font-semibold">
-                {telemetry.robot.is_connected ? 'ROBOT LINKED' : 'STANDBY / WEBCAM'}
+                {telemetry.robot.is_connected ? 'ROBOT LINKED' : 'STANDBY'}
               </span>
             </div>
+
+            {/* Active Camera Source Badge */}
+            <button
+              onClick={() => handleSetCameraSource(cameraSource === 'cozmo' ? 'webcam' : 'cozmo')}
+              className="theme-badge px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px] hover:bg-white/[0.08] transition cursor-pointer"
+              title="Click to toggle camera source between Cozmo Cam and Webcam"
+            >
+              <span className={`w-2 h-2 rounded-full ${cameraSource === 'cozmo' ? 'bg-cyan-400 shadow-[0_0_8px_#00f3ff]' : 'bg-indigo-400 shadow-[0_0_8px_#818cf8]'}`} />
+              <span>CAM: <strong className="text-white">{cameraSource === 'cozmo' ? 'COZMO' : 'WEBCAM'}</strong></span>
+            </button>
 
             {/* Battery Voltage */}
             <div className="theme-badge px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px]">
@@ -465,25 +531,69 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       <section className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
         {/* Main Camera Card */}
         <div className="theme-card rounded-3xl overflow-hidden shadow-[0_24px_64px_rgba(0,0,0,0.85)] border border-white/[0.12]">
-          {/* Viewport Header */}
-          <div className="h-12 bg-white/[0.03] border-b border-white/[0.08] px-5 flex items-center justify-between text-xs backdrop-blur-xl">
-            <span className="font-bold text-white flex items-center gap-2.5 font-mono tracking-wider text-sm">
+          {/* Viewport Header with Camera Source Selector Button on Top Right */}
+          <div className="min-h-14 py-2 bg-white/[0.03] border-b border-white/[0.08] px-5 flex flex-wrap items-center justify-between gap-3 text-xs backdrop-blur-xl">
+            <div className="flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-              LIVE DINO VISION STREAM
-            </span>
-            <div className="flex items-center gap-3">
-              <span className="theme-badge px-2.5 py-1 rounded-lg text-xs font-mono uppercase font-bold text-slate-200">
+              <span className="font-bold text-white flex items-center gap-2 font-mono tracking-wider text-sm">
+                {cameraSource === 'cozmo' ? '🤖 COZMO CAM + DINO DUAL-PANE' : '💻 WEBCAM + DINO DUAL-PANE'}
+              </span>
+              <span className="theme-badge px-2 py-0.5 rounded-md text-[10px] font-mono uppercase font-bold text-emerald-300 border-emerald-500/40 ml-1">
+                SIDE-BY-SIDE VIEW
+              </span>
+              <span className="theme-badge px-2 py-0.5 rounded-md text-[10px] font-mono uppercase font-bold text-slate-300 ml-1">
                 {telemetry.robot.action}
               </span>
-              <span className="text-xs text-slate-400 font-mono hidden sm:inline">
-                Click object in video to teach anchor
+            </div>
+
+            {/* TOP RIGHT CAMERA SOURCE TOGGLE BUTTONS */}
+            <div className="flex items-center gap-2.5">
+              <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
+                SOURCE:
               </span>
+              <div className="flex items-center p-1 rounded-xl bg-black/60 border border-white/[0.12] shadow-inner">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetCameraSource('cozmo');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    cameraSource === 'cozmo'
+                      ? isRoyal
+                        ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.6)] font-extrabold'
+                        : isIT
+                        ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.6)] font-extrabold'
+                        : 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.6)] font-extrabold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Switch stream to Cozmo Robot Built-in Camera"
+                >
+                  <span className={`w-2 h-2 rounded-full ${cameraSource === 'cozmo' ? 'bg-black animate-ping' : 'bg-slate-500'}`} />
+                  🤖 Cozmo Camera
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSetCameraSource('webcam');
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    cameraSource === 'webcam'
+                      ? 'bg-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.6)] font-extrabold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Switch stream to PC Webcam"
+                >
+                  <span className={`w-2 h-2 rounded-full ${cameraSource === 'webcam' ? 'bg-emerald-300 animate-ping' : 'bg-slate-500'}`} />
+                  💻 PC Webcam
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Video Canvas Container */}
+          {/* Video Canvas Container (Side-by-Side Dual Pane) */}
           <div
-            className="relative aspect-video w-full bg-black/90 flex items-center justify-center cursor-crosshair overflow-hidden group"
+            className="relative aspect-[16/7] md:aspect-[16/7] min-h-[300px] w-full bg-black/95 flex items-center justify-center cursor-crosshair overflow-hidden group border-b border-white/[0.08]"
             onClick={handleVideoClick}
           >
             <img
@@ -532,6 +642,48 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                   </svg>
                   <span>Headlights ({telemetry.robot.headlight_on ? 'ON' : 'OFF'})</span>
+                </button>
+
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const targetState = !webcamEnabled;
+                    setWebcamEnabled(targetState);
+                    setTelemetry((prev) => ({
+                      ...prev,
+                      webcam_enabled: targetState,
+                      robot: {
+                        ...prev.robot,
+                        webcam_enabled: targetState,
+                      },
+                    }));
+                    try {
+                      const res = await sendCommand('toggle_webcam', { enabled: targetState });
+                      if (res && typeof res.webcam_enabled === 'boolean') {
+                        setWebcamEnabled(res.webcam_enabled);
+                        setTelemetry((prev) => ({
+                          ...prev,
+                          webcam_enabled: res.webcam_enabled,
+                          robot: {
+                            ...prev.robot,
+                            webcam_enabled: res.webcam_enabled,
+                          },
+                        }));
+                      }
+                    } catch (err) {
+                      console.error('Toggle webcam failed:', err);
+                    }
+                    setStreamKey(Date.now());
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-semibold border transition-all cursor-pointer flex items-center gap-2 ${
+                    webcamEnabled
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
+                      : 'bg-rose-500/20 text-rose-300 border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.25)]'
+                  }`}
+                  title="Toggle PC Webcam Hardware & DINO Inference (ON / OFF)"
+                >
+                  <span className={`w-2 h-2 rounded-full ${webcamEnabled ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`} />
+                  <span>💻 Webcam ({webcamEnabled ? 'ON' : 'OFF'})</span>
                 </button>
 
                 <button
@@ -1040,13 +1192,13 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               className="w-full bg-white/[0.04] border border-white/[0.12] rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-white/[0.4] focus:ring-1 focus:ring-white/[0.3] mb-5 font-mono"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleSaveTeach();
-                if (e.key === 'Escape') setShowTeachModal(false);
+                if (e.key === 'Escape') handleCancelTeach();
               }}
             />
 
             <div className="flex items-center justify-end gap-3">
               <button
-                onClick={() => setShowTeachModal(false)}
+                onClick={handleCancelTeach}
                 className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition cursor-pointer"
               >
                 Cancel

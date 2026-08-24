@@ -3,14 +3,22 @@ import sys
 import datetime
 from typing import Optional, List, Dict, Any
 
-# Ensure backend directory is in sys.path
+# Ensure both workspace root and backend directory are in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START
 from langgraph.prebuilt import ToolNode
-from actions.digital.todolist_agent import AgentState, call_agent, router_edge, handle_todoist_api_exception
+
+try:
+    from actions.digital.todolist_agent import AgentState, call_agent, router_edge, handle_todoist_api_exception
+except ImportError:
+    try:
+        from backend.actions.digital.todolist_agent import AgentState, call_agent, router_edge, handle_todoist_api_exception
+    except ImportError:
+        AgentState, call_agent, router_edge, handle_todoist_api_exception = None, None, None, None
 
 
 # Mock Tools Mirror

@@ -1,7 +1,25 @@
+import os
+import sys
+
+# Ensure both workspace root and backend directory are in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from langsmith import Client
 from langsmith.evaluation import evaluate
-from test.digital.llm_as_judge import exact_match_evaluator
-from actions.digital.langchain import code_executor
+
+try:
+    from test.digital.llm_as_judge import exact_match_evaluator
+except ImportError:
+    try:
+        from llm_as_judge import exact_match_evaluator
+    except ImportError:
+        exact_match_evaluator = None
+
+try:
+    from actions.digital.langchain import code_executor
+except ImportError:
+    code_executor = None
 DATASET_NAME = "code_executor_Edge_Cases"
 
 

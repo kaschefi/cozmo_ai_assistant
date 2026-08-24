@@ -116,6 +116,24 @@ def estimate_ground_position(
     return float(world_x), float(world_y), float(dist_total)
 
 
+DEFAULT_CHARGER_DISTANCE_MM = 100.0  # 10 cm directly behind Cozmo
+
+
+def get_default_charger_pose(robot_pose: Tuple[float, float, float] = (0.0, 0.0, 0.0)) -> Tuple[float, float, float]:
+    """
+    Calculates the default 2D desk coordinates of the charger station.
+    The charger by default is positioned exactly 10 cm (100 mm) directly behind Cozmo
+    based on Cozmo's current heading angle.
+    """
+    rx, ry, r_theta_deg = robot_pose
+    r_theta_rad = math.radians(r_theta_deg)
+    # Behind the robot is negative forward direction
+    charger_x = rx - DEFAULT_CHARGER_DISTANCE_MM * math.cos(r_theta_rad)
+    charger_y = ry - DEFAULT_CHARGER_DISTANCE_MM * math.sin(r_theta_rad)
+    # Charger faces opposite to Cozmo's orientation (180 deg)
+    charger_theta = (r_theta_deg + 180.0) % 360.0
+    return float(charger_x), float(charger_y), float(charger_theta)
+
 
 class VisualAnchorStore:
     """
@@ -481,7 +499,35 @@ class VisualAnchorStore:
             to_del = [k for k, v in self._obstacles.items() if now - v.last_seen > max_age_s]
             for k in to_del:
                 del self._obstacles[k]
-            return len(to_del)
+    def ensure_default_charger(
+        self,
+        robot_pose: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+        force: bool = False,
+    ) -> Optional[VisualAnchor]:
+        """
+        Ensures the charger anchor exists with its default spatial grounding
+        (10 cm / 100 mm directly behind Cozmo).
+        The charger is the ONLY object in the world map that possesses a default position.
+        """
+        with self._lock:
+            # Check for any charger/dock anchor
+            charger_key = None
+            for key in ("charger", "ChargingDock", "charging_dock", "dock"):
+                if key in self._anchors:
+                    charger_key = key
+                    break
+
+            def_x, def_y, def_theta = get_default_charger_pose(robot_pose)
+
+            if charger_key:
+                anchor = self._anchors[charger_key]
+                if force or (anchor.observation_count <= 1 and anchor.estimated_x == 0.0 and anchor.estimated_y == 0.0):
+                    anchor.estimated_x = def_x
+                    anchor.estimated_y = def_y
+                    anchor.estimated_theta_deg = def_theta
+                    self.save_to_disk()
+                return anchor
+            return None
 
     def get_anchor(self, label: str) -> Optional[VisualAnchor]:
         """Returns the anchor object for a given label."""

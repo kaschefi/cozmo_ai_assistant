@@ -1,13 +1,31 @@
+import os
+import sys
 from typing import Optional, List, Dict, Any
+
+# Ensure both workspace root and backend directory are in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
 from langchain_core.tools import tool
 from langchain_core.messages import HumanMessage
 from langgraph.graph import StateGraph, START
 from langgraph.prebuilt import ToolNode
 from langsmith import Client
 from langsmith.evaluation import evaluate
-from test.digital.llm_as_judge import exact_match_evaluator
+
+try:
+    from test.digital.llm_as_judge import exact_match_evaluator
+except ImportError:
+    try:
+        from llm_as_judge import exact_match_evaluator
+    except ImportError:
+        exact_match_evaluator = None
+
 # Import the base configuration/nodes from production code
-from actions.digital.calendar_agent import AgentState, call_agent, router_edge
+try:
+    from actions.digital.calendar_agent import AgentState, call_agent, router_edge
+except ImportError:
+    AgentState, call_agent, router_edge = None, None, None
 
 
 # Mock Tools Mirror

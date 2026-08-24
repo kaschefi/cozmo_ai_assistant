@@ -75,6 +75,52 @@ class TestDynamicRelocation(unittest.TestCase):
         obs3 = self.store.register_or_update_obstacle(300.0, 400.0, confidence=0.80)
         self.assertEqual(len(self.store.list_obstacles()), 2)
 
+    def test_charger_default_position_behind_cozmo(self):
+        """Charger should default to exactly 10 cm (100 mm) directly behind Cozmo."""
+        from autonomous_cozmo.vision.anchor_store import get_default_charger_pose, DEFAULT_CHARGER_DISTANCE_MM
+        
+        self.assertEqual(DEFAULT_CHARGER_DISTANCE_MM, 100.0)
+        
+        # 1. Robot at origin facing East (0 deg) -> Charger at (-100, 0)
+        cx, cy, c_theta = get_default_charger_pose((0.0, 0.0, 0.0))
+        self.assertAlmostEqual(cx, -100.0)
+        self.assertAlmostEqual(cy, 0.0)
+        self.assertAlmostEqual(c_theta, 180.0)
+
+        # 2. Robot at (200, 150) facing North (90 deg) -> Charger at (200, 50)
+        cx2, cy2, _ = get_default_charger_pose((200.0, 150.0, 90.0))
+        self.assertAlmostEqual(cx2, 200.0)
+        self.assertAlmostEqual(cy2, 50.0)
+
+        # 3. ensure_default_charger grounds charger in store
+        dummy_vec = np.zeros(384, dtype=np.float32)
+        self.store.save_anchor("charger", dummy_vec, x=0.0, y=0.0)
+        c_anchor = self.store.ensure_default_charger(robot_pose=(0.0, 0.0, 0.0), force=True)
+        self.assertIsNotNone(c_anchor)
+        self.assertAlmostEqual(c_anchor.estimated_x, -100.0)
+        self.assertAlmostEqual(c_anchor.estimated_y, 0.0)
+
+    def test_camera_spots_charger_and_relocates_map_position(self):
+        """When Cozmo camera spots charger or any object, map location updates dynamically."""
+        dummy_vec = np.ones((384,), dtype=np.float32)
+        dummy_vec /= np.linalg.norm(dummy_vec)
+
+        # Start with charger at default 10cm behind Cozmo (-100, 0)
+        self.store.save_anchor("charger", dummy_vec, x=-100.0, y=0.0)
+        self.assertEqual(self.store.get_anchor("charger").estimated_x, -100.0)
+
+        # Camera spots charger in front at (140, 20)
+        updated = self.store.update_or_relocate_anchor(
+            label="charger",
+            observed_x=140.0,
+            observed_y=20.0,
+            confidence=0.92,
+            smoothing_alpha=0.75,
+        )
+        self.assertIsNotNone(updated)
+        self.assertGreater(updated.estimated_x, 50.0)  # Relocated towards (140, 20)
+        self.assertAlmostEqual(updated.estimated_y, 15.0, delta=10.0)
+
 
 if __name__ == "__main__":
     unittest.main()
