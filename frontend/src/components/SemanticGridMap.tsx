@@ -28,13 +28,24 @@ export interface ObstacleData {
   confidence?: number;
 }
 
+export interface BlockData {
+  id: string;
+  x: number;
+  y: number;
+  radius?: number;
+  clearance_mm?: number;
+  label: string;
+}
+
 export interface SemanticGridMapProps {
   robot: RobotPose;
   anchors: VisualAnchorData[];
   obstacles: ObstacleData[];
+  blocks?: BlockData[];
   path?: number[][];
   onPointClick?: (worldX: number, worldY: number) => void;
   onAnchorClick?: (anchor: VisualAnchorData) => void;
+  onBlockClick?: (block: BlockData) => void;
   className?: string;
 }
 
@@ -42,9 +53,11 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
   robot,
   anchors,
   obstacles,
+  blocks = [],
   path = [],
   onPointClick,
   onAnchorClick,
+  onBlockClick: _onBlockClick,
   className = '',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -182,7 +195,52 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       ctx.restore();
     }
 
-    // 5. Draw Unnamed Ground Obstacles
+    // 5. Draw Interactive Cozmo Light Blocks with 5cm Safety Clearance Zone
+    blocks.forEach((blk) => {
+      const { cx, cy } = worldToCanvas(blk.x, blk.y);
+      const cubeSizePix = 44 * scale;
+      const clearanceRadiusPix = ((blk.radius || 25) + (blk.clearance_mm || 50)) * scale;
+
+      ctx.save();
+      // 5cm Safety Clearance Ring
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, clearanceRadiusPix, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 44mm Physical Cube Body
+      ctx.fillStyle = '#1e293b';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2;
+      ctx.fillRect(cx - cubeSizePix / 2, cy - cubeSizePix / 2, cubeSizePix, cubeSizePix);
+      ctx.strokeRect(cx - cubeSizePix / 2, cy - cubeSizePix / 2, cubeSizePix, cubeSizePix);
+
+      // Corner Glowing LEDs
+      ctx.fillStyle = '#00f0ff';
+      const cOffset = cubeSizePix * 0.35;
+      [
+        [-cOffset, -cOffset],
+        [cOffset, -cOffset],
+        [-cOffset, cOffset],
+        [cOffset, cOffset],
+      ].forEach(([dx, dy]) => {
+        ctx.fillRect(cx + dx - 2, cy + dy - 2, 4, 4);
+      });
+
+      // Label
+      ctx.font = 'bold 10px monospace';
+      ctx.fillStyle = '#f87171';
+      ctx.textAlign = 'center';
+      ctx.fillText(`📦 ${blk.label} (5cm Buffer)`, cx, cy - clearanceRadiusPix - 4);
+      ctx.restore();
+    });
+
+    // 5b. Draw Unnamed Ground Obstacles
     obstacles.forEach((obs) => {
       const { cx, cy } = worldToCanvas(obs.x, obs.y);
       const rPix = Math.max(12, obs.radius * scale);

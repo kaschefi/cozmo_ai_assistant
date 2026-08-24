@@ -280,3 +280,71 @@ def arc_sweep(angle_range_deg: float = 45.0, head_tilt_deg: float = 15.0, speed_
     pose_tracker.head_pitch_rad = base_pitch
 
     return {"status": "success", "action": "arc_sweep", "arc_deg": angle_range_deg}
+
+
+def follow_path(
+    waypoints: List[List[float]],
+    speed_mm_s: float = DEFAULT_DRIVE_SPEED,
+    obstacle_avoidance: bool = True,
+    obstacles: Optional[List[Dict[str, float]]] = None,
+    distance_tolerance_mm: float = 20.0,
+    timeout_per_segment_s: float = 10.0,
+) -> Dict[str, Any]:
+    """
+    Executes smooth sequential navigation along a planned list of 2D waypoints [[x, y], ...].
+    Monitors safety reflexes on every step.
+    """
+    if not waypoints:
+        return {"status": "success", "action": "follow_path", "waypoints_completed": 0}
+
+    cli = cozmo_manager.get_robot()
+    if not cli:
+        # Offline simulation / Dry-run update
+        last_pt = waypoints[-1]
+        pose_tracker.update_pose(last_pt[0], last_pt[1], 0.0)
+        return {
+            "status": "dry_run",
+            "action": "follow_path",
+            "waypoints_completed": len(waypoints),
+            "final_pose": (last_pt[0], last_pt[1], 0.0),
+        }
+
+    completed = 0
+    for idx, pt in enumerate(waypoints):
+        wx, wy = pt[0], pt[1]
+        # For the final waypoint, use tight tolerance; for intermediate waypoints, use loose tolerance for smooth cornering
+        is_final = (idx == len(waypoints) - 1)
+        tol = 12.0 if is_final else max(distance_tolerance_mm, 25.0)
+
+        res = drive_to(
+            target_x=wx,
+            target_y=wy,
+            speed_mm_s=speed_mm_s,
+            distance_tolerance_mm=tol,
+            obstacle_avoidance=obstacle_avoidance,
+            obstacles=obstacles,
+            timeout_s=timeout_per_segment_s,
+        )
+
+        if res.get("status") == "tripped":
+            return {
+                "status": "tripped",
+                "error": res.get("error", "Safety reflex triggered during path following"),
+                "waypoints_completed": completed,
+            }
+        elif res.get("status") not in ("success", "dry_run"):
+            return {
+                "status": "failed",
+                "error": f"Failed at waypoint {idx} ({wx}, {wy})",
+                "waypoints_completed": completed,
+            }
+
+        completed += 1
+
+    return {
+        "status": "success",
+        "action": "follow_path",
+        "waypoints_completed": completed,
+        "final_pose": pose_tracker.get_effective_pose(),
+    }
+

@@ -1,7 +1,7 @@
 """
-Autonomous Cozmo Motion Package (Phase 2 - Reactive Motion Primitives)
+Autonomous Cozmo Motion Package (Phase 2 & Phase 5 - Reactive Motion & Bidirectional A* Docking)
 Provides closed-loop kinematic building blocks, odometry drift tracking,
-and artificial potential field obstacle avoidance.
+potential field obstacle avoidance, and Two-Way A* path planning with 5cm clearance.
 """
 
 from .pose_tracker import PoseTracker, pose_tracker
@@ -10,8 +10,19 @@ from .potential_fields import (
     compute_obstacle_repulsion,
     compute_apf_heading,
 )
+from .bidirectional_astar import (
+    BidirectionalAStarPlanner,
+    bidirectional_astar_planner,
+    PathPlanningResult,
+    BlockObstacle,
+    DEFAULT_BLOCK_SIZE_MM,
+    DEFAULT_BLOCK_RADIUS_MM,
+    DEFAULT_SAFETY_CLEARANCE_MM,
+    DEFAULT_ROBOT_RADIUS_MM,
+)
 from .primitives import (
     drive_to,
+    follow_path,
     look_at,
     arc_sweep,
     _is_safety_tripped,
@@ -28,7 +39,16 @@ __all__ = [
     "compute_attractive_force",
     "compute_obstacle_repulsion",
     "compute_apf_heading",
+    "BidirectionalAStarPlanner",
+    "bidirectional_astar_planner",
+    "PathPlanningResult",
+    "BlockObstacle",
+    "DEFAULT_BLOCK_SIZE_MM",
+    "DEFAULT_BLOCK_RADIUS_MM",
+    "DEFAULT_SAFETY_CLEARANCE_MM",
+    "DEFAULT_ROBOT_RADIUS_MM",
     "drive_to",
+    "follow_path",
     "look_at",
     "arc_sweep",
     "_is_safety_tripped",

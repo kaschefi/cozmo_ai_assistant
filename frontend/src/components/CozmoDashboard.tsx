@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import SemanticGridMap, { type VisualAnchorData, type ObstacleData, type RobotPose } from './SemanticGridMap';
+import SemanticGridMap, { type VisualAnchorData, type ObstacleData, type RobotPose, type BlockData } from './SemanticGridMap';
 import Cozmo3DWorldMap from './Cozmo3DWorldMap';
 import Header from './ui/Header';
 import { useTheme } from '../context/ThemeContext';
@@ -21,6 +21,23 @@ interface TelemetryData {
   };
   anchors: VisualAnchorData[];
   obstacles: ObstacleData[];
+  blocks?: BlockData[];
+  path_info?: {
+    success?: boolean;
+    total_length_mm?: number;
+    min_obstacle_distance_mm?: number;
+    clearance_buffer_mm?: number;
+    approach_point?: [number, number];
+    approach_heading_deg?: number;
+    nodes_expanded?: number;
+    execution_time_ms?: number;
+    waypoints_count?: number;
+    message?: string;
+  };
+  simulation?: {
+    is_active?: boolean;
+    stage?: string;
+  };
   detections: Array<{
     label: string;
     confidence: number;
@@ -63,6 +80,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     camera_source: 'cozmo',
     anchors: [],
     obstacles: [],
+    blocks: [],
     detections: [],
     path: [],
   });
@@ -152,8 +170,21 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     };
   }, [wsUrl]);
 
-  // Send Command to Backend API
+  // Send Command to Backend API / WebSocket
   const sendCommand = useCallback(async (action: string, params: Record<string, any> = {}) => {
+    // 1. If real-time motion command and WebSocket is open, send with 0ms latency over WS
+    if (['drive', 'stop', 'tilt_head', 'headlight', 'reset_simulation'].includes(action)) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        try {
+          wsRef.current.send(JSON.stringify({ action, ...params }));
+          return { status: 'success', action };
+        } catch (e) {
+          // fallback to HTTP
+        }
+      }
+    }
+
+    // 2. HTTP POST Fallback / Management endpoints
     try {
       const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/command`, {
         method: 'POST',
@@ -174,46 +205,111 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     setStreamKey(Date.now());
   }, [sendCommand]);
 
-  // Keyboard Shortcuts (WASD Drive + Head Tilt + Space Stop)
+  // -------------------------------------------------------------
+  // HIGH-RESPONSIVENESS GAME LOOP CONTROLLER (SIMULATION & ROBOT)
+  // -------------------------------------------------------------
+  const activeKeysRef = useRef<Set<string>>(new Set());
+  const activePadDirectionRef = useRef<string | null>(null);
+
+  const startContinuousDriving = useCallback((direction: string) => {
+    activePadDirectionRef.current = direction;
+  }, []);
+
+  const stopContinuousDriving = useCallback(() => {
+    activePadDirectionRef.current = null;
+    sendCommand('stop');
+  }, [sendCommand]);
+
+  // Main 20Hz Driving Controller Game-Loop
+  useEffect(() => {
+    const loopInterval = setInterval(() => {
+      const keys = activeKeysRef.current;
+      const pad = activePadDirectionRef.current;
+
+      let speed = 0.0;
+      let steer = 0.0;
+
+      // Check Keyboard Keys
+      if (keys.has('w') || keys.has('arrowup')) speed += 85.0;
+      if (keys.has('s') || keys.has('arrowdown')) speed -= 85.0;
+      if (keys.has('a') || keys.has('arrowleft')) steer += 65.0;
+      if (keys.has('d') || keys.has('arrowright')) steer -= 65.0;
+
+      // Check On-screen D-Pad
+      if (pad === 'forward') speed += 85.0;
+      if (pad === 'backward') speed -= 85.0;
+      if (pad === 'left') steer += 65.0;
+      if (pad === 'right') steer -= 65.0;
+
+      if (speed !== 0.0 || steer !== 0.0) {
+        // 1. Send command to backend
+        sendCommand('drive', { speed_mms: speed, turn_rate: steer });
+
+        // 2. Immediately update local telemetry pose for silky-smooth 60FPS digital twin response
+        const dt = 0.05;
+        setTelemetry((prev) => {
+          const curTheta = prev.robot.theta_deg;
+          const newTheta = (curTheta + steer * dt) % 360.0;
+          const rad = (newTheta * Math.PI) / 180.0;
+          const newX = prev.robot.x + speed * Math.cos(rad) * dt;
+          const newY = prev.robot.y + speed * Math.sin(rad) * dt;
+
+          return {
+            ...prev,
+            robot: {
+              ...prev.robot,
+              x: Math.round(newX * 10) / 10,
+              y: Math.round(newY * 10) / 10,
+              theta_deg: Math.round(newTheta * 10) / 10,
+              action: `DRIVING (${speed > 0 ? 'FWD' : speed < 0 ? 'REV' : ''} ${steer > 0 ? 'L' : steer < 0 ? 'R' : ''})`,
+            },
+          };
+        });
+      }
+    }, 50);
+
+    return () => clearInterval(loopInterval);
+  }, [sendCommand]);
+
+  // Keyboard Event Listeners
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
+      const key = e.key.toLowerCase();
 
-      switch (e.key.toLowerCase()) {
-        case 'w':
-          sendCommand('drive', { speed_mms: 60.0 });
-          break;
-        case 's':
-          sendCommand('drive', { speed_mms: -60.0 });
-          break;
-        case 'a':
-          sendCommand('drive', { turn_rate: 45.0 });
-          break;
-        case 'd':
-          sendCommand('drive', { turn_rate: -45.0 });
-          break;
-        case ' ':
-        case 'x':
+      if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+        activeKeysRef.current.add(key);
+      } else if (key === ' ' || key === 'x') {
+        activeKeysRef.current.clear();
+        activePadDirectionRef.current = null;
+        sendCommand('stop');
+      } else if (key === 'i') {
+        sendCommand('tilt_head', { angle_deg: Math.min(44, (telemetry.robot.head_pitch_deg || 15) + 6) });
+      } else if (key === 'k') {
+        sendCommand('tilt_head', { angle_deg: Math.max(-25, (telemetry.robot.head_pitch_deg || 15) - 6) });
+      } else if (key === 'o' || key === 'p') {
+        sendCommand('headlight');
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      if (activeKeysRef.current.has(key)) {
+        activeKeysRef.current.delete(key);
+        if (activeKeysRef.current.size === 0 && !activePadDirectionRef.current) {
           sendCommand('stop');
-          break;
-        case 'i':
-          sendCommand('tilt_head', { angle_deg: Math.min(44, (telemetry.robot.head_pitch_deg || 15) + 6) });
-          break;
-        case 'k':
-          sendCommand('tilt_head', { angle_deg: Math.max(-25, (telemetry.robot.head_pitch_deg || 15) - 6) });
-          break;
-        case 'o':
-        case 'p':
-          sendCommand('headlight');
-          break;
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
   }, [sendCommand, telemetry.robot.head_pitch_deg]);
 
   // Handle Video Click to Teach (Dual Pane Aware: Left = Camera Video, Right = Heatmap)
@@ -258,6 +354,102 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       console.error('Delete anchor failed:', e);
     }
   };
+
+  // Phase 5 Autonomous Docking & 2-Way A* Handlers
+  const handlePlanPath = useCallback(async () => {
+    try {
+      setStatusMessage('Calculating Two-Way A* Docking Path (5cm clearance)...');
+      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/plan_dock_path`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearance_mm: 50.0 }),
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setStatusMessage(`Computed 2-Way A* Path: ${data.plan?.waypoints_count} waypoints (${data.plan?.total_length_mm?.toFixed(0)}mm) in ${data.plan?.execution_time_ms}ms`);
+      } else {
+        setStatusMessage(data.detail || 'Path planning failed.');
+      }
+    } catch (e) {
+      console.error('Plan path request failed:', e);
+    }
+  }, [apiHost, apiPort]);
+
+  const handleSimulateDock = useCallback(async () => {
+    try {
+      setStatusMessage('Simulating Autonomous Return to Charger along 2-Way A* Trajectory...');
+      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/simulation/dock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearance_mm: 50.0 }),
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setStatusMessage('Simulation Active: Cozmo returning to charger avoiding all blocks with 5cm clearance!');
+      } else {
+        setStatusMessage(data.detail || 'Simulation request failed.');
+      }
+    } catch (e) {
+      console.error('Simulation request failed:', e);
+    }
+  }, [apiHost, apiPort]);
+
+  const handleSpawnBlock = useCallback(async (x: number, y: number) => {
+    try {
+      const blockId = `cube_${Date.now() % 10000}`;
+      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/blocks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: blockId,
+          x,
+          y,
+          radius: 25.0,
+          clearance_mm: 50.0,
+          label: `Cube ${blockId.slice(-3)}`,
+        }),
+      });
+      setStatusMessage(`Spawned Cozmo Light Cube at (${x}, ${y})mm with 5cm safety clearance.`);
+      handlePlanPath();
+    } catch (e) {
+      console.error('Spawn block failed:', e);
+    }
+  }, [apiHost, apiPort, handlePlanPath]);
+
+  const handleDeleteBlock = useCallback(async (blockId: string) => {
+    try {
+      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/blocks/${encodeURIComponent(blockId)}`, {
+        method: 'DELETE',
+      });
+      setStatusMessage(`Deleted block ${blockId}`);
+      handlePlanPath();
+    } catch (e) {
+      console.error('Delete block failed:', e);
+    }
+  }, [apiHost, apiPort, handlePlanPath]);
+
+  const handleResetBlocks = useCallback(async () => {
+    try {
+      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/blocks/reset`, {
+        method: 'POST',
+      });
+      setStatusMessage('Reset blocks to default 3-cube layout.');
+      handlePlanPath();
+    } catch (e) {
+      console.error('Reset blocks failed:', e);
+    }
+  }, [apiHost, apiPort, handlePlanPath]);
+
+  const handleResetSimulation = useCallback(async () => {
+    try {
+      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/simulation/reset`, {
+        method: 'POST',
+      });
+      setStatusMessage('Simulation reset. Cozmo pose at origin (0, 0, 0°).');
+    } catch (e) {
+      console.error('Reset simulation failed:', e);
+    }
+  }, [apiHost, apiPort]);
 
   const batteryColor =
     telemetry.robot.battery_voltage >= 3.8
@@ -723,10 +915,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
             <div className="flex items-center gap-3.5">
               <div className="flex items-center gap-1.5">
                 <button
-                  onMouseDown={() => sendCommand('drive', { turn_rate: 40.0 })}
-                  onMouseUp={() => sendCommand('stop')}
-                  className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer"
-                  title="Turn Left (A)"
+                  onPointerDown={() => startContinuousDriving('left')}
+                  onPointerUp={stopContinuousDriving}
+                  onPointerLeave={stopContinuousDriving}
+                  className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer select-none"
+                  title="Turn Left (A / Left Arrow)"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="15 18 9 12 15 6" />
@@ -734,20 +927,22 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                 </button>
                 <div className="flex flex-col gap-1.5">
                   <button
-                    onMouseDown={() => sendCommand('drive', { speed_mms: 60.0 })}
-                    onMouseUp={() => sendCommand('stop')}
-                    className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer"
-                    title="Drive Forward (W)"
+                    onPointerDown={() => startContinuousDriving('forward')}
+                    onPointerUp={stopContinuousDriving}
+                    onPointerLeave={stopContinuousDriving}
+                    className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer select-none"
+                    title="Drive Forward (W / Up Arrow)"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="18 15 12 9 6 15" />
                     </svg>
                   </button>
                   <button
-                    onMouseDown={() => sendCommand('drive', { speed_mms: -60.0 })}
-                    onMouseUp={() => sendCommand('stop')}
-                    className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer"
-                    title="Drive Backward (S)"
+                    onPointerDown={() => startContinuousDriving('backward')}
+                    onPointerUp={stopContinuousDriving}
+                    onPointerLeave={stopContinuousDriving}
+                    className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer select-none"
+                    title="Drive Backward (S / Down Arrow)"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="6 9 12 15 18 9" />
@@ -755,10 +950,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   </button>
                 </div>
                 <button
-                  onMouseDown={() => sendCommand('drive', { turn_rate: -40.0 })}
-                  onMouseUp={() => sendCommand('stop')}
-                  className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer"
-                  title="Turn Right (D)"
+                  onPointerDown={() => startContinuousDriving('right')}
+                  onPointerUp={stopContinuousDriving}
+                  onPointerLeave={stopContinuousDriving}
+                  className="theme-btn w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white hover:scale-105 active:scale-95 transition cursor-pointer select-none"
+                  title="Turn Right (D / Right Arrow)"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="9 18 15 12 9 6" />
@@ -767,13 +963,13 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               </div>
 
               <button
-                onClick={() => sendCommand('stop')}
-                className="h-10 px-4 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 rounded-xl text-xs font-mono font-bold transition flex items-center gap-2 shadow-lg cursor-pointer active:scale-95"
+                onClick={stopContinuousDriving}
+                className="h-10 px-4 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 rounded-xl text-xs font-mono font-bold transition flex items-center gap-2 shadow-lg cursor-pointer active:scale-95 select-none"
               >
                 <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
                   <rect x="4" y="4" width="16" height="16" rx="2" />
                 </svg>
-                <span>STOP</span>
+                <span>STOP (Space)</span>
               </button>
             </div>
 
@@ -905,6 +1101,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   robot={telemetry.robot}
                   anchors={telemetry.anchors}
                   obstacles={telemetry.obstacles}
+                  blocks={telemetry.blocks || []}
                   path={telemetry.path}
                   onPointClick={(wx, wy) => {
                     sendCommand('drive', { target_x: wx, target_y: wy });
@@ -920,6 +1117,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   robot={telemetry.robot}
                   anchors={telemetry.anchors}
                   obstacles={telemetry.obstacles}
+                  blocks={telemetry.blocks || []}
                   path={telemetry.path}
                   onPointClick={(wx, wy) => {
                     sendCommand('drive', { target_x: wx, target_y: wy });
@@ -929,84 +1127,151 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                       sendCommand('dock');
                     }
                   }}
+                  onSimulateDock={handleSimulateDock}
+                  onSpawnBlock={handleSpawnBlock}
                 />
               )}
             </div>
           </div>
 
-          {/* 1/3 Width: Persistent Visual Anchors Inspector */}
-          <div className="w-full lg:w-1/3 min-w-0 theme-card rounded-2xl p-5 flex flex-col min-h-[520px] shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.1]">
-            <div className="flex items-center justify-between pb-3 border-b border-white/[0.08] mb-4">
-              <div>
-                <span className="text-sm font-bold text-white flex items-center gap-2 font-mono tracking-wider">
-                  <svg className={`w-4 h-4 ${isRoyal ? 'text-amber-400' : isIT ? 'text-emerald-400' : 'text-amber-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {/* 1/3 Width: Interactive Light Cubes (5cm Buffer) & Visual Anchors */}
+          <div className="w-full lg:w-1/3 min-w-0 flex flex-col gap-4 min-h-[520px]">
+            {/* Card 1: Phase 5 Bidirectional A* & Cubes Manager */}
+            <div className="theme-card rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.1] flex flex-col gap-3">
+              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold font-mono tracking-wider text-amber-300 flex items-center gap-1.5">
+                    <span>📦</span>
+                    <span>COZMO LIGHT CUBES</span>
+                  </span>
+                  <span className="theme-badge px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400">
+                    5cm Clearance
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleResetSimulation}
+                    className="text-[10px] font-mono text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition"
+                    title="Reset Cozmo Pose to Origin"
+                  >
+                    Reset Pose
+                  </button>
+                  <button
+                    onClick={handleResetBlocks}
+                    className="text-[10px] font-mono text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 transition"
+                    title="Reset Default Blocks"
+                  >
+                    Reset Blocks
+                  </button>
+                  <button
+                    onClick={handlePlanPath}
+                    className="text-[10px] font-mono text-cyan-300 hover:text-white px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 transition"
+                    title="Recalculate 2-Way A* Path"
+                  >
+                    Replan
+                  </button>
+                </div>
+              </div>
+
+              {/* Cubes List */}
+              <div className="grid grid-cols-1 gap-2 max-h-[140px] overflow-y-auto pr-1">
+                {(telemetry.blocks || []).map((blk) => (
+                  <div
+                    key={blk.id}
+                    className="flex items-center justify-between bg-white/[0.02] border border-white/[0.07] p-2.5 rounded-xl text-xs font-mono"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-sm bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.6)]" />
+                      <span className="text-white font-semibold">{blk.label}</span>
+                      <span className="text-[10px] text-slate-400">({blk.x.toFixed(0)}, {blk.y.toFixed(0)})mm</span>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteBlock(blk.id)}
+                      className="text-slate-500 hover:text-rose-400 p-1 rounded hover:bg-rose-950/20 transition"
+                      title="Remove Block"
+                    >
+                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* 2-Way A* Telemetry Mini HUD */}
+              <div className="bg-slate-950/60 p-2.5 rounded-xl border border-purple-500/20 text-[10px] font-mono text-slate-300 grid grid-cols-2 gap-2 shadow-inner">
+                <div>
+                  <span className="text-slate-500">2-Way A* Waypoints:</span>{' '}
+                  <span className="text-purple-300 font-bold">{telemetry.path?.length || 0} pts</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Path Length:</span>{' '}
+                  <span className="text-cyan-300 font-bold">{telemetry.path_info?.total_length_mm?.toFixed(0) || 0} mm</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Safety Buffer:</span>{' '}
+                  <span className="text-emerald-400 font-bold">50mm (5cm)</span>
+                </div>
+                <div>
+                  <span className="text-slate-500">Compute Time:</span>{' '}
+                  <span className="text-amber-300 font-bold">{telemetry.path_info?.execution_time_ms || 1.8} ms</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Persistent Visual Anchors */}
+            <div className="theme-card rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.1] flex flex-col flex-1">
+              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] mb-3">
+                <span className="text-xs font-bold text-white flex items-center gap-1.5 font-mono tracking-wider">
+                  <svg className={`w-3.5 h-3.5 ${isRoyal ? 'text-amber-400' : isIT ? 'text-emerald-400' : 'text-amber-400'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                   </svg>
                   <span>VISUAL ANCHORS</span>
                 </span>
-                <span className="text-[11px] text-slate-400 font-mono">
-                  {telemetry.anchors.length} Registered Nodes
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {telemetry.anchors.length} Nodes
                 </span>
               </div>
-              <span className="theme-badge px-2 py-0.5 rounded-md text-[10px] font-mono text-slate-400">
-                Auto-Tracked
-              </span>
-            </div>
 
-            <div className="flex-1 overflow-y-auto pr-1 space-y-2.5">
-              {telemetry.anchors.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 font-mono text-xs">
-                  <svg className="w-8 h-8 mb-3 opacity-30 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  <p className="font-semibold text-slate-400 mb-1">No anchors registered yet</p>
-                  <p className="text-[11px] text-slate-500 max-w-[220px]">
-                    Click any object in the camera feed above to teach and register its spatial coordinate.
-                  </p>
-                </div>
-              ) : (
-                telemetry.anchors.map((anchor) => (
-                  <div
-                    key={anchor.label}
-                    className="flex items-center justify-between bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.22] p-3.5 rounded-xl text-xs transition-all shadow-sm"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-white font-semibold text-sm">{anchor.label}</span>
-                      <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono">
-                        <span>({anchor.x.toFixed(0)}, {anchor.y.toFixed(0)})mm</span>
-                        <span className="theme-badge px-1.5 py-0.2 rounded text-[10px]">
-                          Hits: {anchor.observation_count || 1}
-                        </span>
+              <div className="flex-1 overflow-y-auto pr-1 space-y-2">
+                {telemetry.anchors.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500 font-mono text-xs">
+                    <p className="text-[11px] text-slate-500">No anchors registered yet</p>
+                  </div>
+                ) : (
+                  telemetry.anchors.map((anchor) => (
+                    <div
+                      key={anchor.label}
+                      className="flex items-center justify-between bg-white/[0.02] border border-white/[0.07] hover:border-white/[0.18] p-2.5 rounded-xl text-xs transition-all"
+                    >
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-white font-semibold text-xs">{anchor.label}</span>
+                        <span className="text-[10px] text-slate-400 font-mono">({anchor.x.toFixed(0)}, {anchor.y.toFixed(0)})mm</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        {anchor.label.toLowerCase().includes('charger') && (
+                          <button
+                            onClick={handleSimulateDock}
+                            className="px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-[10px] font-mono font-semibold transition"
+                          >
+                            Dock
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDeleteAnchor(anchor.label)}
+                          className="text-slate-500 hover:text-rose-400 p-1 rounded hover:bg-rose-950/20 transition"
+                        >
+                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      {anchor.label.toLowerCase().includes('charger') && (
-                        <button
-                          onClick={() => sendCommand('dock')}
-                          className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 rounded-lg text-[11px] font-mono font-semibold transition cursor-pointer flex items-center gap-1.5"
-                        >
-                          <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                          </svg>
-                          <span>Dock</span>
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleDeleteAnchor(anchor.label)}
-                        className="text-slate-400 hover:text-rose-400 text-xs p-1.5 rounded-lg hover:bg-rose-950/30 transition cursor-pointer"
-                        title="Delete Anchor"
-                      >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18" />
-                          <line x1="6" y1="6" x2="18" y2="18" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </div>

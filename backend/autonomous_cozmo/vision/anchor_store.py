@@ -116,14 +116,14 @@ def estimate_ground_position(
     return float(world_x), float(world_y), float(dist_total)
 
 
-DEFAULT_CHARGER_DISTANCE_MM = 100.0  # 10 cm directly behind Cozmo
+DEFAULT_CHARGER_DISTANCE_MM = 300.0  # 30 cm (300 mm) directly behind Cozmo
 
 
 def get_default_charger_pose(robot_pose: Tuple[float, float, float] = (0.0, 0.0, 0.0)) -> Tuple[float, float, float]:
     """
     Calculates the default 2D desk coordinates of the charger station.
-    The charger by default is positioned exactly 10 cm (100 mm) directly behind Cozmo
-    based on Cozmo's current heading angle.
+    The charger by default is positioned exactly 30 cm (300 mm) directly behind Cozmo
+    based on Cozmo's current heading angle (defaults to (-300, 0, 180°)).
     """
     rx, ry, r_theta_deg = robot_pose
     r_theta_rad = math.radians(r_theta_deg)
@@ -521,13 +521,28 @@ class VisualAnchorStore:
 
             if charger_key:
                 anchor = self._anchors[charger_key]
-                if force or (anchor.observation_count <= 1 and anchor.estimated_x == 0.0 and anchor.estimated_y == 0.0):
+                if force or anchor.observation_count <= 1 or (anchor.estimated_x in (0.0, -100.0, -150.0) and anchor.estimated_y == 0.0):
                     anchor.estimated_x = def_x
                     anchor.estimated_y = def_y
                     anchor.estimated_theta_deg = def_theta
                     self.save_to_disk()
                 return anchor
-            return None
+            else:
+                charger_key = "charger"
+                new_anchor = VisualAnchor(
+                    label=charger_key,
+                    feature_vector=[0.0] * 768,
+                    confidence_threshold=0.65,
+                    estimated_x=def_x,
+                    estimated_y=def_y,
+                    estimated_theta_deg=def_theta,
+                    is_permanent=True,
+                    observation_count=1,
+                    last_seen_at=time.time(),
+                )
+                self._anchors[charger_key] = new_anchor
+                self.save_to_disk()
+                return new_anchor
 
     def get_anchor(self, label: str) -> Optional[VisualAnchor]:
         """Returns the anchor object for a given label."""

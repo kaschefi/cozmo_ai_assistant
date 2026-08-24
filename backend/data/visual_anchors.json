@@ -387,14 +387,14 @@
       -0.03495442122220993,
       -0.03944328427314758
     ],
-    "estimated_x": 120.02446112988966,
-    "estimated_y": 0.006203436970577555,
+    "estimated_x": 1199.644229424,
+    "estimated_y": 261.91327092795115,
     "estimated_theta_deg": 0.0,
     "confidence_threshold": 0.72,
     "is_permanent": true,
     "created_at": 1787326407.0622149,
-    "last_seen_at": 1787572394.1169302,
-    "observation_count": 38139,
+    "last_seen_at": 1787574682.698102,
+    "observation_count": 40687,
     "notes": "Taught from WEBCAM angle"
   },
   "phone": {
@@ -1183,14 +1183,14 @@
       -0.025568701326847076,
       -0.0521995909512043
     ],
-    "estimated_x": 1199.9999999999995,
-    "estimated_y": -4.144623758144405,
+    "estimated_x": 1200.0,
+    "estimated_y": -253.41481889155457,
     "estimated_theta_deg": 0.0,
     "confidence_threshold": 0.72,
     "is_permanent": true,
     "created_at": 1787327656.9413812,
-    "last_seen_at": 1787569840.100868,
-    "observation_count": 243,
+    "last_seen_at": 1787574112.9668248,
+    "observation_count": 283,
     "notes": "Taught via Mouse Click / Drag Selected Object"
   },
   "charger": {
@@ -1581,7 +1581,7 @@
       -0.06126614660024643,
       -0.0002720392367336899
     ],
-    "estimated_x": -100.0,
+    "estimated_x": -300.0,
     "estimated_y": 0.0,
     "estimated_theta_deg": 180.0,
     "confidence_threshold": 0.72,
