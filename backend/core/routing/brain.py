@@ -23,8 +23,9 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
     if layer_1_route:
         print(f" [Union Brain] Tier 1 Triggered! Route: '{layer_1_route}'")
         try:
-            if await execute_reflex(layer_1_route, mute=mute):
-                return ""  # Execution handled within the reflex itself
+            handled, result_msg = await execute_reflex(layer_1_route, mute=mute)
+            if handled:
+                return result_msg
         except Exception as e:
             print(f" [Union Brain] Error executing reflex '{layer_1_route}': {e}")
             

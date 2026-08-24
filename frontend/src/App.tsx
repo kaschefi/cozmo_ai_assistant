@@ -23,7 +23,10 @@ export const App: React.FC = () => {
   return path === '/chat' || path === '/chat/' ? (
     <ChatInterface onBackToLanding={() => navigate('/')} />
   ) : (
-    <MokaLanding onStartChat={() => navigate('/chat')} />
+    <MokaLanding 
+      onStartChat={() => navigate('/chat')} 
+      onNavigateToCozmo={() => navigate('/cozmo')}
+    />
   );
 };
 

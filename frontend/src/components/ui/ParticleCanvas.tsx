@@ -11,26 +11,26 @@ const CONFIG = {
   STEP_Y: 8,  // Vertical scanline height (pixels)
 
   // --- Animation Transition Speeds ---
-  // Base easing speed. Increase to make transition Snappy (e.g. 0.08)
-  TRANSITION_SPEED: 0.08,
-  // Speed for transition into the MOKA top-left logo (lower = smoother, more cinematic flow)
-  MOKA_TRANSITION_SPEED: 0.045,
-  // Speed variation per particle for an organic, asynchronous arrival (e.g. 0.035)
-  TRANSITION_VARIATION: 0.035,
+  // Base easing speed. Increased for snappier and faster flow (0.13)
+  TRANSITION_SPEED: 0.13,
+  // Speed for transition into the MOKA top-left logo (0.08)
+  MOKA_TRANSITION_SPEED: 0.08,
+  // Speed variation per particle for an organic, asynchronous arrival (0.04)
+  TRANSITION_VARIATION: 0.04,
 
   // --- Swarm/Drifting Wave Physics ---
   // Maximum strength of the curving swarm effect (0 for straight lines, 20-50 for curved paths)
   SWARM_STRENGTH: 35,
   // How fast the curving perturbation decays as particles approach targets (e.g. 0.15)
-  SWARM_DECAY: 0.15,
+  SWARM_DECAY: 0.18,
   // Wave frequency/speed multiplier (higher = faster waving during transit)
-  SWARM_FREQUENCY: 0.07,
+  SWARM_FREQUENCY: 0.09,
 
   // --- Eyes Idle State (Scene 1) ---
   // Easing towards eye coordinates
-  EYE_STEERING: 0.1,
+  EYE_STEERING: 0.15,
   // Speed of the organic idle breathing cycle
-  IDLE_BREATH_SPEED: 0.08,
+  IDLE_BREATH_SPEED: 0.1,
   // Scale of horizontal and vertical idle breathing
   IDLE_RANGE_X: 0.6,
   // Vertical breathing range
@@ -118,6 +118,7 @@ export const ParticleCanvas: React.FC = () => {
 
   useEffect(() => {
     let cachedButton: HTMLElement | null = null;
+    let cachedCozmoTitle: HTMLElement | null = null;
 
     // 1. Generate Target Coordinates using an offscreen canvas
     const logicalW = 1200;
@@ -307,12 +308,24 @@ export const ParticleCanvas: React.FC = () => {
       let currentState = stateRef.current;
       let buttonRect: DOMRect | null = null;
 
-      // If scrolled, dynamically check if the button is fully in view
+      // If scrolled, dynamically check if the button is in view AND MoKa x Cozmo title has NOT entered the screen
       if (isScrolledRef.current) {
         if (!cachedButton || !cachedButton.isConnected) {
           cachedButton = document.getElementById('talk-button');
         }
-        if (cachedButton) {
+        if (!cachedCozmoTitle || !cachedCozmoTitle.isConnected) {
+          cachedCozmoTitle = document.getElementById('cozmo-title') || document.getElementById('cozmo-section');
+        }
+
+        // Check if MoKa x Cozmo title/section has come into the screen from the bottom
+        let isCozmoInScreen = false;
+        if (cachedCozmoTitle) {
+          const cozmoRect = cachedCozmoTitle.getBoundingClientRect();
+          // As soon as the title reaches/crosses into the viewport
+          isCozmoInScreen = cozmoRect.top < window.innerHeight;
+        }
+
+        if (cachedButton && !isCozmoInScreen) {
           const rect = cachedButton.getBoundingClientRect();
           const isButtonFullyInView = rect.top >= 0 && rect.bottom <= window.innerHeight;
           if (isButtonFullyInView) {
@@ -407,7 +420,7 @@ export const ParticleCanvas: React.FC = () => {
             const perimeter = 2 * (w + h);
 
             // Compute t (0 to 1) based on seed and speed offset to distribute uniformly along the perimeter
-            const t = ((p.seed % 1.0) + (time * 0.0006) * (0.8 + p.speedOffset * 0.4)) % 1.0;
+            const t = ((p.seed % 1.0) + (time * 0.0011) * (0.8 + p.speedOffset * 0.4)) % 1.0;
             const dist = t * perimeter;
 
             let destX = 0;

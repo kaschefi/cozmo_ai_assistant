@@ -22,7 +22,7 @@ export const ProjectIntro: React.FC = () => {
         {/* Left Column: Story & Project Overview */}
         <div className="md:col-span-6 flex flex-col items-start">
           <div className="relative inline-block mb-3">
-            <h2 className="font-megrim text-4xl md:text-5xl font-bold text-white tracking-wider leading-tight">
+            <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight">
               About the Project
             </h2>
             <div className="brand-underline" />

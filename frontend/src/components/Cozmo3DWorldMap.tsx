@@ -27,7 +27,6 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [cameraMode, setCameraMode] = useState<'free' | 'follow' | 'top' | 'iso'>('free');
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isDemoDriving, setIsDemoDriving] = useState<boolean>(false);
   const [demoDistance, setDemoDistance] = useState<number>(0);
 
@@ -46,7 +45,6 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   const headlightTargetRef = useRef<THREE.Object3D | null>(null);
   const groundPlaneRef = useRef<THREE.Mesh | null>(null);
 
-  // Robot telemetry refs for smooth interpolation in RAF
   const robotTargetPos = useRef({ x: 0, z: 0, rotY: 0 });
   const robotCurrentPos = useRef({ x: 0, z: 0, rotY: 0 });
   const cameraModeRef = useRef<'free' | 'follow' | 'top' | 'iso'>('free');
@@ -59,7 +57,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
     startZ: number;
     startHeading: number;
     distanceDriven: number;
-    targetDistance: number; // 10 meters (10.0 in 3D world units)
+    targetDistance: number;
     speed: number;
   }>({
     active: false,
@@ -68,7 +66,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
     startHeading: 0,
     distanceDriven: 0,
     targetDistance: 10.0,
-    speed: 0.8, // 0.8 m/s
+    speed: 0.9,
   });
 
   // Update camera mode ref
@@ -98,174 +96,140 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   useEffect(() => {
     if (demoDriveRef.current.active) return;
 
-    const worldX = (robot.x || 0) / 1000;
-    const worldZ = -(robot.y || 0) / 1000;
-    const thetaRad = ((robot.theta_deg || 0) * Math.PI) / 180;
+    const xMeters = (robot.x || 0) / 1000;
+    const zMeters = -(robot.y || 0) / 1000;
+    const thetaRad = THREE.MathUtils.degToRad(robot.theta_deg || 0);
+
     robotTargetPos.current = {
-      x: worldX,
-      z: worldZ,
+      x: xMeters,
+      z: zMeters,
       rotY: thetaRad,
     };
-
-    // Breadcrumb trail
-    const p = new THREE.Vector3(worldX, 0.005, worldZ);
-    const last = trailPointsRef.current[trailPointsRef.current.length - 1];
-    if (!last || last.distanceTo(p) > 0.02) {
-      trailPointsRef.current.push(p);
-      if (trailPointsRef.current.length > 300) {
-        trailPointsRef.current.shift();
-      }
-      if (trailLineRef.current) {
-        trailLineRef.current.geometry.setFromPoints(trailPointsRef.current);
-      }
-    }
-  }, [robot.x, robot.y, robot.theta_deg]);
+  }, [robot]);
 
   // Start / Stop 10 Meter Demo Drive
   const handleToggleDemoDrive = useCallback(() => {
     if (demoDriveRef.current.active) {
-      // Stop demo
       demoDriveRef.current.active = false;
       setIsDemoDriving(false);
     } else {
-      // Start 10m demo drive
-      const cur = robotCurrentPos.current;
+      const current = robotCurrentPos.current;
       demoDriveRef.current = {
         active: true,
-        startX: cur.x,
-        startZ: cur.z,
-        startHeading: cur.rotY,
+        startX: current.x,
+        startZ: current.z,
+        startHeading: current.rotY,
         distanceDriven: 0,
-        targetDistance: 10.0, // 10 meters
-        speed: 0.75, // meters per second
+        targetDistance: 10.0,
+        speed: 0.9,
       };
       setIsDemoDriving(true);
       setDemoDistance(0);
     }
   }, []);
 
-  // Main Three.js Scene Initialization
+  // Initialize Three.js Scene
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    // 1. Scene
+    // 1. Scene setup
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x060913);
+    scene.fog = new THREE.FogExp2(0x060913, 0.28);
     sceneRef.current = scene;
-    scene.background = new THREE.Color(0x060911);
-    scene.fog = new THREE.FogExp2(0x060911, 0.18);
 
-    // 2. Camera
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.02, 60);
-    camera.position.set(0.8, 0.9, 1.1);
+    // 2. Camera setup
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      container.clientWidth / container.clientHeight,
+      0.01,
+      100
+    );
+    camera.position.set(0.65, 0.75, 0.95);
     cameraRef.current = camera;
 
-    // 3. Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-    renderer.setSize(width, height);
+    // 3. Renderer setup
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      powerPreference: 'high-performance',
+      alpha: true,
+    });
+    renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Controls
+    // 4. Orbit Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
-    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.dampingFactor = 0.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Don't dip below floor
     controls.minDistance = 0.15;
-    controls.maxDistance = 25;
+    controls.maxDistance = 25.0;
     controls.target.set(0, 0.04, 0);
+    controls.update();
     controlsRef.current = controls;
 
     // 5. Lighting
-    const ambientLight = new THREE.AmbientLight(0xddeeff, 1.2);
+    const ambientLight = new THREE.AmbientLight(0xd6e8ff, 1.4);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2.0);
-    dirLight.position.set(4, 8, 6);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 2048;
-    dirLight.shadow.mapSize.height = 2048;
-    dirLight.shadow.camera.near = 0.1;
-    dirLight.shadow.camera.far = 30;
-    dirLight.shadow.camera.left = -6;
-    dirLight.shadow.camera.right = 6;
-    dirLight.shadow.camera.top = 6;
-    dirLight.shadow.camera.bottom = -6;
-    dirLight.shadow.bias = -0.0005;
-    scene.add(dirLight);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    keyLight.position.set(2.5, 4.0, 3.0);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.camera.near = 0.1;
+    keyLight.shadow.camera.far = 15;
+    keyLight.shadow.bias = -0.0005;
+    scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x00d4ff, 1.5);
-    rimLight.position.set(-6, 4, -6);
+    const fillLight = new THREE.DirectionalLight(0x00f0ff, 0.9);
+    fillLight.position.set(-3.0, 2.0, -2.0);
+    scene.add(fillLight);
+
+    const rimLight = new THREE.PointLight(0xa855f7, 1.8, 8);
+    rimLight.position.set(0, 1.8, -2.0);
     scene.add(rimLight);
 
-    const bounceLight = new THREE.DirectionalLight(0xffaa44, 0.4);
-    bounceLight.position.set(0, -2, 0);
-    scene.add(bounceLight);
+    // 6. Ground Grid & Neon Hex Floor
+    const gridHelper = new THREE.GridHelper(20, 100, 0x00f0ff, 0x1e293b);
+    gridHelper.position.y = 0.0001;
+    scene.add(gridHelper);
 
-    // 6. Ground & Cyber Grid
-    const groundGeo = new THREE.PlaneGeometry(60, 60);
+    const groundGeo = new THREE.PlaneGeometry(30, 30);
     const groundMat = new THREE.MeshStandardMaterial({
-      color: 0x070b14,
+      color: 0x050811,
       roughness: 0.85,
-      metalness: 0.2,
+      metalness: 0.15,
     });
-    const groundMesh = new THREE.Mesh(groundGeo, groundMat);
-    groundMesh.rotation.x = -Math.PI / 2;
-    groundMesh.receiveShadow = true;
-    scene.add(groundMesh);
-    groundPlaneRef.current = groundMesh;
+    const groundPlane = new THREE.Mesh(groundGeo, groundMat);
+    groundPlane.rotation.x = -Math.PI / 2;
+    groundPlane.receiveShadow = true;
+    scene.add(groundPlane);
+    groundPlaneRef.current = groundPlane;
 
-    // Major & Minor Grid
-    const minorGrid = new THREE.GridHelper(30, 300, 0x1a334d, 0x0f2030);
-    minorGrid.position.y = 0.001;
-    scene.add(minorGrid);
-
-    const majorGrid = new THREE.GridHelper(30, 30, 0x00f0ff, 0x006688);
-    majorGrid.position.y = 0.002;
-    scene.add(majorGrid);
-
-    // Concentric Range Rings (0.5m, 1.0m, 2.0m, 5.0m, 10.0m)
-    const ringsGroup = new THREE.Group();
-    [0.5, 1.0, 2.0, 5.0, 10.0].forEach((r) => {
-      const ringGeo = new THREE.RingGeometry(r - 0.004, r + 0.004, 64);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: 0x00d4ff,
-        transparent: true,
-        opacity: 0.25,
-        side: THREE.DoubleSide,
-      });
-      const ring = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.y = 0.003;
-      ringsGroup.add(ring);
-    });
-    scene.add(ringsGroup);
-
-    // Dynamic Trail Line
+    // Real-time breadcrumb trail line
     const trailMat = new THREE.LineBasicMaterial({
-      color: 0x00ffff,
-      transparent: true,
-      opacity: 0.7,
+      color: 0x00f0ff,
       linewidth: 2,
+      transparent: true,
+      opacity: 0.85,
     });
     const trailGeo = new THREE.BufferGeometry();
     const trailLine = new THREE.Line(trailGeo, trailMat);
     scene.add(trailLine);
     trailLineRef.current = trailLine;
 
-    // Planned Path Line
-    const pathMat = new THREE.LineDashedMaterial({
-      color: 0xffb700,
-      dashSize: 0.05,
-      gapSize: 0.03,
+    // Planned Path line
+    const pathMat = new THREE.LineBasicMaterial({
+      color: 0xa855f7,
+      linewidth: 3,
       transparent: true,
       opacity: 0.8,
     });
@@ -274,7 +238,6 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
     scene.add(pathLine);
     pathLineRef.current = pathLine;
 
-    // Groups for dynamic anchors and obstacles
     const anchorsGroup = new THREE.Group();
     scene.add(anchorsGroup);
     anchorsGroupRef.current = anchorsGroup;
@@ -283,13 +246,13 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
     scene.add(obstaclesGroup);
     obstaclesGroupRef.current = obstaclesGroup;
 
-    // 7. Load Cozmo 3D Model (.mtl + .obj)
+    // 7. Load Repaired Cozmo 3D Model (.mtl + .obj)
     const mtlLoader = new MTLLoader();
     mtlLoader.setPath('/models/cozmo/');
     mtlLoader.setResourcePath('/models/cozmo/');
 
     mtlLoader.load(
-      '3DModel.mtl?v=flush4',
+      '3DModel.mtl?v=repaired_face1',
       (materials) => {
         materials.preload();
         const objLoader = new OBJLoader();
@@ -297,7 +260,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         objLoader.setPath('/models/cozmo/');
 
         objLoader.load(
-          '3DModel.obj?v=flush4',
+          '3DModel.obj?v=repaired_face1',
           (object) => {
             object.traverse((child) => {
               if (child instanceof THREE.Mesh) {
@@ -325,6 +288,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
             // Inner body container for procedural micro-physics (suspension rumble, tilt, roll)
             const cozmoBody = new THREE.Group();
             cozmoBody.add(object);
+
             cozmoContainer.add(cozmoBody);
             cozmoBodyMeshRef.current = cozmoBody;
 
@@ -375,7 +339,6 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
           undefined,
           (err) => {
             console.error('Error loading 3DModel.obj:', err);
-            setLoadError('Failed to load 3D Cozmo OBJ model.');
             setIsLoadingModel(false);
           }
         );
@@ -383,7 +346,6 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       undefined,
       (err) => {
         console.error('Error loading 3DModel.mtl:', err);
-        setLoadError('Failed to load 3D Cozmo material.');
         setIsLoadingModel(false);
       }
     );
@@ -778,18 +740,9 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       {isLoadingModel && (
         <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-20 pointer-events-none">
           <div className="w-10 h-10 border-3 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin" />
-          <span className="text-xs font-mono text-cyan-300 tracking-wider">LOADING COZMO 3D MODEL...</span>
+          <span className="text-xs font-mono text-cyan-300 tracking-wider">LOADING REPAIRED COZMO 3D MODEL...</span>
         </div>
       )}
-
-      {/* Error Banner */}
-      {loadError && (
-        <div className="absolute top-4 left-4 right-4 bg-red-950/80 border border-red-500/40 rounded-xl p-3 text-xs text-red-200 font-mono z-20">
-          {loadError}
-        </div>
-      )}
-
-      {/* Top Floating Controls & Camera Mode Selector */}
       <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-2xl z-10">
         <button
           onClick={() => setCameraMode('free')}

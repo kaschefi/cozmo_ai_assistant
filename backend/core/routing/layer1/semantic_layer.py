@@ -53,19 +53,33 @@ def initialize_router():
     from core.routing.layer2.tool_vector_db import tool_rag_registry
     tool_rag_registry.build_index()
 
-async def execute_reflex(route_name: str, mute: bool = False) -> bool:
+async def execute_reflex(route_name: str, mute: bool = False) -> tuple[bool, str]:
     if route_name in reflex_registry.actions:
         action_func, speech_text = reflex_registry.actions[route_name]
         print(f"Executing Reflex: {route_name}")
+        result_msg = speech_text or ""
 
         if speech_text:
             from actions.physical.speak import respond
             await respond(speech_text, mute=mute)
 
         if action_func:
-            await action_func()
-        return True
-    return False
+            import inspect
+            sig = inspect.signature(action_func)
+            if "mute" in sig.parameters:
+                res = await action_func(mute=mute)
+            else:
+                res = await action_func()
+
+            if isinstance(res, str) and res:
+                result_msg = res
+            elif isinstance(res, dict) and "status" in res:
+                result_msg = f"{route_name}: {res.get('status')}"
+            elif not result_msg:
+                result_msg = f"Executed reflex: {route_name}"
+
+        return True, result_msg
+    return False, ""
 
 
 def check_layer_1(user_input: str) -> str:

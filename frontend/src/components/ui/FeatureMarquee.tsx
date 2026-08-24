@@ -209,7 +209,7 @@ export const FeatureMarquee: React.FC = () => {
       {/* Centered Heading */}
       <div className="text-center max-w-2xl mx-auto px-4 mb-2 flex flex-col items-center">
         <div className="relative inline-block mb-3">
-          <h2 className="font-megrim text-4xl md:text-5xl font-bold text-white tracking-wider leading-tight">
+          <h2 className="font-megrim text-4xl md:text-5xl text-white tracking-wider leading-tight">
             Agent Capabilities
           </h2>
           <div className="brand-underline" />

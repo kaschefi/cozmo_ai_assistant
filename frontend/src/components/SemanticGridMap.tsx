@@ -5,6 +5,8 @@ export interface RobotPose {
   y: number;
   theta_deg: number;
   head_pitch_deg?: number;
+  head_angle_deg?: number;
+  lift_height_mm?: number;
   is_connected?: boolean;
 }
 

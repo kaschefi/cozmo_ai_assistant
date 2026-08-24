@@ -35,9 +35,9 @@ tool_rag_registry.register_tool_schema(
     ],
     score_threshold=0.80
 )
-async def setup_gaming():
+async def setup_gaming(mute: bool = False):
     """Launches gaming applications like Steam and Discord."""
-    await respond("Launching gaming setup...")
+    await respond("Launching gaming setup...", mute=mute)
     try:
         # os.startfile is the most native way to open URIs and apps on Windows
         os.startfile("steam://")
@@ -46,10 +46,13 @@ async def setup_gaming():
         discord_path = os.path.expandvars(r"%LocalAppData%\Discord\Update.exe")
         # We pass the arguments as a separate string if needed, or just launch the update executable
         os.system(f'"{discord_path}" --processStart Discord.exe')
-        await respond("Gaming setup launched successfully.")
-
+        msg = "Gaming setup launched successfully."
+        await respond(msg, mute=mute)
+        return msg
     except Exception as e:
-        await respond(f"Error launching gaming setup: {e}")
+        err = f"Error launching gaming setup: {e}"
+        await respond(err, mute=mute)
+        return err
 
 @reflex_registry.reflex(
     "setup_study",
@@ -67,18 +70,22 @@ async def setup_gaming():
     ],
     score_threshold=0.80
 )
-async def setup_study():
+async def setup_study(mute: bool = False):
     """Opens study-related websites."""
-    await respond("Launching study setup...")
+    await respond("Launching study setup...", mute=mute)
     try:
         # Open default browser with specified URLs
         webbrowser.open("https://www.youtube.com")
         webbrowser.open("https://notebooklm.google.com/")
         webbrowser.open("https://gemini.google.com/app")
         webbrowser.open("https://moodle.hcw.ac.at/")
-        await respond("Study setup launched successfully.")
+        msg = "Study setup launched successfully."
+        await respond(msg, mute=mute)
+        return msg
     except Exception as e:
-        await respond(f"Error launching study setup: {e}")
+        err = f"Error launching study setup: {e}"
+        await respond(err, mute=mute)
+        return err
 
 @reflex_registry.reflex(
     "setup_coding",
@@ -95,8 +102,8 @@ async def setup_study():
     ],
     score_threshold=0.80
 )
-async def setup_coding():
-    await respond("Launching coding setup...")
+async def setup_coding(mute: bool = False):
+    await respond("Launching coding setup...", mute=mute)
     try:
         webbrowser.open("https://github.com/")
         webbrowser.open("https://www.youtube.com/")
@@ -104,14 +111,18 @@ async def setup_coding():
         search_pattern = r"C:\Program Files\JetBrains\PyCharm*\bin\pycharm64.exe"
         matches = glob.glob(search_pattern)
         if not matches:
-            await respond("Error: Could not find PyCharm in the JetBrains folder.")
-            return
+            msg = "Error: Could not find PyCharm in the JetBrains folder."
+            await respond(msg, mute=mute)
+            return msg
         latest_pycharm = sorted(matches)[-1]
 
-        await respond(f"Launching PyCharm from: {latest_pycharm}")
+        await respond(f"Launching PyCharm from: {latest_pycharm}", mute=mute)
         os.startfile(latest_pycharm)
+        return f"Launching PyCharm from: {latest_pycharm}"
     except Exception as e:
-        await respond(f"Error launching coding setup: {e}")
+        err = f"Error launching coding setup: {e}"
+        await respond(err, mute=mute)
+        return err
 
 if __name__ == "__main__":
     asyncio.run(setup_coding())

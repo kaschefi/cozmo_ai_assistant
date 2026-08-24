@@ -735,7 +735,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     }`}
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    3D COZMO
+                    3D MAP
                   </button>
                 </div>
               </div>

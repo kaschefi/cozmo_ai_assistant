@@ -20,7 +20,7 @@ Usage:
   python backend/test/physical/demo_object_labeling_reid.py --source cozmo
   python backend/test/physical/demo_object_labeling_reid.py --source webcam
 
-Controls:
+Controls:   
   --- Video & Vision Controls ---
   - Left-Click on Object : Auto-segment and select the clicked object (ignoring hands & background)
   - Left-Drag on Stream  : Draw a custom bounding box around any area

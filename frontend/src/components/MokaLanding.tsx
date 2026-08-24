@@ -7,6 +7,7 @@ import ParticleCanvas from './ui/ParticleCanvas';
 import GoldVeinsBackground from './ui/GoldVeinsBackground';
 import ParticleDriftBackground from './ui/ParticleDriftBackground';
 import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
+import CozmoSection from './ui/CozmoSection';
 import { useTheme } from '../context/ThemeContext';
 
 /**
@@ -19,9 +20,10 @@ import { useTheme } from '../context/ThemeContext';
  */
 interface MokaLandingProps {
   onStartChat?: () => void;
+  onNavigateToCozmo?: () => void;
 }
 
-export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat }) => {
+export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat, onNavigateToCozmo }) => {
   const { theme } = useTheme();
   const isBlackIce = theme === 'black-ice';
   const isRoyal = theme === 'royal';
@@ -123,6 +125,9 @@ export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat }) => {
 
           {/* Talk Section with target button and orbiting particles */}
           <TalkSection onStartChat={onStartChat} />
+
+          {/* Cozmo Robotics Embodiment Section & Dashboard Invitation */}
+          <CozmoSection onNavigateToCozmo={onNavigateToCozmo} />
         </div>
       </div>
     </div>

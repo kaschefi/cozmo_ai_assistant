@@ -14,7 +14,7 @@ tool_rag_registry.register_tool_schema(
 
 @reflex_registry.reflex(
     name="tell_time",
-    score_threshold=0.82,
+    score_threshold=0.86,
     utterances=[
         "what time is it",
         "what time is it right now",
@@ -27,14 +27,15 @@ tool_rag_registry.register_tool_schema(
         "time right now",
     ]
 )
-async def tell_time():
+async def tell_time(mute: bool = False):
     current_time = datetime.now().strftime("%I:%M %p")
     msg = f"The time is exactly {current_time}."
-    await respond(msg)
+    await respond(msg, mute=mute)
+    return msg
 
 @reflex_registry.reflex(
     name="get_date",
-    score_threshold=0.80,
+    score_threshold=0.84,
     utterances=[
         "what is the date",
         "what is today",
@@ -46,7 +47,8 @@ async def tell_time():
         "what's the date today",
     ]
 )
-async def get_date():
+async def get_date(mute: bool = False):
     today = datetime.now().strftime("%A, %B %d, %Y")
     msg = f"Today is {today}."
-    await respond(msg)
+    await respond(msg, mute=mute)
+    return msg
