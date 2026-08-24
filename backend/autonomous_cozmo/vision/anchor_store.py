@@ -130,8 +130,8 @@ def get_default_charger_pose(robot_pose: Tuple[float, float, float] = (0.0, 0.0,
     # Behind the robot is negative forward direction
     charger_x = rx - DEFAULT_CHARGER_DISTANCE_MM * math.cos(r_theta_rad)
     charger_y = ry - DEFAULT_CHARGER_DISTANCE_MM * math.sin(r_theta_rad)
-    # Charger faces opposite to Cozmo's orientation (180 deg)
-    charger_theta = (r_theta_deg + 180.0) % 360.0
+    # Charger front opening faces into the room (along robot forward heading)
+    charger_theta = float(r_theta_deg % 360.0)
     return float(charger_x), float(charger_y), float(charger_theta)
 
 

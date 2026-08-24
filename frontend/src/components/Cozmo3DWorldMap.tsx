@@ -19,6 +19,66 @@ export interface Cozmo3DWorldMapProps {
   className?: string;
 }
 
+interface SceneCollider {
+  id: string;
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+  isRamp?: boolean;
+  rampElevation?: number;
+}
+
+function solveRigidBodyCollisions(
+  posX: number,
+  posZ: number,
+  robotRadius: number,
+  colliders: SceneCollider[]
+): { x: number; z: number; elevationY: number; hasCollision: boolean } {
+  let resX = posX;
+  let resZ = posZ;
+  let maxElevation = 0;
+  let collided = false;
+
+  for (const box of colliders) {
+    if (box.isRamp) {
+      if (resX >= box.minX && resX <= box.maxX && resZ >= box.minZ && resZ <= box.maxZ) {
+        const rampT = Math.max(0, Math.min(1, (box.maxX - resX) / (box.maxX - box.minX)));
+        maxElevation = Math.max(maxElevation, rampT * (box.rampElevation ?? 0.006));
+      }
+      continue;
+    }
+
+    const closestX = Math.max(box.minX, Math.min(resX, box.maxX));
+    const closestZ = Math.max(box.minZ, Math.min(resZ, box.maxZ));
+    const dx = resX - closestX;
+    const dz = resZ - closestZ;
+    const distSq = dx * dx + dz * dz;
+
+    if (distSq < robotRadius * robotRadius) {
+      collided = true;
+      const dist = Math.sqrt(distSq);
+      if (dist > 0.0001) {
+        const overlap = robotRadius - dist;
+        resX += (dx / dist) * overlap;
+        resZ += (dz / dist) * overlap;
+      } else {
+        const dL = resX - box.minX;
+        const dR = box.maxX - resX;
+        const dB = resZ - box.minZ;
+        const dF = box.maxZ - resZ;
+        const minVal = Math.min(dL, dR, dB, dF);
+        if (minVal === dL) resX = box.minX - robotRadius;
+        else if (minVal === dR) resX = box.maxX + robotRadius;
+        else if (minVal === dB) resZ = box.minZ - robotRadius;
+        else resZ = box.maxZ + robotRadius;
+      }
+    }
+  }
+
+  return { x: resX, z: resZ, elevationY: maxElevation, hasCollision: collided };
+}
+
 export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   robot,
   anchors,
@@ -60,8 +120,89 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   const robotCurrentPos = useRef({ x: 0, z: 0, rotY: 0 });
   const cameraModeRef = useRef<'free' | 'follow' | 'top' | 'iso'>('free');
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
+  const collidersRef = useRef<SceneCollider[]>([]);
 
-  // Internal 3D Path Navigation Simulation Ref
+  // Update dynamic rigid-body colliders based on anchors, blocks, and obstacles
+  useEffect(() => {
+    const list: SceneCollider[] = [];
+
+    // 1. Charger Station U-Wall Colliders & Ramp Bed
+    const charger = anchors.find(
+      (a) => a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')
+    );
+    if (charger) {
+      const cx = (charger.x ?? -300) / 1000;
+      const cz = -(charger.y ?? 0) / 1000;
+
+      // Back Wall Collider (prevents driving out through rear)
+      list.push({
+        id: 'charger_back_wall',
+        minX: cx - 0.055,
+        maxX: cx - 0.016,
+        minZ: cz - 0.046,
+        maxZ: cz + 0.046,
+      });
+
+      // Left Flank Guide Rail Collider
+      list.push({
+        id: 'charger_left_rail',
+        minX: cx - 0.016,
+        maxX: cx + 0.022,
+        minZ: cz + 0.030,
+        maxZ: cz + 0.046,
+      });
+
+      // Right Flank Guide Rail Collider
+      list.push({
+        id: 'charger_right_rail',
+        minX: cx - 0.016,
+        maxX: cx + 0.022,
+        minZ: cz - 0.046,
+        maxZ: cz - 0.030,
+      });
+
+      // Ramp Bed Collider (smoothly elevates Cozmo)
+      list.push({
+        id: 'charger_ramp_bed',
+        minX: cx - 0.016,
+        maxX: cx + 0.038,
+        minZ: cz - 0.028,
+        maxZ: cz + 0.028,
+        isRamp: true,
+        rampElevation: 0.006,
+      });
+    }
+
+    // 2. Light Cubes / Spawned Blocks Colliders (44mm x 44mm cubes)
+    blocks.forEach((b) => {
+      const bx = b.x / 1000;
+      const bz = -b.y / 1000;
+      const halfSize = ((b.radius ?? 22.0) * 1.0) / 1000;
+      list.push({
+        id: `block_${b.id}`,
+        minX: bx - halfSize,
+        maxX: bx + halfSize,
+        minZ: bz - halfSize,
+        maxZ: bz + halfSize,
+      });
+    });
+
+    // 3. Unnamed Obstacles
+    obstacles.forEach((obs, idx) => {
+      const ox = obs.x / 1000;
+      const oz = -obs.y / 1000;
+      const r = (obs.radius ?? 25.0) / 1000;
+      list.push({
+        id: `obstacle_${idx}`,
+        minX: ox - r,
+        maxX: ox + r,
+        minZ: oz - r,
+        maxZ: oz + r,
+      });
+    });
+
+    collidersRef.current = list;
+  }, [anchors, blocks, obstacles]);
   const localSimRef = useRef<{
     active: boolean;
     waypoints: THREE.Vector3[];
@@ -135,24 +276,31 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       onSimulateDock();
     }
 
+    // Find charger station coordinates in 3D world space
+    const chargerAnchor = anchors.find(
+      (a) => a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')
+    );
+    const dockX = chargerAnchor ? (chargerAnchor.x ?? -300) / 1000 : -0.30;
+    const dockZ = chargerAnchor ? -(chargerAnchor.y ?? 0) / 1000 : 0.0;
+    const approachEntryX = dockX + 0.12; // 12cm entrance point in front of charger opening (+X)
+    const approachEntryZ = dockZ;
+    // Flush parking target: 26mm forward from charger anchor so rear treads sit right on pin contacts without clipping back wall
+    const parkTargetX = dockX + 0.026;
+    const parkTargetZ = dockZ;
+
     // Convert path coordinates (mm) to 3D world points
     let waypoints3D: THREE.Vector3[] = [];
     if (path && path.length > 1) {
       waypoints3D = path.map((pt) => new THREE.Vector3(pt[0] / 1000, 0, -pt[1] / 1000));
     } else {
-      // Fallback: Generate straight-line path to charger if path is empty
+      // Direct path to entrance in front of charger
       const curX = robotCurrentPos.current.x;
       const curZ = robotCurrentPos.current.z;
-      // Default charger 10cm behind Cozmo
-      const chargerX = curX - 0.10 * Math.cos(robotCurrentPos.current.rotY);
-      const chargerZ = curZ - 0.10 * Math.sin(robotCurrentPos.current.rotY);
       waypoints3D = [
         new THREE.Vector3(curX, 0, curZ),
-        new THREE.Vector3(chargerX, 0, chargerZ),
+        new THREE.Vector3(approachEntryX, 0, approachEntryZ),
       ];
     }
-
-    const lastPt = waypoints3D[waypoints3D.length - 1] || new THREE.Vector3(0, 0, 0);
 
     localSimRef.current = {
       active: true,
@@ -160,14 +308,14 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       currentIdx: 0,
       speed: 0.22,
       stage: 'NAVIGATING',
-      dockTargetPos: lastPt.clone(),
-      dockHeading: Math.PI,
+      dockTargetPos: new THREE.Vector3(parkTargetX, 0, parkTargetZ),
+      dockHeading: 0.0, // Face forward (+X into room) so rear treads reverse into charger
       rotationProgress: 0,
     };
 
     setIsSimulatingDock(true);
     setSimProgressStage('NAVIGATING (2-Way A*)');
-  }, [path, onSimulateDock]);
+  }, [path, anchors, onSimulateDock]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -531,7 +679,13 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         while (diffRot > Math.PI) diffRot -= Math.PI * 2;
         cur.rotY += diffRot * Math.min(1, delta * 24);
 
-        cozmo.position.set(cur.x, 0, cur.z);
+        // Continuous Rigid-Body Collision Resolution & Dynamic Ramp Elevation
+        const robotRadiusMeters = 0.032; // 32mm physical collision radius
+        const collision = solveRigidBodyCollisions(cur.x, cur.z, robotRadiusMeters, collidersRef.current);
+        cur.x = collision.x;
+        cur.z = collision.z;
+
+        cozmo.position.set(cur.x, collision.elevationY, cur.z);
         cozmo.rotation.y = cur.rotY;
 
         // Procedural Vehicle Motion & Micro-Physics
@@ -558,15 +712,16 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
           }
         }
 
-        // Camera Follow Mode logic
+        // Camera Follow Mode logic (Over-the-shoulder third-person camera)
         if (cameraModeRef.current === 'follow' && controlsRef.current && cameraRef.current) {
-          const followDist = 0.65;
-          const followHeight = 0.40;
-          const camX = cur.x - Math.sin(cur.rotY) * followDist;
-          const camZ = cur.z - Math.cos(cur.rotY) * followDist;
+          const followDist = 0.60;
+          const followHeight = 0.32;
+          // Position camera directly behind Cozmo's heading vector (+X forward)
+          const camX = cur.x - Math.cos(cur.rotY) * followDist;
+          const camZ = cur.z + Math.sin(cur.rotY) * followDist;
 
-          cameraRef.current.position.lerp(new THREE.Vector3(camX, followHeight, camZ), 0.09);
-          controlsRef.current.target.lerp(new THREE.Vector3(cur.x, 0.05, cur.z), 0.09);
+          cameraRef.current.position.lerp(new THREE.Vector3(camX, followHeight, camZ), 0.12);
+          controlsRef.current.target.lerp(new THREE.Vector3(cur.x, 0.04, cur.z), 0.12);
         }
       }
 
@@ -673,12 +828,32 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
           anchorObj.add(dockGroup);
         }
 
-        // Docking Guidance Halo Ring
-        const ringGeo = new THREE.RingGeometry(0.048, 0.058, 32);
+        // U-Shape Safety Barrier Clearance Boundary (Back & Side Walls)
+        const uPts: THREE.Vector3[] = [
+          new THREE.Vector3(0.018, 0.003, -0.052),   // Right flank front
+          new THREE.Vector3(-0.052, 0.003, -0.052),  // Right rear corner
+          new THREE.Vector3(-0.052, 0.003, 0.052),   // Left rear corner
+          new THREE.Vector3(0.018, 0.003, 0.052),    // Left flank front
+        ];
+        const uGeo = new THREE.BufferGeometry().setFromPoints(uPts);
+        const uMat = new THREE.LineDashedMaterial({
+          color: 0x10b981,
+          dashSize: 0.014,
+          gapSize: 0.008,
+          linewidth: 2,
+          transparent: true,
+          opacity: 0.9,
+        });
+        const uBarrierLine = new THREE.Line(uGeo, uMat);
+        uBarrierLine.computeLineDistances();
+        anchorObj.add(uBarrierLine);
+
+        // Docking Guidance Halo Ring (Inner charging cradle)
+        const ringGeo = new THREE.RingGeometry(0.040, 0.048, 32);
         const ringMat = new THREE.MeshBasicMaterial({
           color: 0x10b981,
           transparent: true,
-          opacity: 0.85,
+          opacity: 0.75,
           side: THREE.DoubleSide,
         });
         const ring = new THREE.Mesh(ringGeo, ringMat);

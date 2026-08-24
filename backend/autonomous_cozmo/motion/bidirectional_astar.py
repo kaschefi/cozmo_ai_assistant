@@ -125,6 +125,44 @@ class BidirectionalAStarPlanner:
         approach_heading = (charger_theta_deg + 180.0) % 360.0
         return float(approach_x), float(approach_y), float(approach_heading)
 
+    def get_charger_ushape_obstacles(
+        self,
+        cx: float,
+        cy: float,
+        theta_deg: float,
+        clearance_mm: float = DEFAULT_SAFETY_CLEARANCE_MM,
+    ) -> List[Tuple[float, float, float]]:
+        """
+        Generates U-shaped physical wall barrier points for the charger's back and side walls
+        (leaving the front ramp entrance completely open for docking).
+        Returns list of (x, y, hard_radius) obstacle circles representing the physical walls with clearance.
+        """
+        rad = math.radians(theta_deg)
+        cos_t = math.cos(rad)
+        sin_t = math.sin(rad)
+
+        # Local wall segment centers relative to charger origin:
+        # Back wall (curved rear housing): X = -42mm
+        # Left wall (side guide rail): Y = +38mm
+        # Right wall (side guide rail): Y = -38mm
+        wall_radius = 16.0 + clearance_mm + self.robot_radius
+        local_pts = [
+            (-42.0, 0.0),    # Rear center wall
+            (-42.0, 28.0),   # Rear-left corner wall
+            (-42.0, -28.0),  # Rear-right corner wall
+            (-15.0, 38.0),   # Left flank mid
+            (12.0, 38.0),    # Left flank front edge
+            (-15.0, -38.0),  # Right flank mid
+            (12.0, -38.0),   # Right flank front edge
+        ]
+
+        ushape_circles: List[Tuple[float, float, float]] = []
+        for lx, ly in local_pts:
+            wx = cx + (lx * cos_t - ly * sin_t)
+            wy = cy + (lx * sin_t + ly * cos_t)
+            ushape_circles.append((wx, wy, wall_radius))
+        return ushape_circles
+
     def plan_docking_path(
         self,
         start_pose: Tuple[float, float, float],       # (x, y, theta_deg)
@@ -135,7 +173,7 @@ class BidirectionalAStarPlanner:
         """
         Plans a collision-free path from start_pose to the charger docking station
         using Two-Way (Bidirectional) A* search while strictly maintaining 5cm clearance
-        around all blocks.
+        around all blocks and the charger's U-shaped physical housing walls.
         """
         t0 = time.perf_counter()
 
@@ -156,6 +194,10 @@ class BidirectionalAStarPlanner:
                 # Total forbidden zone = Block physical radius + 5cm safety clearance + robot half-width
                 hard_r = raw_r + clearance + self.robot_radius
                 obs_circles.append((ox, oy, hard_r))
+
+        # Add the charger's physical U-shaped barrier walls (prevents driving through back/sides)
+        charger_walls = self.get_charger_ushape_obstacles(cx, cy, c_theta, clearance_mm=clearance * 0.5)
+        obs_circles.extend(charger_walls)
 
         # Check if start or goal is directly inside an obstacle (escape fallback)
         for ox, oy, hard_r in list(obs_circles):
@@ -372,12 +414,14 @@ class BidirectionalAStarPlanner:
                 final_waypoints[i + 1][1] - final_waypoints[i][1],
             )
 
-        # Verify minimum obstacle clearance along smooth trajectory
+        # Verify minimum obstacle clearance along smooth trajectory against environment block obstacles
         min_dist = float("inf")
-        if obs_circles:
-            for pt in final_waypoints:
-                for ox, oy, hard_r in obs_circles:
-                    # Physical obstacle clearance = distance to center - (block_radius + robot_radius)
+        check_obstacles = [obs for obs in obs_circles if obs not in charger_walls] if obs_circles else []
+        if check_obstacles:
+            # Check clearance along navigation path prior to final dock pin entry
+            nav_pts = smooth_waypoints if len(smooth_waypoints) > 1 else final_waypoints
+            for pt in nav_pts:
+                for ox, oy, hard_r in check_obstacles:
                     center_dist = math.hypot(pt[0] - ox, pt[1] - oy)
                     obs_edge_clearance = center_dist - (DEFAULT_BLOCK_RADIUS_MM + self.robot_radius)
                     min_dist = min(min_dist, obs_edge_clearance)

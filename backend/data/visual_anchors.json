@@ -1583,7 +1583,7 @@
     ],
     "estimated_x": -300.0,
     "estimated_y": 0.0,
-    "estimated_theta_deg": 180.0,
+    "estimated_theta_deg": 0.0,
     "confidence_threshold": 0.72,
     "is_permanent": true,
     "created_at": 1787327729.3238137,

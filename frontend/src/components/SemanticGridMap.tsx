@@ -275,23 +275,46 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       const color = isDock ? '#10b981' : '#00e5ff';
 
       if (isDock) {
-        // 2D Charging Dock Cradle Footprint
-        const dockW = 40 * scale;
-        const dockH = 45 * scale;
+        // 2D Charging Dock Footprint with U-Shaped Physical Barrier
+        const dockW = 48 * scale;
+        const dockH = 42 * scale;
 
+        // 5cm Safety Clearance U-Shape Barrier (Back & Sides)
+        const clearR = (48 + 50) * scale * 0.5;
+        ctx.save();
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        // U-shape arc around back and sides (from top to back to bottom)
+        ctx.arc(cx, cy, clearR, -Math.PI * 0.55, Math.PI * 0.55, true);
+        ctx.stroke();
+        ctx.restore();
+
+        // U-Shaped Cradle Body
         ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
         ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.shadowColor = '#10b981';
         ctx.shadowBlur = 8;
-        ctx.strokeRect(cx - dockW / 2, cy - dockH / 2, dockW, dockH);
-        ctx.fillRect(cx - dockW / 2, cy - dockH / 2, dockW, dockH);
 
-        // Gold charging pin indicators
-        ctx.fillStyle = '#ffd700';
+        // Draw physical U-shape housing (Back wall on left, sides top/bottom, open on right +X)
         ctx.beginPath();
-        ctx.arc(cx - dockW * 0.25, cy - dockH * 0.35, 2, 0, Math.PI * 2);
-        ctx.arc(cx + dockW * 0.25, cy - dockH * 0.35, 2, 0, Math.PI * 2);
+        ctx.moveTo(cx + dockW * 0.4, cy - dockH * 0.5); // Top-right (front edge)
+        ctx.lineTo(cx - dockW * 0.5, cy - dockH * 0.5); // Top-left (rear corner)
+        ctx.lineTo(cx - dockW * 0.5, cy + dockH * 0.5); // Bottom-left (rear corner)
+        ctx.lineTo(cx + dockW * 0.4, cy + dockH * 0.5); // Bottom-right (front edge)
+        ctx.stroke();
+
+        ctx.fillRect(cx - dockW * 0.5, cy - dockH * 0.5, dockW * 0.9, dockH);
+
+        // Gold charging pin indicators (near back wall)
+        ctx.fillStyle = '#ffd700';
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(cx - dockW * 0.25, cy - dockH * 0.22, 2.5, 0, Math.PI * 2);
+        ctx.arc(cx - dockW * 0.25, cy + dockH * 0.22, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
         // Dock Center Power Icon
@@ -299,7 +322,7 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
         ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('⚡', cx, cy);
+        ctx.fillText('⚡', cx - dockW * 0.05, cy);
       } else {
         // Outer Pulse Ring
         ctx.strokeStyle = color;
@@ -348,7 +371,8 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
 
     ctx.save();
     ctx.translate(robCx, robCy);
-    ctx.rotate(-radHeading);
+    // Align avatar so theta = 0 points +X (Right / Forward into open desk)
+    ctx.rotate(-radHeading + Math.PI / 2);
 
     // Camera FOV Cone (~60 degrees horizontal FOV, 220mm length)
     const fovLen = 220 * scale;

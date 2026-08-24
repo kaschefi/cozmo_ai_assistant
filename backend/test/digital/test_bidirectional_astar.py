@@ -141,6 +141,28 @@ class TestBidirectionalAStar(unittest.TestCase):
         self.assertTrue(res.success)
         self.assertLess(res.execution_time_ms, 35.0)
 
+    def test_charger_ushape_barrier_prevents_rear_entry(self):
+        """
+        When starting behind the charger (e.g. X = -500, Y = 0), the path MUST NOT cut
+        through the charger's back or side walls; it must navigate around the U-shape to the front entrance.
+        """
+        start_pose = (-500.0, 0.0, 0.0)
+        charger_pose = (-300.0, 0.0, 0.0)
+
+        res = bidirectional_astar_planner.plan_docking_path(
+            start_pose=start_pose,
+            charger_pose=charger_pose,
+            custom_clearance_mm=50.0,
+        )
+
+        self.assertTrue(res.success)
+        # Approach point must be in front of the charger (+X from -300 -> -180)
+        self.assertAlmostEqual(res.approach_point[0], -180.0, delta=2.0)
+
+        # Path must deviate sideways (around Y) and not drive through charger center (-300, 0)
+        max_lateral_dev = max(abs(pt[1]) for pt in res.path)
+        self.assertGreater(max_lateral_dev, 40.0, "Path must go around the U-shape wall flank!")
+
 
 if __name__ == "__main__":
     unittest.main()
