@@ -387,14 +387,15 @@
       -0.03495442122220993,
       -0.03944328427314758
     ],
-    "estimated_x": 1199.644229424,
-    "estimated_y": 261.91327092795115,
+    "estimated_x": 1199.999999999995,
+    "estimated_y": 345.0859428999625,
     "estimated_theta_deg": 0.0,
     "confidence_threshold": 0.72,
     "is_permanent": true,
     "created_at": 1787326407.0622149,
-    "last_seen_at": 1787574682.698102,
-    "observation_count": 40687,
+    "last_seen_at": 1788624365.285533,
+    "observation_count": 45382,
+    "is_locked": false,
     "notes": "Taught from WEBCAM angle"
   },
   "phone": {
@@ -793,6 +794,7 @@
     "created_at": 1787326451.9719727,
     "last_seen_at": 1787571456.8606706,
     "observation_count": 2298,
+    "is_locked": false,
     "notes": "Taught via Mouse Click / Drag Selected Object"
   },
   "cozmo": {
@@ -1183,14 +1185,15 @@
       -0.025568701326847076,
       -0.0521995909512043
     ],
-    "estimated_x": 1200.0,
-    "estimated_y": -253.41481889155457,
+    "estimated_x": 1086.096528793385,
+    "estimated_y": -501.4440102263652,
     "estimated_theta_deg": 0.0,
     "confidence_threshold": 0.72,
     "is_permanent": true,
     "created_at": 1787327656.9413812,
-    "last_seen_at": 1787574112.9668248,
-    "observation_count": 283,
+    "last_seen_at": 1787604268.9514794,
+    "observation_count": 601,
+    "is_locked": false,
     "notes": "Taught via Mouse Click / Drag Selected Object"
   },
   "charger": {
@@ -1581,14 +1584,15 @@
       -0.06126614660024643,
       -0.0002720392367336899
     ],
-    "estimated_x": -300.0,
+    "estimated_x": -100.0,
     "estimated_y": 0.0,
-    "estimated_theta_deg": 0.0,
+    "estimated_theta_deg": 180.0,
     "confidence_threshold": 0.72,
     "is_permanent": true,
     "created_at": 1787327729.3238137,
-    "last_seen_at": 1787431015.102359,
-    "observation_count": 536,
+    "last_seen_at": 1788624486.3472617,
+    "observation_count": 5972,
+    "is_locked": true,
     "notes": "Charger Dock (Default 10cm behind Cozmo)"
   }
 }

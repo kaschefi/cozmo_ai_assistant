@@ -93,7 +93,7 @@ export const MokaLanding: React.FC<MokaLandingProps> = ({ onStartChat, onNavigat
             : isRoyal
             ? 'radial-gradient(circle, rgba(212, 175, 55, 0.6) 1px, transparent 1px)'
             : isIT
-            ? 'radial-gradient(circle, rgba(0, 255, 102, 0.6) 1px, transparent 1px)'
+            ? 'radial-gradient(circle, rgba(18, 165, 116, 0.6) 1px, transparent 1px)'
             : 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
           backgroundSize: '28px 28px'
         }}

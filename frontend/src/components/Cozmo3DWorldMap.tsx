@@ -43,7 +43,7 @@ function solveRigidBodyCollisions(
   for (const box of colliders) {
     if (box.isRamp) {
       if (resX >= box.minX && resX <= box.maxX && resZ >= box.minZ && resZ <= box.maxZ) {
-        const rampT = Math.max(0, Math.min(1, (box.maxX - resX) / (box.maxX - box.minX)));
+        const rampT = Math.max(0, Math.min(1, (resX - box.minX) / (box.maxX - box.minX)));
         maxElevation = Math.max(maxElevation, rampT * (box.rampElevation ?? 0.006));
       }
       continue;
@@ -93,10 +93,9 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
   className = '',
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [cameraMode, setCameraMode] = useState<'free' | 'follow' | 'top' | 'iso'>('free');
+  const [cameraMode, setCameraMode] = useState<'free' | 'follow' | 'top'>('free');
   const [isLoadingModel, setIsLoadingModel] = useState<boolean>(true);
-  const [isSimulatingDock, setIsSimulatingDock] = useState<boolean>(false);
-  const [simProgressStage, setSimProgressStage] = useState<string>('IDLE');
+  const isSimulatingDock = Boolean(path && path.length > 1);
   const [isPlacingBlock, setIsPlacingBlock] = useState<boolean>(false);
 
   // References for live rendering
@@ -118,7 +117,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
 
   const robotTargetPos = useRef({ x: 0, z: 0, rotY: 0 });
   const robotCurrentPos = useRef({ x: 0, z: 0, rotY: 0 });
-  const cameraModeRef = useRef<'free' | 'follow' | 'top' | 'iso'>('free');
+  const cameraModeRef = useRef<'free' | 'follow' | 'top'>('free');
   const trailPointsRef = useRef<THREE.Vector3[]>([]);
   const collidersRef = useRef<SceneCollider[]>([]);
 
@@ -137,8 +136,8 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       // Back Wall Collider (prevents driving out through rear)
       list.push({
         id: 'charger_back_wall',
-        minX: cx - 0.055,
-        maxX: cx - 0.016,
+        minX: cx + 0.016,
+        maxX: cx + 0.055,
         minZ: cz - 0.046,
         maxZ: cz + 0.046,
       });
@@ -146,8 +145,8 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       // Left Flank Guide Rail Collider
       list.push({
         id: 'charger_left_rail',
-        minX: cx - 0.016,
-        maxX: cx + 0.022,
+        minX: cx - 0.022,
+        maxX: cx + 0.016,
         minZ: cz + 0.030,
         maxZ: cz + 0.046,
       });
@@ -155,17 +154,17 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       // Right Flank Guide Rail Collider
       list.push({
         id: 'charger_right_rail',
-        minX: cx - 0.016,
-        maxX: cx + 0.022,
+        minX: cx - 0.022,
+        maxX: cx + 0.016,
         minZ: cz - 0.046,
         maxZ: cz - 0.030,
       });
 
-      // Ramp Bed Collider (smoothly elevates Cozmo)
+      // Ramp Bed Collider (smoothly elevates Cozmo as it enters from -X to +X)
       list.push({
         id: 'charger_ramp_bed',
-        minX: cx - 0.016,
-        maxX: cx + 0.038,
+        minX: cx - 0.038,
+        maxX: cx + 0.016,
         minZ: cz - 0.028,
         maxZ: cz + 0.028,
         isRamp: true,
@@ -203,27 +202,8 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
 
     collidersRef.current = list;
   }, [anchors, blocks, obstacles]);
-  const localSimRef = useRef<{
-    active: boolean;
-    waypoints: THREE.Vector3[];
-    currentIdx: number;
-    speed: number;
-    stage: 'PLANNING' | 'NAVIGATING' | 'ALIGNING' | 'DOCKING' | 'COMPLETED' | 'IDLE';
-    dockTargetPos: THREE.Vector3;
-    dockHeading: number;
-    rotationProgress: number;
-  }>({
-    active: false,
-    waypoints: [],
-    currentIdx: 0,
-    speed: 0.18, // 18 cm/s in 3D world meters
-    stage: 'IDLE',
-    dockTargetPos: new THREE.Vector3(0, 0, 0),
-    dockHeading: Math.PI,
-    rotationProgress: 0,
-  });
 
-  // Update camera mode ref
+  // Synchronize cameraMode and handle Top / Follow instant positioning
   useEffect(() => {
     cameraModeRef.current = cameraMode;
     const controls = controlsRef.current;
@@ -237,19 +217,20 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       camera.position.set(targetX, 3.2, targetZ + 0.001);
       controls.target.set(targetX, 0, targetZ);
       controls.update();
-    } else if (cameraMode === 'iso') {
-      const targetX = cozmo ? cozmo.position.x : 0;
-      const targetZ = cozmo ? cozmo.position.z : 0;
-      camera.position.set(targetX + 1.2, 1.4, targetZ + 1.2);
-      controls.target.set(targetX, 0, targetZ);
+    } else if (cameraMode === 'follow') {
+      const cur = robotCurrentPos.current;
+      const followDist = 0.60;
+      const followHeight = 0.32;
+      const camX = cur.x - Math.cos(cur.rotY) * followDist;
+      const camZ = cur.z + Math.sin(cur.rotY) * followDist;
+      camera.position.set(camX, followHeight, camZ);
+      controls.target.set(cur.x, 0.04, cur.z);
       controls.update();
     }
   }, [cameraMode]);
 
-  // Convert telemetry mm to 3D world meters (unless internal simulation is driving)
+  // Convert telemetry mm to 3D world meters
   useEffect(() => {
-    if (localSimRef.current.active) return;
-
     const xMeters = (robot.x || 0) / 1000;
     const zMeters = -(robot.y || 0) / 1000;
     const thetaRad = THREE.MathUtils.degToRad(robot.theta_deg || 0);
@@ -261,61 +242,12 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
     };
   }, [robot]);
 
-  // Trigger Autonomous Docking Simulation along Bidirectional A* Path
+  // Trigger Autonomous Docking Simulation along Bidirectional A* Path (directly invokes server simulation)
   const handleTriggerDockSimulation = useCallback(() => {
-    if (localSimRef.current.active) {
-      // Cancel simulation
-      localSimRef.current.active = false;
-      localSimRef.current.stage = 'IDLE';
-      setIsSimulatingDock(false);
-      setSimProgressStage('IDLE');
-      return;
-    }
-
     if (onSimulateDock) {
       onSimulateDock();
     }
-
-    // Find charger station coordinates in 3D world space
-    const chargerAnchor = anchors.find(
-      (a) => a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')
-    );
-    const dockX = chargerAnchor ? (chargerAnchor.x ?? -300) / 1000 : -0.30;
-    const dockZ = chargerAnchor ? -(chargerAnchor.y ?? 0) / 1000 : 0.0;
-    const approachEntryX = dockX + 0.12; // 12cm entrance point in front of charger opening (+X)
-    const approachEntryZ = dockZ;
-    // Flush parking target: 26mm forward from charger anchor so rear treads sit right on pin contacts without clipping back wall
-    const parkTargetX = dockX + 0.026;
-    const parkTargetZ = dockZ;
-
-    // Convert path coordinates (mm) to 3D world points
-    let waypoints3D: THREE.Vector3[] = [];
-    if (path && path.length > 1) {
-      waypoints3D = path.map((pt) => new THREE.Vector3(pt[0] / 1000, 0, -pt[1] / 1000));
-    } else {
-      // Direct path to entrance in front of charger
-      const curX = robotCurrentPos.current.x;
-      const curZ = robotCurrentPos.current.z;
-      waypoints3D = [
-        new THREE.Vector3(curX, 0, curZ),
-        new THREE.Vector3(approachEntryX, 0, approachEntryZ),
-      ];
-    }
-
-    localSimRef.current = {
-      active: true,
-      waypoints: waypoints3D,
-      currentIdx: 0,
-      speed: 0.22,
-      stage: 'NAVIGATING',
-      dockTargetPos: new THREE.Vector3(parkTargetX, 0, parkTargetZ),
-      dockHeading: 0.0, // Face forward (+X into room) so rear treads reverse into charger
-      rotationProgress: 0,
-    };
-
-    setIsSimulatingDock(true);
-    setSimProgressStage('NAVIGATING (2-Way A*)');
-  }, [path, anchors, onSimulateDock]);
+  }, [onSimulateDock]);
 
   // Initialize Three.js Scene
   useEffect(() => {
@@ -575,90 +507,13 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       const delta = Math.min(0.05, clock.getDelta());
       const time = clock.getElapsedTime();
 
-      // =========================================================
-      // INTERACTIVE DOCKING SIMULATION PLAYBACK (2-WAY A* ROUTE)
-      // =========================================================
-      const sim = localSimRef.current;
-      if (sim.active && sim.waypoints.length > 0) {
-        if (sim.stage === 'NAVIGATING') {
-          // Drive along waypoints (excluding final pin entry point)
-          const targetWp = sim.waypoints[sim.currentIdx];
-          if (targetWp) {
-            const curX = robotTargetPos.current.x;
-            const curZ = robotTargetPos.current.z;
-            const dx = targetWp.x - curX;
-            const dz = targetWp.z - curZ;
-            const distToWp = Math.hypot(dx, dz);
-
-            // Turn towards waypoint
-            const desiredHeading = Math.atan2(-dz, dx) - Math.PI / 2;
-            let diffRot = desiredHeading - robotTargetPos.current.rotY;
-            while (diffRot < -Math.PI) diffRot += Math.PI * 2;
-            while (diffRot > Math.PI) diffRot -= Math.PI * 2;
-
-            robotTargetPos.current.rotY += diffRot * Math.min(1, delta * 8);
-
-            // Move forward
-            const step = Math.min(distToWp, sim.speed * delta);
-            if (distToWp > 0.001) {
-              robotTargetPos.current.x += (dx / distToWp) * step;
-              robotTargetPos.current.z += (dz / distToWp) * step;
-            }
-
-            // Breadcrumb trail point
-            const p = new THREE.Vector3(robotTargetPos.current.x, 0.005, robotTargetPos.current.z);
-            const last = trailPointsRef.current[trailPointsRef.current.length - 1];
-            if (!last || last.distanceTo(p) > 0.02) {
-              trailPointsRef.current.push(p);
-              if (trailPointsRef.current.length > 300) trailPointsRef.current.shift();
-              if (trailLineRef.current) trailLineRef.current.geometry.setFromPoints(trailPointsRef.current);
-            }
-
-            // Arrived at intermediate waypoint?
-            if (distToWp < 0.025) {
-              sim.currentIdx++;
-              if (sim.currentIdx >= sim.waypoints.length - 1) {
-                // Arrived at pre-dock approach entrance! Advance to 180° alignment
-                sim.stage = 'ALIGNING';
-                sim.rotationProgress = 0;
-                setSimProgressStage('ALIGNING 180° REVERSE DOCK');
-              }
-            }
-          }
-        } else if (sim.stage === 'ALIGNING') {
-          // Rotate 180 degrees to face backwards toward the charger
-          const targetHeading = sim.dockHeading;
-          let diffRot = targetHeading - robotTargetPos.current.rotY;
-          while (diffRot < -Math.PI) diffRot += Math.PI * 2;
-          while (diffRot > Math.PI) diffRot -= Math.PI * 2;
-
-          robotTargetPos.current.rotY += diffRot * Math.min(1, delta * 6);
-
-          if (Math.abs(diffRot) < 0.04) {
-            sim.stage = 'DOCKING';
-            setSimProgressStage('REVERSING ONTO CHARGER PINS');
-          }
-        } else if (sim.stage === 'DOCKING') {
-          // Reverse smoothly into charger pin contacts
-          const curX = robotTargetPos.current.x;
-          const curZ = robotTargetPos.current.z;
-          const dx = sim.dockTargetPos.x - curX;
-          const dz = sim.dockTargetPos.z - curZ;
-          const distToDock = Math.hypot(dx, dz);
-
-          const step = Math.min(distToDock, (sim.speed * 0.5) * delta);
-          if (distToDock > 0.002) {
-            robotTargetPos.current.x += (dx / distToDock) * step;
-            robotTargetPos.current.z += (dz / distToDock) * step;
-          }
-
-          if (distToDock < 0.015) {
-            sim.stage = 'COMPLETED';
-            sim.active = false;
-            setIsSimulatingDock(false);
-            setSimProgressStage('DOCKED & CHARGING (4.20V)');
-          }
-        }
+      // Breadcrumb trail point behind Cozmo
+      const p = new THREE.Vector3(robotTargetPos.current.x, 0.005, robotTargetPos.current.z);
+      const last = trailPointsRef.current[trailPointsRef.current.length - 1];
+      if (!last || last.distanceTo(p) > 0.02) {
+        trailPointsRef.current.push(p);
+        if (trailPointsRef.current.length > 300) trailPointsRef.current.shift();
+        if (trailLineRef.current) trailLineRef.current.geometry.setFromPoints(trailPointsRef.current);
       }
 
       // Smooth lerp robot position & rotation
@@ -807,7 +662,8 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       if (isCharger) {
         if (chargerModelTemplateRef.current) {
           const chargerMesh = chargerModelTemplateRef.current.clone(true);
-          chargerMesh.rotation.y = Math.PI / 2;
+          // Flipped 180 degrees so the entrance ramp faces Cozmo and the approach path
+          chargerMesh.rotation.y = -Math.PI / 2;
           chargerMesh.position.set(0, 0, 0);
           anchorObj.add(chargerMesh);
         } else {
@@ -824,16 +680,17 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
           backWall.position.set(0, 0.022, 0.040);
           dockGroup.add(backWall);
 
-          dockGroup.rotation.y = Math.PI;
+          dockGroup.rotation.y = 0; // Flipped to match
           anchorObj.add(dockGroup);
         }
 
         // U-Shape Safety Barrier Clearance Boundary (Back & Side Walls)
+        // Entrance is on -X (left), Back wall is on +X (right)
         const uPts: THREE.Vector3[] = [
-          new THREE.Vector3(0.018, 0.003, -0.052),   // Right flank front
-          new THREE.Vector3(-0.052, 0.003, -0.052),  // Right rear corner
-          new THREE.Vector3(-0.052, 0.003, 0.052),   // Left rear corner
-          new THREE.Vector3(0.018, 0.003, 0.052),    // Left flank front
+          new THREE.Vector3(-0.018, 0.003, -0.052),   // Left flank front
+          new THREE.Vector3(0.052, 0.003, -0.052),    // Right rear corner
+          new THREE.Vector3(0.052, 0.003, 0.052),     // Left rear corner
+          new THREE.Vector3(-0.018, 0.003, 0.052),    // Right flank front
         ];
         const uGeo = new THREE.BufferGeometry().setFromPoints(uPts);
         const uMat = new THREE.LineDashedMaterial({
@@ -897,16 +754,18 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         ctx.fillStyle = 'rgba(10, 16, 26, 0.88)';
         ctx.roundRect(4, 4, 248, 56, 12);
         ctx.fill();
-        ctx.strokeStyle = isCharger ? '#10b981' : '#00d4ff';
+        ctx.strokeStyle = isCharger ? (anchor.is_locked ? '#f59e0b' : '#10b981') : '#00d4ff';
         ctx.lineWidth = 3;
         ctx.roundRect(4, 4, 248, 56, 12);
         ctx.stroke();
 
-        ctx.font = 'bold 20px monospace';
-        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px monospace';
+        ctx.fillStyle = anchor.is_locked ? '#fcd34d' : '#ffffff';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const displayLabel = isCharger ? '⚡ CHARGER DOCK' : anchor.label.toUpperCase();
+        const displayLabel = isCharger
+          ? (anchor.is_locked ? 'CHARGER [LOCKED]' : 'CHARGER DOCK')
+          : anchor.label.toUpperCase();
         ctx.fillText(displayLabel, 128, 32);
       }
       const labelTex = new THREE.CanvasTexture(canvas);
@@ -929,7 +788,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       group.remove(group.children[0]);
     }
 
-    blocks.forEach((blk, idx) => {
+    blocks.forEach((blk) => {
       const wx = (blk.x || 0) / 1000;
       const wz = -(blk.y || 0) / 1000;
       const cubeSizeM = 0.044; // 44mm physical cube
@@ -939,89 +798,69 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       blkObj.position.set(wx, 0, wz);
       blkObj.userData = { block: blk };
 
-      // 1. 3D Physical Cozmo Light Cube Mesh
-      const cubeGeo = new THREE.BoxGeometry(cubeSizeM, cubeSizeM, cubeSizeM);
-      const cubeMat = new THREE.MeshStandardMaterial({
-        color: 0x18202c,
-        roughness: 0.45,
-        metalness: 0.65,
-      });
-      const cubeMesh = new THREE.Mesh(cubeGeo, cubeMat);
-      cubeMesh.position.y = cubeSizeM / 2 + 0.002;
-      cubeMesh.castShadow = true;
-      cubeMesh.receiveShadow = true;
-      blkObj.add(cubeMesh);
-
-      // 2. Corner Glowing LEDs (4 corners on top face)
-      const ledGroup = new THREE.Group();
-      ledGroup.name = 'led_group';
-      const ledGeo = new THREE.BoxGeometry(0.009, 0.006, 0.009);
-      const ledColors = [0x00f0ff, 0x10b981, 0xf59e0b];
-      const ledColor = ledColors[idx % ledColors.length];
-
-      const ledMat = new THREE.MeshStandardMaterial({
-        color: ledColor,
-        emissive: ledColor,
-        emissiveIntensity: 1.2,
-        roughness: 0.1,
-      });
-
-      const cornerOffset = 0.016;
-      const corners = [
-        [-cornerOffset, cornerOffset],
-        [cornerOffset, cornerOffset],
-        [-cornerOffset, -cornerOffset],
-        [cornerOffset, -cornerOffset],
-      ];
-
-      corners.forEach(([cx, cz]) => {
-        const led = new THREE.Mesh(ledGeo, ledMat);
-        led.position.set(cx, cubeSizeM + 0.002, cz);
-        ledGroup.add(led);
-      });
-      blkObj.add(ledGroup);
-
-      // 3. Central Top Glyph Plate
-      const glyphGeo = new THREE.PlaneGeometry(0.022, 0.022);
-      const glyphMat = new THREE.MeshBasicMaterial({
-        color: ledColor,
-        transparent: true,
-        opacity: 0.85,
-        side: THREE.DoubleSide,
-      });
-      const glyph = new THREE.Mesh(glyphGeo, glyphMat);
-      glyph.rotation.x = -Math.PI / 2;
-      glyph.position.y = cubeSizeM + 0.004;
-      blkObj.add(glyph);
-
-      // 4. 5CM (50MM) SAFETY CLEARANCE ZONE (Holographic Protective Boundary)
-      const clearanceGeo = new THREE.RingGeometry(clearanceRadiusM - 0.004, clearanceRadiusM + 0.003, 40);
-      const clearanceMat = new THREE.MeshBasicMaterial({
+      // 1. Semi-transparent Safety Clearance Boundary Cylinder & Base Ring
+      const clearCylGeo = new THREE.CylinderGeometry(clearanceRadiusM, clearanceRadiusM, 0.048, 32, 1, true);
+      const clearCylMat = new THREE.MeshBasicMaterial({
         color: 0xef4444,
-        transparent: true,
-        opacity: 0.65,
-        side: THREE.DoubleSide,
-      });
-      const clearanceRing = new THREE.Mesh(clearanceGeo, clearanceMat);
-      clearanceRing.name = 'clearance_ring';
-      clearanceRing.rotation.x = -Math.PI / 2;
-      clearanceRing.position.y = 0.003;
-      blkObj.add(clearanceRing);
-
-      // Soft semi-transparent collision field cylinder
-      const fieldGeo = new THREE.CylinderGeometry(clearanceRadiusM, clearanceRadiusM, 0.045, 32, 1, true);
-      const fieldMat = new THREE.MeshBasicMaterial({
-        color: 0xff3b30,
         transparent: true,
         opacity: 0.12,
         side: THREE.DoubleSide,
         depthWrite: false,
       });
-      const fieldCyl = new THREE.Mesh(fieldGeo, fieldMat);
-      fieldCyl.position.y = 0.0225;
-      blkObj.add(fieldCyl);
+      const clearCyl = new THREE.Mesh(clearCylGeo, clearCylMat);
+      clearCyl.position.y = 0.024;
+      blkObj.add(clearCyl);
 
-      // 5. Billboard Label Sprite
+      // Floor Warning Dashed Ring
+      const ringGeo = new THREE.RingGeometry(clearanceRadiusM - 0.003, clearanceRadiusM, 32);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        transparent: true,
+        opacity: 0.75,
+        side: THREE.DoubleSide,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.002;
+      ring.name = 'clearance_ring';
+      blkObj.add(ring);
+
+      // 2. Cozmo Light Cube Physical Body (Glossy Dark Enclosure with White Corners)
+      const cubeGeo = new THREE.BoxGeometry(cubeSizeM, cubeSizeM, cubeSizeM);
+      const cubeMat = new THREE.MeshStandardMaterial({
+        color: 0x181e29,
+        roughness: 0.35,
+        metalness: 0.5,
+      });
+      const cubeMesh = new THREE.Mesh(cubeGeo, cubeMat);
+      cubeMesh.position.y = cubeSizeM / 2;
+      cubeMesh.castShadow = true;
+      cubeMesh.receiveShadow = true;
+      blkObj.add(cubeMesh);
+
+      // Cube Corner Glowing LEDs
+      const ledGroup = new THREE.Group();
+      ledGroup.name = 'led_group';
+      const ledGeo = new THREE.BoxGeometry(0.008, 0.008, 0.008);
+      const ledMat = new THREE.MeshStandardMaterial({
+        color: 0x00f0ff,
+        emissive: 0x00f0ff,
+        emissiveIntensity: 0.9,
+      });
+      const c = cubeSizeM / 2 - 0.004;
+      [
+        [-c, c, -c],
+        [c, c, -c],
+        [-c, c, c],
+        [c, c, c],
+      ].forEach(([lx, ly, lz]) => {
+        const led = new THREE.Mesh(ledGeo, ledMat);
+        led.position.set(lx, ly + cubeSizeM / 2, lz);
+        ledGroup.add(led);
+      });
+      blkObj.add(ledGroup);
+
+      // Top Billboard Label (Cozmo Light Cube Name + 5cm Clearance Warning)
       const canvas = document.createElement('canvas');
       canvas.width = 256;
       canvas.height = 64;
@@ -1030,8 +869,8 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         ctx.fillStyle = 'rgba(15, 23, 42, 0.90)';
         ctx.roundRect(4, 4, 248, 56, 12);
         ctx.fill();
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
         ctx.roundRect(4, 4, 248, 56, 12);
         ctx.stroke();
 
@@ -1039,7 +878,7 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         ctx.fillStyle = '#f87171';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`📦 ${blk.label.toUpperCase()} (5cm Buffer)`, 128, 32);
+        ctx.fillText(`${blk.label.toUpperCase()} (5cm Buffer)`, 128, 32);
       }
       const labelTex = new THREE.CanvasTexture(canvas);
       const spriteMat = new THREE.SpriteMaterial({ map: labelTex, transparent: true });
@@ -1106,35 +945,25 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
     }
 
     if (path && path.length > 1) {
-      const points = path.map((pt) => new THREE.Vector3(pt[0] / 1000, 0.008, -pt[1] / 1000));
+      const pts = path.map(([wx, wy]) => new THREE.Vector3(wx / 1000, 0.006, -wy / 1000));
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const smoothPts = curve.getPoints(pts.length * 6);
 
-      // 1. Glowing Neon Path Trajectory Line
-      const pathGeo = new THREE.BufferGeometry().setFromPoints(points);
-      const pathMat = new THREE.LineBasicMaterial({
-        color: 0xa855f7,
-        linewidth: 3.5,
+      // Glowing Neon Path Tube
+      const tubeGeo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(smoothPts), 120, 0.0035, 8, false);
+      const tubeMat = new THREE.MeshBasicMaterial({
+        color: 0x00ff88,
         transparent: true,
-        opacity: 0.9,
+        opacity: 0.85,
       });
-      const pathLine = new THREE.Line(pathGeo, pathMat);
-      pathGroup.add(pathLine);
+      const tube = new THREE.Mesh(tubeGeo, tubeMat);
+      pathGroup.add(tube);
 
-      // 2. Waypoint Spheres & Ground Nodes
-      points.forEach((pt, i) => {
-        const isStart = i === 0;
-        const isEnd = i === points.length - 1;
-        const wpColor = isStart ? 0x00f0ff : isEnd ? 0x10b981 : 0xc084fc;
-
-        const wpGeo = new THREE.SphereGeometry(0.006, 12, 12);
-        const wpMat = new THREE.MeshBasicMaterial({ color: wpColor });
-        const wpMesh = new THREE.Mesh(wpGeo, wpMat);
-        wpMesh.position.copy(pt);
-        pathGroup.add(wpMesh);
-
-        // Holographic ground ring around each waypoint
-        const wpRingGeo = new THREE.RingGeometry(0.012, 0.016, 16);
+      // Waypoint floor rings
+      pts.forEach((pt) => {
+        const wpRingGeo = new THREE.RingGeometry(0.010, 0.014, 16);
         const wpRingMat = new THREE.MeshBasicMaterial({
-          color: wpColor,
+          color: 0xa855f7,
           side: THREE.DoubleSide,
           transparent: true,
           opacity: 0.7,
@@ -1146,15 +975,6 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
       });
     }
   }, [path]);
-
-  // Sync Cozmo 3D model with robot telemetry / controller movement
-  useEffect(() => {
-    if (!localSimRef.current.active) {
-      robotTargetPos.current.x = (robot.x || 0) / 1000;
-      robotTargetPos.current.z = -(robot.y || 0) / 1000;
-      robotTargetPos.current.rotY = ((robot.theta_deg || 0) * Math.PI) / 180;
-    }
-  }, [robot.x, robot.y, robot.theta_deg]);
 
   // Pointer Down: Drive or Click Object / Spawn Block
   const handlePointerDown = useCallback(
@@ -1261,90 +1081,67 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         </div>
       )}
 
-      {/* Top Left Camera Modes */}
-      <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-2xl z-10">
+      {/* Top Left Camera Modes (Dock Style) */}
+      <div className="absolute top-3 left-3 z-10 dock-nav-bar">
         <button
           onClick={() => setCameraMode('free')}
-          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
-            cameraMode === 'free'
-              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`dock-btn ${cameraMode === 'free' ? 'dock-btn-active' : ''}`}
           title="Free 360 Orbit Camera"
         >
           Free Orbit
         </button>
         <button
           onClick={() => setCameraMode('follow')}
-          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
-            cameraMode === 'follow'
-              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`dock-btn ${cameraMode === 'follow' ? 'dock-btn-active' : ''}`}
           title="Follow Behind Cozmo"
         >
           Follow Cam
         </button>
         <button
-          onClick={() => setCameraMode('iso')}
-          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
-            cameraMode === 'iso'
-              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
-          title="Isometric View"
-        >
-          Isometric
-        </button>
-        <button
           onClick={() => setCameraMode('top')}
-          className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-lg transition-all ${
-            cameraMode === 'top'
-              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-              : 'text-slate-400 hover:text-white hover:bg-white/5'
-          }`}
+          className={`dock-btn ${cameraMode === 'top' ? 'dock-btn-active' : ''}`}
           title="Top-Down Bird's Eye View"
         >
           Top-Down
         </button>
       </div>
 
-      {/* Top Right Simulation & Controls */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+      {/* Top Right Simulation & Controls (Dock Style) */}
+      <div className="absolute top-3 right-3 z-10 dock-nav-bar">
         {/* Spawn Block Button */}
         <button
           onClick={() => setIsPlacingBlock(!isPlacingBlock)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold shadow-xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md ${
+          className={`dock-btn ${
             isPlacingBlock
-              ? 'bg-cyan-500/40 text-cyan-200 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.4)] animate-pulse'
-              : 'bg-slate-900/80 hover:bg-slate-800/90 text-cyan-300 border-cyan-500/30'
+              ? 'dock-btn-active animate-pulse'
+              : ''
           }`}
           title="Click to place a Cozmo Light Cube on the floor plane"
         >
-          <span>📦</span>
-          <span>{isPlacingBlock ? 'Click Ground to Place' : 'Spawn Cube'}</span>
+          <span>{isPlacingBlock ? 'Placing...' : 'Spawn Cube'}</span>
         </button>
 
         {/* 2-Way A* Docking Simulation Button */}
         <button
           onClick={handleTriggerDockSimulation}
-          className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border text-xs font-mono font-bold shadow-xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md cursor-pointer ${
+          className={`dock-btn ${
             isSimulatingDock
-              ? 'bg-gradient-to-r from-amber-500/40 to-orange-500/40 text-amber-200 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse'
-              : 'bg-gradient-to-r from-emerald-500/25 to-teal-500/25 text-emerald-300 border-emerald-400/40 hover:from-emerald-500/35 hover:to-teal-500/35 shadow-[0_0_14px_rgba(16,185,129,0.25)]'
+              ? 'dock-btn-amber dock-btn-active animate-pulse'
+              : 'dock-btn-emerald'
           }`}
           title="Simulate Autonomous Docking using Two-Way (Bidirectional) A* with 5cm block clearance"
         >
           <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
           </svg>
-          <span>{isSimulatingDock ? `Simulating: ${simProgressStage} [Stop]` : 'Simulate 2-Way A* Dock'}</span>
+          <span>{isSimulatingDock ? 'Docking...' : 'Simulate Dock'}</span>
         </button>
 
         {/* Recenter Button */}
         <button
           onClick={handleRecenter}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 border border-white/10 text-xs font-mono text-cyan-400 shadow-xl transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
+          className="dock-btn"
+          title="Recenter Camera on Robot"
         >
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
@@ -1360,20 +1157,20 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
         <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-slate-300 flex items-center gap-3 shadow-xl">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Pose: ({robot.x.toFixed(0)}, {robot.y.toFixed(0)})mm | {robot.theta_deg.toFixed(0)}°</span>
+            <span>Pose: ({(robot.x / 10).toFixed(1)}, {(robot.y / 10).toFixed(1)})cm | {robot.theta_deg.toFixed(0)}°</span>
           </span>
           <span className="text-slate-500">|</span>
           <span className="text-amber-300 font-semibold">5cm Block Safety Margin Active</span>
           {isSimulatingDock && (
             <>
               <span className="text-slate-500">|</span>
-              <span className="text-cyan-300 animate-pulse">{simProgressStage}</span>
+              <span className="text-cyan-300 animate-pulse">2-Way A* Dock Active</span>
             </>
           )}
         </div>
 
         <div className="bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-cyan-300 shadow-xl">
-          {blocks.length} Cubes Loaded (50mm Buffer)
+          {blocks.length} Cubes Loaded (5cm Buffer)
         </div>
       </div>
     </div>

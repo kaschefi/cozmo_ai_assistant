@@ -8,18 +8,37 @@ class CozmoManager:
     _instance = None
     cli = None
     safety_guard = None
-    is_connected = False
+    _is_connected = False
     is_connecting = False
     robot_mode = False
+    latest_image = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(CozmoManager, cls).__new__(cls)
             cls._instance.robot_mode = False
             cls._instance.safety_guard = None
-            cls._instance.is_connected = False
+            cls._instance._is_connected = False
             cls._instance.is_connecting = False
+            cls._instance.latest_image = None
         return cls._instance
+
+    @property
+    def is_connected(self) -> bool:
+        if not self._is_connected or not self.cli:
+            return False
+        # Verify active PyCozmo socket state if available
+        if hasattr(self.cli, "conn") and self.cli.conn:
+            connected_const = getattr(self.cli.conn, "CONNECTED", 3)
+            current_state = getattr(self.cli.conn, "state", None)
+            if current_state is not None and current_state != connected_const:
+                self._is_connected = False
+                return False
+        return self._is_connected
+
+    @is_connected.setter
+    def is_connected(self, value: bool):
+        self._is_connected = bool(value)
 
     def start(self):
         if self.is_connected and self.cli:
@@ -55,10 +74,17 @@ class CozmoManager:
                 except Exception as e:
                     print(f"Failed to auto-raise head: {e}")
 
-                # Enable camera stream for visual motion stasis bump detection & REMIND vision
+                # Enable camera stream and attach frame handler for DINO & visual anchors
                 try:
+                    def _on_camera_frame(client, image):
+                        client.latest_image = image
+                        client._latest_image = image
+                        self.latest_image = image
+
+                    self.cli.add_handler(pycozmo.event.EvtNewRawCameraImage, _on_camera_frame)
                     self.cli.enable_camera(enable=True, color=True)
-                    print("[OK] [Camera] Stream enabled (color=True).")
+                    self.cli._cam_stream_enabled = True
+                    print("[OK] [Camera] Stream enabled (color=True) & EvtNewRawCameraImage handler registered.")
                 except Exception as e:
                     print(f"Failed to enable camera stream: {e}")
 
@@ -108,7 +134,33 @@ class CozmoManager:
                 pass
         return self.safety_guard
 
+    def set_docking_mode(self, active: bool):
+        """Notifies the safety guard of active docking to prevent false bump triggers."""
+        guard = self.get_safety_guard()
+        if guard and hasattr(guard, "set_docking_mode"):
+            guard.set_docking_mode(active)
 
+
+
+
+    def disconnect(self):
+        """Safely disconnect and stop the PyCozmo client."""
+        if self.cli:
+            try:
+                self.cli.disconnect()
+            except Exception as e:
+                print(f"[PyCozmo] Disconnect notice: {e}")
+            try:
+                self.cli.stop()
+            except Exception as e:
+                print(f"[PyCozmo] Stop notice: {e}")
+        self.cli = None
+        self.is_connected = False
+        self.is_connecting = False
+        self.robot_mode = False
+        self.safety_guard = None
+        self.latest_image = None
+        print("[PyCozmo] Disconnected successfully.")
 
 
 cozmo_manager = CozmoManager()

@@ -33,6 +33,11 @@ from .primitives import (
     TRACK_WIDTH_MM,
 )
 
+from .visual_servoing import (
+    VisualServoingDockingController,
+    visual_servoing_controller,
+)
+
 __all__ = [
     "PoseTracker",
     "pose_tracker",
@@ -57,4 +62,7 @@ __all__ = [
     "DEFAULT_TURN_SPEED",
     "ROBOT_CAMERA_HEIGHT_MM",
     "TRACK_WIDTH_MM",
+    "VisualServoingDockingController",
+    "visual_servoing_controller",
 ]
+

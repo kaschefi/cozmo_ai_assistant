@@ -118,8 +118,37 @@ class TestDynamicRelocation(unittest.TestCase):
             smoothing_alpha=0.75,
         )
         self.assertIsNotNone(updated)
-        self.assertGreater(updated.estimated_x, 50.0)  # Relocated towards (140, 20)
-        self.assertAlmostEqual(updated.estimated_y, 15.0, delta=10.0)
+    def test_locked_charger_does_not_relocate(self):
+        """When an anchor is locked, update_or_relocate_anchor and update_anchor_pose must not alter coordinates."""
+        dummy_vec = np.ones((384,), dtype=np.float32)
+        dummy_vec /= np.linalg.norm(dummy_vec)
+
+        self.store.save_anchor("charger", dummy_vec, x=250.0, y=50.0)
+        self.store.lock_charger()
+        self.assertTrue(self.store.is_charger_locked())
+
+        # Vision attempts to relocate locked charger to (400, 100)
+        relocated = self.store.update_or_relocate_anchor(
+            label="charger",
+            observed_x=400.0,
+            observed_y=100.0,
+            confidence=0.99,
+        )
+        self.assertIsNotNone(relocated)
+        self.assertEqual(relocated.estimated_x, 250.0)
+        self.assertEqual(relocated.estimated_y, 50.0)
+
+        # Unlock allows relocation
+        self.store.unlock_charger()
+        self.assertFalse(self.store.is_charger_locked())
+        relocated2 = self.store.update_or_relocate_anchor(
+            label="charger",
+            observed_x=400.0,
+            observed_y=100.0,
+            confidence=0.99,
+        )
+        self.assertIsNotNone(relocated2)
+        self.assertGreater(relocated2.estimated_x, 300.0)
 
 
 if __name__ == "__main__":

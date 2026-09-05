@@ -44,6 +44,7 @@ class VisualAnchor:
     created_at: float = field(default_factory=time.time)
     last_seen_at: float = field(default_factory=time.time)
     observation_count: int = 1
+    is_locked: bool = False
     notes: str = ""
 
     def get_numpy_vector(self) -> np.ndarray:
@@ -116,22 +117,22 @@ def estimate_ground_position(
     return float(world_x), float(world_y), float(dist_total)
 
 
-DEFAULT_CHARGER_DISTANCE_MM = 300.0  # 30 cm (300 mm) directly behind Cozmo
+DEFAULT_CHARGER_DISTANCE_MM = 100.0  # 10 cm (100 mm) directly behind Cozmo
 
 
 def get_default_charger_pose(robot_pose: Tuple[float, float, float] = (0.0, 0.0, 0.0)) -> Tuple[float, float, float]:
     """
     Calculates the default 2D desk coordinates of the charger station.
-    The charger by default is positioned exactly 30 cm (300 mm) directly behind Cozmo
-    based on Cozmo's current heading angle (defaults to (-300, 0, 180°)).
+    The charger by default is positioned exactly 10 cm (100 mm) directly behind Cozmo
+    based on Cozmo's current heading angle (defaults to (-100, 0, 180°)).
     """
     rx, ry, r_theta_deg = robot_pose
     r_theta_rad = math.radians(r_theta_deg)
     # Behind the robot is negative forward direction
     charger_x = rx - DEFAULT_CHARGER_DISTANCE_MM * math.cos(r_theta_rad)
     charger_y = ry - DEFAULT_CHARGER_DISTANCE_MM * math.sin(r_theta_rad)
-    # Charger front opening faces into the room (along robot forward heading)
-    charger_theta = float(r_theta_deg % 360.0)
+    # Charger front opening faces toward the robot (180 deg opposite)
+    charger_theta = float((r_theta_deg + 180.0) % 360.0)
     return float(charger_x), float(charger_y), float(charger_theta)
 
 
@@ -180,6 +181,7 @@ class VisualAnchorStore:
                         created_at=float(item.get("created_at", time.time())),
                         last_seen_at=float(item.get("last_seen_at", time.time())),
                         observation_count=int(item.get("observation_count", 1)),
+                        is_locked=bool(item.get("is_locked", False)),
                         notes=str(item.get("notes", "")),
                     )
                 return self._anchors
@@ -377,6 +379,58 @@ class VisualAnchorStore:
 
             return detections
 
+    def lock_anchor(self, label: str) -> bool:
+        """Locks an anchor so dynamic vision relocation cannot modify its coordinates."""
+        with self._lock:
+            anchor = self._anchors.get(label)
+            if anchor:
+                anchor.is_locked = True
+                self.save_to_disk()
+                return True
+            return False
+
+    def unlock_anchor(self, label: str) -> bool:
+        """Unlocks an anchor allowing vision updates."""
+        with self._lock:
+            anchor = self._anchors.get(label)
+            if anchor:
+                anchor.is_locked = False
+                self.save_to_disk()
+                return True
+            return False
+
+    def lock_charger(self) -> bool:
+        """Finds and locks all charger/dock anchors."""
+        with self._lock:
+            found = False
+            for k, a in self._anchors.items():
+                if any(tag in a.label.lower() for tag in ("charger", "dock")):
+                    a.is_locked = True
+                    found = True
+            if found:
+                self.save_to_disk()
+            return found
+
+    def unlock_charger(self) -> bool:
+        """Finds and unlocks all charger/dock anchors."""
+        with self._lock:
+            found = False
+            for k, a in self._anchors.items():
+                if any(tag in a.label.lower() for tag in ("charger", "dock")):
+                    a.is_locked = False
+                    found = True
+            if found:
+                self.save_to_disk()
+            return found
+
+    def is_charger_locked(self) -> bool:
+        """Checks if the charger anchor is currently locked."""
+        with self._lock:
+            for k, a in self._anchors.items():
+                if any(tag in a.label.lower() for tag in ("charger", "dock")):
+                    return getattr(a, "is_locked", False)
+            return False
+
     def update_anchor_pose(
         self,
         label: str,
@@ -389,6 +443,8 @@ class VisualAnchorStore:
         with self._lock:
             anchor = self._anchors.get(label)
             if anchor:
+                if getattr(anchor, "is_locked", False) and not force_save:
+                    return False
                 old_x, old_y = anchor.estimated_x, anchor.estimated_y
                 anchor.estimated_x = float(new_x)
                 anchor.estimated_y = float(new_y)
@@ -404,7 +460,6 @@ class VisualAnchorStore:
                 return True
             return False
 
-
     def update_or_relocate_anchor(
         self,
         label: str,
@@ -412,16 +467,24 @@ class VisualAnchorStore:
         observed_y: float,
         confidence: float = 0.85,
         smoothing_alpha: float = 0.65,
+        new_theta_deg: Optional[float] = None,
     ) -> Optional[VisualAnchor]:
         """
         Dynamically updates the spatial position of an observed anchor.
         If the object was moved/relocated by > 35mm, smoothly updates coordinates
         and marks an updated timestamp without creating duplicate ghost landmarks!
+        Respects is_locked: if locked, updates timestamp only without shifting position.
         """
         with self._lock:
             anchor = self._anchors.get(label)
             if not anchor:
                 return None
+
+            # If anchor is locked (e.g. during docking sequence), never alter coordinates
+            if getattr(anchor, "is_locked", False):
+                anchor.last_seen_at = time.time()
+                anchor.observation_count += 1
+                return anchor
 
             old_x, old_y = anchor.estimated_x, anchor.estimated_y
             disp = math.hypot(observed_x - old_x, observed_y - old_y)
@@ -431,6 +494,8 @@ class VisualAnchorStore:
                 # Apply smoothing filter
                 anchor.estimated_x = float(smoothing_alpha * observed_x + (1.0 - smoothing_alpha) * old_x)
                 anchor.estimated_y = float(smoothing_alpha * observed_y + (1.0 - smoothing_alpha) * old_y)
+                if new_theta_deg is not None:
+                    anchor.estimated_theta_deg = float(new_theta_deg)
                 anchor.last_seen_at = time.time()
                 anchor.observation_count += 1
                 self.save_to_disk()
@@ -441,6 +506,8 @@ class VisualAnchorStore:
                 if disp > 5.0:
                     anchor.estimated_x = float(0.2 * observed_x + 0.8 * old_x)
                     anchor.estimated_y = float(0.2 * observed_y + 0.8 * old_y)
+                if new_theta_deg is not None:
+                    anchor.estimated_theta_deg = float(0.3 * new_theta_deg + 0.7 * anchor.estimated_theta_deg)
 
             return anchor
 
@@ -525,13 +592,19 @@ class VisualAnchorStore:
                     anchor.estimated_x = def_x
                     anchor.estimated_y = def_y
                     anchor.estimated_theta_deg = def_theta
+                    if len(anchor.feature_vector) != 384 or np.linalg.norm(anchor.feature_vector) < 1e-6:
+                        default_feat = [0.0] * 384
+                        default_feat[0] = 1.0
+                        anchor.feature_vector = default_feat
                     self.save_to_disk()
                 return anchor
             else:
                 charger_key = "charger"
+                default_feat = [0.0] * 384
+                default_feat[0] = 1.0
                 new_anchor = VisualAnchor(
                     label=charger_key,
-                    feature_vector=[0.0] * 768,
+                    feature_vector=default_feat,
                     confidence_threshold=0.65,
                     estimated_x=def_x,
                     estimated_y=def_y,

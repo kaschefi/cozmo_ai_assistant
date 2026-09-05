@@ -34,6 +34,8 @@ export const ThemeSelector: React.FC = () => {
             ? 'bg-gradient-to-tr from-[#083c4d] to-[#00f3ff] shadow-[0_0_8px_rgba(0,243,255,0.5)]' 
             : theme === 'royal'
             ? 'bg-gradient-to-tr from-[#0f3b25] to-[#d4af37] shadow-[0_0_8px_rgba(212,175,55,0.6)]'
+            : theme === 'it'
+            ? 'bg-gradient-to-tr from-[#052e16] to-[#12a574] shadow-[0_0_8px_rgba(18,165,116,0.6)]'
             : 'bg-zinc-800 border border-white/20'
         }`}>
           {theme === 'black-ice' ? (
@@ -43,6 +45,10 @@ export const ThemeSelector: React.FC = () => {
           ) : theme === 'royal' ? (
             <svg className="w-3 h-3 text-slate-950 font-bold" fill="currentColor" viewBox="0 0 24 24">
               <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z" />
+            </svg>
+          ) : theme === 'it' ? (
+            <svg className="w-3 h-3 text-slate-950 font-bold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           ) : (
             <svg className="w-3 h-3 text-zinc-300 font-bold" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
@@ -76,9 +82,11 @@ export const ThemeSelector: React.FC = () => {
             <span>Theme Presets</span>
             <span
               className="font-semibold transition-colors duration-300"
-              style={{ color: theme === 'royal' ? '#d4af37' : '#00f3ff' }}
+              style={{
+                color: theme === 'royal' ? '#d4af37' : theme === 'it' ? '#12a574' : '#00f3ff'
+              }}
             >
-              Particles: {theme === 'royal' ? 'Gold' : 'Cyan'}
+              Particles: {theme === 'royal' ? 'Gold' : theme === 'it' ? 'Phthalo Green' : 'Cyan'}
             </span>
           </div>
 
@@ -121,8 +129,8 @@ export const ThemeSelector: React.FC = () => {
                       <span 
                         className="w-1.5 h-1.5 rounded-full" 
                         style={{
-                          backgroundColor: t.id === 'royal' ? '#d4af37' : '#00f3ff',
-                          boxShadow: t.id === 'royal' ? '0 0 6px #d4af37' : '0 0 6px #00f3ff'
+                          backgroundColor: t.id === 'royal' ? '#d4af37' : t.id === 'it' ? '#12a574' : '#00f3ff',
+                          boxShadow: t.id === 'royal' ? '0 0 6px #d4af37' : t.id === 'it' ? '0 0 6px #12a574' : '0 0 6px #00f3ff'
                         }}
                       />
                     )}

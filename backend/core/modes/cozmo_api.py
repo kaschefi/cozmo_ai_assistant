@@ -22,6 +22,10 @@ from pydantic import BaseModel
 import numpy as np
 from PIL import Image
 import cv2
+try:
+    import pycozmo
+except ImportError:
+    pycozmo = None
 
 from core.hardware.connection import cozmo_manager
 from autonomous_cozmo.vision import (
@@ -41,6 +45,7 @@ from autonomous_cozmo.motion import (
     DEFAULT_BLOCK_RADIUS_MM,
     DEFAULT_BLOCK_SIZE_MM,
     pose_tracker,
+    visual_servoing_controller,
 )
 
 # API Routers
@@ -147,12 +152,19 @@ async def get_cozmo_status():
     }
 
 
-@cozmo_router.post("/connect")
-async def connect_cozmo(timeout: float = 12.0):
+@cozmo_router.api_route("/connect", methods=["GET", "POST"])
+async def connect_cozmo():
     """Triggers background PyCozmo Wi-Fi connection handshake."""
     cozmo_manager.robot_mode = True
     cozmo_manager.start()
     return {"status": "connecting", "message": "Initiating Cozmo connection handshake..."}
+
+
+@cozmo_router.api_route("/disconnect", methods=["GET", "POST"])
+async def disconnect_cozmo():
+    """Disconnects from PyCozmo robot."""
+    cozmo_manager.disconnect()
+    return {"status": "disconnected", "message": "Cozmo robot disconnected."}
 
 
 def update_simulated_motion(speed: float, steer: float, dt: float = 0.05):
@@ -181,11 +193,29 @@ async def execute_cozmo_command(req: CozmoCommandRequest):
             cozmo_web_state.camera_source = src
             if src == "cozmo" and cli and cozmo_manager.is_connected:
                 try:
+                    import pycozmo
+
+                    def _on_camera_frame(client, image):
+                        client.latest_image = image
+                        client._latest_image = image
+                        cozmo_manager.latest_image = image
+
+                    cli.add_handler(pycozmo.event.EvtNewRawCameraImage, _on_camera_frame)
                     cli.enable_camera(enable=True, color=True)
+                    cli._cam_stream_enabled = True
                 except Exception:
                     pass
             return {"status": "success", "camera_source": cozmo_web_state.camera_source}
         raise HTTPException(status_code=400, detail="Camera source must be 'cozmo' or 'webcam'.")
+
+    elif action == "connect":
+        cozmo_manager.robot_mode = True
+        cozmo_manager.start()
+        return {"status": "connecting", "message": "Initiating Cozmo connection handshake..."}
+
+    elif action == "disconnect":
+        cozmo_manager.disconnect()
+        return {"status": "disconnected", "message": "Cozmo robot disconnected."}
 
     elif action == "drive":
         # Target waypoint point click drive
@@ -219,6 +249,11 @@ async def execute_cozmo_command(req: CozmoCommandRequest):
         return {"status": "success", "action": "drive", "pose": cozmo_web_state.latest_robot_pose}
 
     elif action == "stop":
+        if cozmo_web_state.simulation_active and cozmo_web_state.simulation_task:
+            cozmo_web_state.simulation_active = False
+            cozmo_web_state.simulation_task.cancel()
+            cozmo_web_state.simulation_task = None
+        cozmo_manager.set_docking_mode(False)
         if cli and cozmo_manager.is_connected:
             try:
                 cli.stop_all_motors()
@@ -263,9 +298,9 @@ async def execute_cozmo_command(req: CozmoCommandRequest):
 
     elif action == "dock":
         cozmo_web_state.active_state = "DOCKING"
-        cozmo_web_state.current_action = "NAVIGATING TO CHARGER"
-        # Autonomous return to dock trigger
-        return {"status": "success", "message": "Initiating autonomous docking sequence."}
+        cozmo_web_state.current_action = "PLANNING 2-WAY A* DOCKING TRAJECTORY"
+        res = await start_docking_simulation()
+        return {"status": "success", "message": "Initiating autonomous docking sequence.", "plan": res.get("plan")}
 
     elif action in ("toggle_webcam", "set_webcam", "webcam"):
         if req.enabled is not None:
@@ -340,6 +375,7 @@ async def list_visual_anchors():
                 "theta_deg": round(a.estimated_theta_deg, 1),
                 "confidence_threshold": a.confidence_threshold,
                 "is_permanent": a.is_permanent,
+                "is_locked": getattr(a, "is_locked", False),
                 "observation_count": a.observation_count,
                 "last_seen_at": a.last_seen_at,
                 "notes": a.notes,
@@ -347,6 +383,20 @@ async def list_visual_anchors():
             for a in anchors
         ]
     }
+
+
+@cozmo_router.post("/anchors/{label}/lock")
+async def lock_anchor(label: str):
+    """Locks an anchor so that dynamic vision relocation cannot modify its coordinates."""
+    success = visual_anchor_store.lock_anchor(label)
+    return {"status": "success" if success else "error", "label": label, "is_locked": True}
+
+
+@cozmo_router.post("/anchors/{label}/unlock")
+async def unlock_anchor(label: str):
+    """Unlocks an anchor allowing vision updates."""
+    success = visual_anchor_store.unlock_anchor(label)
+    return {"status": "success" if success else "error", "label": label, "is_locked": False}
 
 
 class BlockItem(BaseModel):
@@ -516,15 +566,33 @@ async def plan_dock_path(req: Optional[PlanPathRequest] = None):
 
 
 async def _run_docking_simulation(waypoints: List[List[float]], approach_heading_deg: float, charger_pose: Tuple[float, float, float]):
-    """Async background task that drives simulated Cozmo smoothly along waypoints into the charger."""
+    """
+    Unified docking executor:
+    1. Locks the charger anchor so vision updates cannot jitter coordinates.
+    2. Stage 1 (Coarse Navigation): Cozmo traverses the Two-Way A* waypoints around obstacles
+       to the pre-dock approach pose (~18cm in front of charger), driving physical wheels on hardware
+       and updating odometry + digital twin pose synchronously.
+    3. Stage 2 (Fine Alignment): Aligns chassis toward the charger entrance.
+       - If real robot is connected: hands over to closed-loop visual servoing with active camera feedback,
+         optical marker locking, 180° rotation, and reverse docking with RobotStatusFlag.IS_ON_CHARGER pin check.
+       - If running purely in simulation: executes simulated 180° rotation and reverse onto pins.
+    """
+    # 1. Lock charger anchor immediately
+    visual_anchor_store.lock_charger()
+
+    cli = cozmo_manager.get_robot() if cozmo_manager.is_connected else None
+    track_width_mm = 45.0  # Cozmo track width
+
     try:
+        cozmo_manager.set_docking_mode(True)
         cozmo_web_state.simulation_active = True
         cozmo_web_state.active_state = "DOCKING"
         cozmo_web_state.simulation_stage = "NAVIGATING"
 
-        # Drive along waypoints (excluding the final charger pin contact which is done in reverse)
+        # Drive along waypoints (excluding final charger contact)
         nav_points = waypoints[:-1] if len(waypoints) > 1 else waypoints
-        speed_mm_s = 65.0  # Simulated speed
+        speed_mm_s = 50.0  # Safe physical drive speed (50 mm/s)
+        turn_speed_deg_s = 60.0  # Smooth turn speed (60 deg/s)
 
         for i, target_pt in enumerate(nav_points):
             cur_x, cur_y, cur_theta = cozmo_web_state.latest_robot_pose
@@ -532,53 +600,162 @@ async def _run_docking_simulation(waypoints: List[List[float]], approach_heading
 
             # Steer toward target
             target_heading_deg = math.degrees(math.atan2(ty - cur_y, tx - cur_x))
-            
-            # Smoothly rotate to heading
             diff_rot = (target_heading_deg - cur_theta + 180.0) % 360.0 - 180.0
-            turn_steps = max(3, int(abs(diff_rot) / 15.0))
+
+            # Turn phase
+            if abs(diff_rot) > 2.5:
+                turn_time = abs(diff_rot) / turn_speed_deg_s
+                turn_steps = max(4, int(turn_time / 0.05))
+                step_dt = turn_time / turn_steps
+                turn_dir = 1.0 if diff_rot > 0 else -1.0
+                wheel_speed = math.radians(turn_speed_deg_s) * (track_width_mm / 2.0)
+
+                if cli:
+                    try:
+                        cli.drive_wheels(lwheel_speed=-turn_dir * wheel_speed, rwheel_speed=turn_dir * wheel_speed)
+                    except Exception as e:
+                        print(f"[Docking] Motor turn error: {e}")
+
+                for t in range(turn_steps):
+                    if not cozmo_web_state.simulation_active:
+                        return
+                    frac = (t + 1) / turn_steps
+                    new_theta = (cur_theta + diff_rot * frac) % 360.0
+                    cozmo_web_state.latest_robot_pose = (cur_x, cur_y, new_theta)
+                    pose_tracker.update_pose(cur_x, cur_y, new_theta)
+                    await asyncio.sleep(step_dt)
+
+                if cli:
+                    try:
+                        cli.stop_all_motors()
+                    except Exception:
+                        pass
+                await asyncio.sleep(0.05)
+
+            # Drive phase
+            dist = math.hypot(tx - cur_x, ty - cur_y)
+            if dist > 3.0:
+                drive_time = dist / speed_mm_s
+                drive_steps = max(4, int(drive_time / 0.05))
+                step_dt = drive_time / drive_steps
+
+                if cli:
+                    try:
+                        cli.drive_wheels(lwheel_speed=speed_mm_s, rwheel_speed=speed_mm_s)
+                    except Exception as e:
+                        print(f"[Docking] Motor drive error: {e}")
+
+                for d in range(drive_steps):
+                    if not cozmo_web_state.simulation_active:
+                        return
+                    frac = (d + 1) / drive_steps
+                    nx = cur_x + (tx - cur_x) * frac
+                    ny = cur_y + (ty - cur_y) * frac
+                    cozmo_web_state.latest_robot_pose = (nx, ny, target_heading_deg)
+                    pose_tracker.update_pose(nx, ny, target_heading_deg)
+                    cozmo_web_state.current_action = f"NAVIGATING WAYPOINT {i+1}/{len(nav_points)}"
+                    await asyncio.sleep(step_dt)
+
+                if cli:
+                    try:
+                        cli.stop_all_motors()
+                    except Exception:
+                        pass
+                await asyncio.sleep(0.05)
+
+        # Align chassis directly toward charger entrance
+        cozmo_web_state.simulation_stage = "ALIGNING"
+        cozmo_web_state.current_action = "ALIGNING TO CHARGER ENTRANCE"
+        cur_x, cur_y, cur_theta = cozmo_web_state.latest_robot_pose
+        diff_rot = (approach_heading_deg - cur_theta + 180.0) % 360.0 - 180.0
+        if abs(diff_rot) > 2.5:
+            turn_time = abs(diff_rot) / turn_speed_deg_s
+            turn_steps = max(4, int(turn_time / 0.05))
+            step_dt = turn_time / turn_steps
+            turn_dir = 1.0 if diff_rot > 0 else -1.0
+            wheel_speed = math.radians(turn_speed_deg_s) * (track_width_mm / 2.0)
+            if cli:
+                try:
+                    cli.drive_wheels(lwheel_speed=-turn_dir * wheel_speed, rwheel_speed=turn_dir * wheel_speed)
+                except Exception:
+                    pass
             for t in range(turn_steps):
                 if not cozmo_web_state.simulation_active:
                     return
                 frac = (t + 1) / turn_steps
                 new_theta = (cur_theta + diff_rot * frac) % 360.0
                 cozmo_web_state.latest_robot_pose = (cur_x, cur_y, new_theta)
-                await asyncio.sleep(0.04)
+                pose_tracker.update_pose(cur_x, cur_y, new_theta)
+                await asyncio.sleep(step_dt)
+            if cli:
+                try:
+                    cli.stop_all_motors()
+                except Exception:
+                    pass
+            await asyncio.sleep(0.05)
 
-            # Smoothly drive forward to target
-            dist = math.hypot(tx - cur_x, ty - cur_y)
-            drive_steps = max(4, int(dist / (speed_mm_s * 0.05)))
-            for d in range(drive_steps):
-                if not cozmo_web_state.simulation_active:
-                    return
-                frac = (d + 1) / drive_steps
-                nx = cur_x + (tx - cur_x) * frac
-                ny = cur_y + (ty - cur_y) * frac
-                cozmo_web_state.latest_robot_pose = (nx, ny, target_heading_deg)
-                cozmo_web_state.current_action = f"NAVIGATING WAYPOINT {i+1}/{len(nav_points)}"
-                await asyncio.sleep(0.05)
+        # Stage 2: Hand over to closed-loop visual servoing if physical Cozmo connected
+        if cli and cozmo_manager.is_connected:
+            print("[Docking] Arrived at pre-dock entrance. Handing over to closed-loop visual servoing & reverse docking...")
+            success = await visual_servoing_controller.execute_docking(
+                cli=cli,
+                get_detections=lambda: cozmo_web_state.latest_detections,
+                get_robot_pose=lambda: cozmo_web_state.latest_robot_pose,
+                set_robot_pose=lambda x, y, th: (
+                    setattr(cozmo_web_state, "latest_robot_pose", (round(x, 1), round(y, 1), round(th, 1))),
+                    pose_tracker.update_pose(round(x, 1), round(y, 1), round(th, 1)),
+                ),
+                set_state_info=lambda stage, action: (
+                    setattr(cozmo_web_state, "simulation_stage", stage),
+                    setattr(cozmo_web_state, "current_action", action),
+                ),
+                is_active=lambda: cozmo_web_state.simulation_active,
+                charger_world_pose=charger_pose,
+                set_docking_mode=cozmo_manager.set_docking_mode,
+                get_camera_frame=lambda: getattr(cozmo_manager, "latest_image", None),
+            )
+            if success:
+                cozmo_web_state.active_state = "DOCKED"
+                cozmo_web_state.simulation_stage = "COMPLETED"
+                cozmo_web_state.current_action = "CHARGING (4.20V) - AUTONOMOUS DOCK SUCCESSFUL"
+                return
 
-        # Stage 2: Arrived at pre-dock approach node. Rotate 180° for reverse docking
+        # Digital Twin Simulated Docking Fallback (for simulation-only mode)
+        # Stage 3: Rotate 180° for reverse docking
         cozmo_web_state.simulation_stage = "ALIGNING"
         cozmo_web_state.current_action = "ALIGNING 180° REVERSE DOCK"
         cur_x, cur_y, cur_theta = cozmo_web_state.latest_robot_pose
         target_reverse_theta = (approach_heading_deg + 180.0) % 360.0
-
         diff_rot = (target_reverse_theta - cur_theta + 180.0) % 360.0 - 180.0
-        turn_steps = max(6, int(abs(diff_rot) / 12.0))
-        for t in range(turn_steps):
-            if not cozmo_web_state.simulation_active:
-                return
-            frac = (t + 1) / turn_steps
-            new_theta = (cur_theta + diff_rot * frac) % 360.0
-            cozmo_web_state.latest_robot_pose = (cur_x, cur_y, new_theta)
-            await asyncio.sleep(0.04)
 
-        # Stage 3: Reverse onto charger pins
+        if abs(diff_rot) > 2.5:
+            turn_time = abs(diff_rot) / turn_speed_deg_s
+            turn_steps = max(6, int(turn_time / 0.05))
+            step_dt = turn_time / turn_steps
+            turn_dir = 1.0 if diff_rot > 0 else -1.0
+            wheel_speed = math.radians(turn_speed_deg_s) * (track_width_mm / 2.0)
+
+            for t in range(turn_steps):
+                if not cozmo_web_state.simulation_active:
+                    return
+                frac = (t + 1) / turn_steps
+                new_theta = (cur_theta + diff_rot * frac) % 360.0
+                cozmo_web_state.latest_robot_pose = (cur_x, cur_y, new_theta)
+                pose_tracker.update_pose(cur_x, cur_y, new_theta)
+                await asyncio.sleep(step_dt)
+            await asyncio.sleep(0.1)
+
+        # Stage 4: Reverse onto charger pins
         cozmo_web_state.simulation_stage = "DOCKING"
         cozmo_web_state.current_action = "REVERSING ONTO CHARGER PINS"
         cx, cy, _ = charger_pose
         cur_x, cur_y, cur_theta = cozmo_web_state.latest_robot_pose
-        dock_steps = 14
+        dock_dist = math.hypot(cx - cur_x, cy - cur_y)
+        dock_speed_mm_s = 28.0  # Gentle reverse docking speed
+        dock_time = max(1.5, min(4.0, dock_dist / dock_speed_mm_s if dock_dist > 5.0 else 2.5))
+        dock_steps = max(8, int(dock_time / 0.06))
+        step_dt = dock_time / dock_steps
+
         for s in range(dock_steps):
             if not cozmo_web_state.simulation_active:
                 return
@@ -586,14 +763,21 @@ async def _run_docking_simulation(waypoints: List[List[float]], approach_heading
             nx = cur_x + (cx - cur_x) * frac
             ny = cur_y + (cy - cur_y) * frac
             cozmo_web_state.latest_robot_pose = (nx, ny, cur_theta)
-            await asyncio.sleep(0.06)
+            pose_tracker.update_pose(nx, ny, cur_theta)
+            await asyncio.sleep(step_dt)
 
-        # Stage 4: Docking Completed!
+        # Stage 5: Docking Completed!
         cozmo_web_state.simulation_stage = "COMPLETED"
         cozmo_web_state.active_state = "DOCKED"
         cozmo_web_state.current_action = "CHARGING (4.20V) - DOCK COMPLETE"
         await asyncio.sleep(1.0)
     finally:
+        if cli:
+            try:
+                cli.stop_all_motors()
+            except Exception:
+                pass
+        cozmo_manager.set_docking_mode(False)
         cozmo_web_state.simulation_active = False
 
 
@@ -751,7 +935,12 @@ class AsyncVisionEngine:
                         det["world_x"] = wx
                         det["world_y"] = wy
                         det["distance_mm"] = dist
-                        visual_anchor_store.update_or_relocate_anchor(det["label"], wx, wy, confidence=det["confidence"])
+                        charger_theta = None
+                        if any(tag in det["label"].lower() for tag in ("charger", "dock")):
+                            charger_theta = (pose[2] + 180.0) % 360.0
+                        visual_anchor_store.update_or_relocate_anchor(
+                            det["label"], wx, wy, confidence=det["confidence"], new_theta_deg=charger_theta
+                        )
 
                     cozmo_web_state.latest_detections = detections
 
@@ -817,13 +1006,38 @@ def generate_mjpeg_stream(source: Optional[str] = None):
                 time.sleep(0.15)
                 continue
 
-            # Connected to Cozmo
-            raw_img = getattr(cli, "latest_image", None)
+            # Connected to Cozmo: Ensure camera event handler is attached & camera streaming is enabled
+            if cli and not getattr(cli, "_cam_stream_enabled", False):
+                try:
+                    import pycozmo
+
+                    def _on_camera_frame(client, image):
+                        client.latest_image = image
+                        client._latest_image = image
+                        cozmo_manager.latest_image = image
+
+                    cli.add_handler(pycozmo.event.EvtNewRawCameraImage, _on_camera_frame)
+                    cli.enable_camera(enable=True, color=True)
+                    cli._cam_stream_enabled = True
+                    print("[OK] [Cozmo Camera] EvtNewRawCameraImage attached & color stream enabled.")
+                except Exception as e:
+                    print(f"[Cozmo Camera] Notice registering cam stream: {e}")
+
+            # Retrieve frame from any available source on cli or manager
+            raw_img = (
+                getattr(cli, "latest_image", None)
+                or getattr(cli, "_latest_image", None)
+                or getattr(cozmo_manager, "latest_image", None)
+            )
             if raw_img is not None:
                 try:
-                    rgb_np = np.array(raw_img.convert("RGB"))
+                    if hasattr(raw_img, "convert"):
+                        rgb_np = np.array(raw_img.convert("RGB"))
+                    else:
+                        rgb_np = np.array(raw_img)
                     raw_frame = cv2.cvtColor(rgb_np, cv2.COLOR_RGB2BGR)
-                except Exception:
+                except Exception as e:
+                    print(f"[Cozmo Camera] Error converting frame: {e}")
                     raw_frame = None
 
             if raw_frame is None:
@@ -1011,6 +1225,7 @@ async def cozmo_telemetry_websocket(websocket: WebSocket):
                     "webcam_enabled": cozmo_web_state.webcam_enabled,
                     "robot": {
                         "is_connected": is_conn,
+                        "is_connecting": cozmo_manager.is_connecting,
                         "x": round(cozmo_web_state.latest_robot_pose[0], 1),
                         "y": round(cozmo_web_state.latest_robot_pose[1], 1),
                         "theta_deg": round(cozmo_web_state.latest_robot_pose[2], 1),
@@ -1029,6 +1244,8 @@ async def cozmo_telemetry_websocket(websocket: WebSocket):
                             "label": a.label,
                             "x": round(a.estimated_x, 1),
                             "y": round(a.estimated_y, 1),
+                            "theta_deg": round(a.estimated_theta_deg, 1),
+                            "is_locked": getattr(a, "is_locked", False),
                             "confidence_threshold": a.confidence_threshold,
                             "is_permanent": a.is_permanent,
                             "observation_count": a.observation_count,

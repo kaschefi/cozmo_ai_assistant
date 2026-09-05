@@ -99,5 +99,16 @@ class TestCozmoAPI(unittest.TestCase):
         self.assertGreater(len(frame_chunk), 500)
 
 
+    def test_connect_and_disconnect(self):
+        """Verify POST /api/cozmo/connect and /api/cozmo/disconnect endpoints."""
+        resp_conn = self.client.post("/api/cozmo/connect")
+        self.assertEqual(resp_conn.status_code, 200)
+        self.assertEqual(resp_conn.json().get("status"), "connecting")
+
+        resp_disc = self.client.post("/api/cozmo/disconnect")
+        self.assertEqual(resp_disc.status_code, 200)
+        self.assertEqual(resp_disc.json().get("status"), "disconnected")
+
+
 if __name__ == "__main__":
     unittest.main()

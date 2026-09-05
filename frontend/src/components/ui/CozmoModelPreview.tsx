@@ -23,7 +23,7 @@ export const CozmoModelPreview: React.FC<CozmoModelPreviewProps> = ({
       case 'royal':
         return 0xf59e0b; // Gold/Amber
       case 'it':
-        return 0x10b981; // Cyber Emerald
+        return 0x12a574; // Phthalo Green
       case 'black-ice':
       default:
         return 0x00f0ff; // Glacial Cyan

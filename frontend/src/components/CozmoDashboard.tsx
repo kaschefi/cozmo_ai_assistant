@@ -18,6 +18,7 @@ interface TelemetryData {
     state: string;
     action: string;
     lift_height_mm: number;
+    is_connecting?: boolean;
   };
   anchors: VisualAnchorData[];
   obstacles: ObstacleData[];
@@ -72,6 +73,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       battery_voltage: 4.10,
       headlight_on: false,
       is_connected: false,
+      is_connecting: false,
       webcam_enabled: true,
       state: 'STANDBY',
       action: 'IDLE',
@@ -86,6 +88,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
   });
 
   const [wsConnected, setWsConnected] = useState<boolean>(false);
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [cameraSource, setCameraSource] = useState<'cozmo' | 'webcam'>('cozmo');
   const [webcamEnabled, setWebcamEnabled] = useState<boolean>(true);
   const [streamKey, setStreamKey] = useState<number>(Date.now());
@@ -96,13 +99,14 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
   const [mapViewMode, setMapViewMode] = useState<'2d' | '3d'>('3d');
   const [_activeTab, _setActiveTab] = useState<'stream' | 'map' | 'split'>('split');
   const wsRef = useRef<WebSocket | null>(null);
+  const userForcedDisconnectRef = useRef<boolean>(false);
 
   const apiHost = window.location.hostname || 'localhost';
   const apiPort = '8000';
   const streamUrl = `http://${apiHost}:${apiPort}/api/cozmo/video_feed?source=${cameraSource}&v=${streamKey}`;
   const wsUrl = `ws://${apiHost}:${apiPort}/ws/cozmo/telemetry`;
 
-  // Sync initial status (camera source & webcam enabled) on mount
+  // Sync initial status (camera source & connection state) on mount
   useEffect(() => {
     const fetchStatus = async () => {
       try {
@@ -114,6 +118,21 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
           }
           if (data.camera_source) {
             setCameraSource(data.camera_source);
+          }
+          if (typeof data.is_connected === 'boolean') {
+            const isConn = userForcedDisconnectRef.current ? false : data.is_connected;
+            const isConnProg = userForcedDisconnectRef.current ? false : Boolean(data.is_connecting);
+            setTelemetry((prev) => ({
+              ...prev,
+              robot: {
+                ...prev.robot,
+                is_connected: isConn,
+                is_connecting: isConnProg,
+              },
+            }));
+            if (isConnProg) {
+              setIsConnecting(true);
+            }
           }
         }
       } catch (e) {
@@ -140,7 +159,17 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          // If user explicitly forced disconnect, prevent stale backend loops from resurrecting is_connected
+          if (userForcedDisconnectRef.current && data.robot) {
+            data.robot.is_connected = false;
+            data.robot.is_connecting = false;
+          }
           setTelemetry(data);
+          if (data.robot?.is_connected) {
+            setIsConnecting(false);
+          } else if (typeof data.robot?.is_connecting === 'boolean' && !userForcedDisconnectRef.current) {
+            setIsConnecting(data.robot.is_connecting);
+          }
           if (typeof data.robot?.webcam_enabled === 'boolean') {
             setWebcamEnabled(data.robot.webcam_enabled);
           } else if (typeof data.webcam_enabled === 'boolean') {
@@ -169,6 +198,99 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
     };
   }, [wsUrl]);
+
+  // Trigger Cozmo Wi-Fi Handshake
+  const handleConnectCozmo = useCallback(async () => {
+    userForcedDisconnectRef.current = false;
+    setIsConnecting(true);
+    setStatusMessage('Initiating Cozmo Wi-Fi handshake... (Make sure PC is connected to Cozmo_XXXXXX)');
+    try {
+      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/connect`, {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.status === 'connecting') {
+        setStatusMessage('Connecting to Cozmo... Awaiting robot Wi-Fi handshake.');
+      }
+    } catch (e) {
+      console.error('Failed to initiate Cozmo connection:', e);
+      setStatusMessage('Error contacting backend to connect to Cozmo.');
+      setIsConnecting(false);
+    }
+  }, [apiHost, apiPort]);
+
+  // Trigger Cozmo Disconnect
+  const handleDisconnectCozmo = useCallback(async () => {
+    // 1. Optimistically reset all UI state immediately so button turns to "CONNECT TO COZMO"
+    userForcedDisconnectRef.current = true;
+    setIsConnecting(false);
+    setTelemetry((prev) => ({
+      ...prev,
+      robot: {
+        ...prev.robot,
+        is_connected: false,
+        is_connecting: false,
+      },
+    }));
+    setStatusMessage('Cozmo robot disconnected.');
+    setStreamKey(Date.now());
+
+    // 2. Notify backend through all channels (POST /disconnect and POST /command)
+    try {
+      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/disconnect`, {
+        method: 'POST',
+      });
+    } catch (e) {
+      // ignore
+    }
+    try {
+      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'disconnect' }),
+      });
+    } catch (e) {
+      // ignore
+    }
+  }, [apiHost, apiPort]);
+
+  // Active polling while connection handshake is in progress
+  useEffect(() => {
+    if (!isConnecting) return;
+    let attempts = 0;
+    const maxAttempts = 25; // 25 seconds
+    const interval = setInterval(async () => {
+      attempts += 1;
+      try {
+        const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/status`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.is_connected) {
+            setIsConnecting(false);
+            setStatusMessage('Cozmo connected successfully! Hardware link active.');
+            setStreamKey(Date.now());
+            clearInterval(interval);
+            return;
+          }
+          if (!data.is_connecting && attempts > 3) {
+            setIsConnecting(false);
+            setStatusMessage('Cozmo connection failed or timed out. Ensure robot is ON and PC is on Cozmo Wi-Fi.');
+            clearInterval(interval);
+            return;
+          }
+        }
+      } catch (e) {
+        // network issue
+      }
+      if (attempts >= maxAttempts) {
+        setIsConnecting(false);
+        setStatusMessage('Cozmo connection attempt timed out.');
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isConnecting, apiHost, apiPort]);
 
   // Send Command to Backend API / WebSocket
   const sendCommand = useCallback(async (action: string, params: Record<string, any> = {}) => {
@@ -377,7 +499,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
   const handleSimulateDock = useCallback(async () => {
     try {
-      setStatusMessage('Simulating Autonomous Return to Charger along 2-Way A* Trajectory...');
+      setStatusMessage('Locking charger & planning Two-Way A* docking path (5cm clearance)...');
       const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/simulation/dock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -385,14 +507,18 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       });
       const data = await res.json();
       if (data.status === 'success') {
-        setStatusMessage('Simulation Active: Cozmo returning to charger avoiding all blocks with 5cm clearance!');
+        setStatusMessage(
+          telemetry.robot.is_connected
+            ? 'Autonomous Docking Active: Real Cozmo navigating to charger with 5cm obstacle clearance!'
+            : 'Simulation Active: Cozmo returning to charger avoiding all blocks with 5cm clearance!'
+        );
       } else {
-        setStatusMessage(data.detail || 'Simulation request failed.');
+        setStatusMessage(data.detail || 'Docking request failed.');
       }
     } catch (e) {
-      console.error('Simulation request failed:', e);
+      console.error('Docking request failed:', e);
     }
-  }, [apiHost, apiPort]);
+  }, [apiHost, apiPort, telemetry.robot.is_connected]);
 
   const handleSpawnBlock = useCallback(async (x: number, y: number) => {
     try {
@@ -409,7 +535,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
           label: `Cube ${blockId.slice(-3)}`,
         }),
       });
-      setStatusMessage(`Spawned Cozmo Light Cube at (${x}, ${y})mm with 5cm safety clearance.`);
+      setStatusMessage(`Spawned Cozmo Light Cube at (${(x / 10).toFixed(1)}, ${(y / 10).toFixed(1)})cm with 5cm safety clearance.`);
       handlePlanPath();
     } catch (e) {
       console.error('Spawn block failed:', e);
@@ -538,7 +664,6 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       <header className="h-14 bg-slate-950/90 border-b border-cyan-900/40 px-5 flex items-center justify-between backdrop-blur-md z-30">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2.5">
-            <span className="text-xl">🤖</span>
             <h1 className="text-base font-bold tracking-wider text-cyan-300 flex items-center gap-2">
               COZMO AUTONOMOUS MISSION CONTROL
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-400 border border-cyan-700/50">
@@ -562,7 +687,6 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900 border border-slate-800">
-              <span>🔋</span>
               <span className={`font-mono font-bold ${batteryColor}`}>
                 {telemetry.robot.battery_voltage.toFixed(2)}V
               </span>
@@ -587,19 +711,19 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               onClick={() => setActiveTab('stream')}
               className={`px-3 py-1 rounded transition ${activeTab === 'stream' ? 'bg-cyan-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
             >
-              📹 Camera Feed
+              Camera Feed
             </button>
             <button
               onClick={() => setActiveTab('split')}
               className={`px-3 py-1 rounded transition ${activeTab === 'split' ? 'bg-cyan-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
             >
-              🔲 Split View
+              Split View
             </button>
             <button
               onClick={() => setActiveTab('map')}
               className={`px-3 py-1 rounded transition ${activeTab === 'map' ? 'bg-cyan-600 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
             >
-              🗺️ 2D Semantic Map
+              2D Semantic Map
             </button>
           </div>
 
@@ -610,7 +734,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               onClick={onBackToChat}
               className="px-3 py-1.5 text-xs font-semibold text-cyan-300 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-800/60 rounded-md transition flex items-center gap-1.5"
             >
-              💬 MoKa Chat
+              MoKa Chat
             </button>
           )}
 
@@ -619,7 +743,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               onClick={onBackToLanding}
               className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-md transition"
             >
-              🏠 Home
+              Home
             </button>
           )}
         </div>
@@ -657,24 +781,83 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
           {/* Telemetry Status Badges */}
           <div className="flex items-center flex-wrap gap-2.5 text-xs">
-            {/* Connection Status */}
-            <div className="theme-badge px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px]">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  telemetry.robot.is_connected
-                    ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]'
-                    : 'bg-amber-400 shadow-[0_0_6px_#fbbf24]'
+            {/* Robot Wi-Fi Connection Control */}
+            {telemetry.robot.is_connected ? (
+              <div className="flex items-center gap-1.5">
+                <div className="theme-badge px-3 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px] border-emerald-500/50 bg-emerald-950/60 text-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.2)]">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
+                  <span className="font-bold">ROBOT LINKED</span>
+                </div>
+                <button
+                  onClick={handleConnectCozmo}
+                  className="dock-btn dock-btn-cyan h-7 px-2.5 text-[11px] font-mono flex items-center gap-1 cursor-pointer select-none"
+                  title="Force Reconnect to Cozmo Robot Wi-Fi"
+                >
+                  <svg className="w-3 h-3 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                  </svg>
+                  <span>RECONNECT</span>
+                </button>
+                <button
+                  onClick={handleDisconnectCozmo}
+                  className="dock-btn dock-btn-rose h-7 px-2.5 text-[11px] font-mono flex items-center gap-1 hover:bg-rose-950/80 transition-all cursor-pointer select-none"
+                  title="Disconnect Cozmo Robot Wi-Fi"
+                >
+                  <svg className="w-3 h-3 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  <span>DISCONNECT</span>
+                </button>
+              </div>
+            ) : isConnecting || telemetry.robot.is_connecting ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  disabled
+                  className="theme-badge px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px] border-amber-500/50 bg-amber-950/70 text-amber-300 cursor-wait animate-pulse"
+                  title="Waiting for Cozmo Wi-Fi Handshake..."
+                >
+                  <svg className="w-3.5 h-3.5 animate-spin text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span className="font-bold">CONNECTING...</span>
+                </button>
+                <button
+                  onClick={handleDisconnectCozmo}
+                  className="dock-btn dock-btn-rose h-7 px-2.5 text-[10px] font-mono hover:bg-rose-950/80 cursor-pointer select-none"
+                  title="Cancel Connection Attempt"
+                >
+                  CANCEL
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleConnectCozmo}
+                className={`h-8 px-3.5 rounded-xl flex items-center gap-2 font-mono text-xs font-bold transition-all duration-300 shadow-[0_0_16px_rgba(6,182,212,0.3)] hover:shadow-[0_0_24px_rgba(6,182,212,0.6)] hover:scale-105 active:scale-95 cursor-pointer select-none ${
+                  isRoyal
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-extrabold border border-amber-300/80 shadow-[0_0_16px_rgba(212,175,55,0.4)]'
+                    : isIT
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-400 text-black font-extrabold border border-emerald-300/80 shadow-[0_0_16px_rgba(16,185,129,0.4)]'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white border border-cyan-400/60'
                 }`}
-              />
-              <span className="font-semibold">
-                {telemetry.robot.is_connected ? 'ROBOT LINKED' : 'STANDBY'}
-              </span>
-            </div>
+                title="Initiate Wi-Fi Connection to Cozmo Robot (Ensure PC is on Cozmo_XXXXXX Wi-Fi)"
+              >
+                <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                  <line x1="12" y1="20" x2="12.01" y2="20" strokeWidth="3" />
+                </svg>
+                <span>CONNECT TO COZMO</span>
+              </button>
+            )}
 
             {/* Active Camera Source Badge */}
             <button
               onClick={() => handleSetCameraSource(cameraSource === 'cozmo' ? 'webcam' : 'cozmo')}
-              className="theme-badge px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-mono text-[11px] hover:bg-white/[0.08] transition cursor-pointer"
+              className="dock-btn h-7 px-3 flex items-center gap-2"
               title="Click to toggle camera source between Cozmo Cam and Webcam"
             >
               <span className={`w-2 h-2 rounded-full ${cameraSource === 'cozmo' ? 'bg-cyan-400 shadow-[0_0_8px_#00f3ff]' : 'bg-indigo-400 shadow-[0_0_8px_#818cf8]'}`} />
@@ -728,7 +911,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
             <div className="flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
               <span className="font-bold text-white flex items-center gap-2 font-mono tracking-wider text-sm">
-                {cameraSource === 'cozmo' ? '🤖 COZMO CAM + DINO DUAL-PANE' : '💻 WEBCAM + DINO DUAL-PANE'}
+                {cameraSource === 'cozmo' ? 'COZMO CAM + DINO DUAL-PANE' : 'WEBCAM + DINO DUAL-PANE'}
               </span>
               <span className="theme-badge px-2 py-0.5 rounded-md text-[10px] font-mono uppercase font-bold text-emerald-300 border-emerald-500/40 ml-1">
                 SIDE-BY-SIDE VIEW
@@ -738,30 +921,36 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               </span>
             </div>
 
-            {/* TOP RIGHT CAMERA SOURCE TOGGLE BUTTONS */}
+            {/* TOP RIGHT CAMERA SOURCE TOGGLE BUTTONS (Dock Style) */}
             <div className="flex items-center gap-2.5">
+              {cameraSource === 'cozmo' && !telemetry.robot.is_connected && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleConnectCozmo();
+                  }}
+                  disabled={isConnecting}
+                  className="dock-btn dock-btn-cyan h-7 px-2.5 text-[11px] font-mono animate-pulse flex items-center gap-1.5 cursor-pointer select-none"
+                  title="Connect to Cozmo Robot Wi-Fi"
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                  <span>{isConnecting ? 'Connecting...' : 'Connect Robot Wi-Fi'}</span>
+                </button>
+              )}
               <span className="text-[11px] text-slate-400 font-mono hidden sm:inline">
                 SOURCE:
               </span>
-              <div className="flex items-center p-1 rounded-xl bg-black/60 border border-white/[0.12] shadow-inner">
+              <div className="dock-nav-bar">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSetCameraSource('cozmo');
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    cameraSource === 'cozmo'
-                      ? isRoyal
-                        ? 'bg-amber-500 text-black shadow-[0_0_12px_rgba(245,158,11,0.6)] font-extrabold'
-                        : isIT
-                        ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.6)] font-extrabold'
-                        : 'bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.6)] font-extrabold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`dock-btn ${cameraSource === 'cozmo' ? 'dock-btn-active' : ''}`}
                   title="Switch stream to Cozmo Robot Built-in Camera"
                 >
                   <span className={`w-2 h-2 rounded-full ${cameraSource === 'cozmo' ? 'bg-black animate-ping' : 'bg-slate-500'}`} />
-                  🤖 Cozmo Camera
+                  Cozmo Cam
                 </button>
 
                 <button
@@ -769,15 +958,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     e.stopPropagation();
                     handleSetCameraSource('webcam');
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    cameraSource === 'webcam'
-                      ? 'bg-indigo-500 text-white shadow-[0_0_12px_rgba(99,102,241,0.6)] font-extrabold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
+                  className={`dock-btn ${cameraSource === 'webcam' ? 'dock-btn-active' : ''}`}
                   title="Switch stream to PC Webcam"
                 >
-                  <span className={`w-2 h-2 rounded-full ${cameraSource === 'webcam' ? 'bg-emerald-300 animate-ping' : 'bg-slate-500'}`} />
-                  💻 PC Webcam
+                  <span className={`w-2 h-2 rounded-full ${cameraSource === 'webcam' ? 'bg-black animate-ping' : 'bg-slate-500'}`} />
+                  PC Webcam
                 </button>
               </div>
             </div>
@@ -808,19 +993,15 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               </div>
             )}
 
-            {/* Quick Stream Controls Overlay */}
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950/90 backdrop-blur-2xl p-3 rounded-2xl border border-white/[0.12] shadow-2xl">
-              <div className="flex items-center gap-2.5">
+            {/* Quick Stream Controls Overlay (Dock Style) */}
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity p-2 px-3 rounded-xl border border-white/[0.08] bg-[#08080c]/90 backdrop-blur-2xl shadow-[0_12px_34px_rgba(0,0,0,0.7)]">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     sendCommand('headlight');
                   }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-2 ${
-                    telemetry.robot.headlight_on
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.35)]'
-                      : 'bg-white/[0.06] text-slate-200 border-white/[0.1] hover:bg-white/[0.12]'
-                  }`}
+                  className={`dock-btn ${telemetry.robot.headlight_on ? 'dock-btn-amber dock-btn-active' : ''}`}
                 >
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="5" />
@@ -867,15 +1048,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     }
                     setStreamKey(Date.now());
                   }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-semibold border transition-all cursor-pointer flex items-center gap-2 ${
-                    webcamEnabled
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-[0_0_12px_rgba(16,185,129,0.35)]'
-                      : 'bg-rose-500/20 text-rose-300 border-rose-500/60 shadow-[0_0_12px_rgba(244,63,94,0.25)]'
-                  }`}
+                  className={`dock-btn ${webcamEnabled ? 'dock-btn-emerald dock-btn-active' : 'dock-btn-rose'}`}
                   title="Toggle PC Webcam Hardware & DINO Inference (ON / OFF)"
                 >
-                  <span className={`w-2 h-2 rounded-full ${webcamEnabled ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`} />
-                  <span>💻 Webcam ({webcamEnabled ? 'ON' : 'OFF'})</span>
+                  <span className={`w-2 h-2 rounded-full ${webcamEnabled ? 'bg-black animate-ping' : 'bg-rose-400'}`} />
+                  <span>Webcam ({webcamEnabled ? 'ON' : 'OFF'})</span>
                 </button>
 
                 <button
@@ -883,7 +1060,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     e.stopPropagation();
                     sendCommand('brightness', { delta: 10 });
                   }}
-                  className="px-3 py-2 bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.1] rounded-xl text-xs font-mono transition cursor-pointer"
+                  className="dock-btn"
                   title="Increase Camera Brightness"
                 >
                   BRIGHT +10
@@ -894,14 +1071,14 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     e.stopPropagation();
                     sendCommand('brightness', { delta: -10 });
                   }}
-                  className="px-3 py-2 bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 border border-white/[0.1] rounded-xl text-xs font-mono transition cursor-pointer"
+                  className="dock-btn"
                   title="Decrease Camera Brightness"
                 >
                   BRIGHT -10
                 </button>
               </div>
 
-              <span className="text-xs text-slate-400 font-mono hidden md:inline">
+              <span className="text-xs text-slate-400 font-mono hidden md:inline px-2">
                 Click viewport to store neural anchor
               </span>
             </div>
@@ -977,22 +1154,22 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
             <div className="flex items-center gap-5">
               <div className="flex flex-col items-center gap-1.5">
                 <span className="text-[10px] text-slate-400 font-mono tracking-wider font-semibold">HEAD PITCH</span>
-                <div className="flex items-center gap-1.5">
+                <div className="dock-nav-bar">
                   <button
                     onClick={() => sendCommand('tilt_head', { angle_deg: Math.min(44, (telemetry.robot.head_pitch_deg || 15) + 6) })}
-                    className="theme-btn px-3 py-1.5 rounded-lg text-xs font-mono text-slate-200 transition cursor-pointer"
+                    className="dock-btn h-7 px-2.5"
                   >
                     UP (+5°)
                   </button>
                   <button
                     onClick={() => sendCommand('tilt_head', { angle_deg: 0 })}
-                    className="theme-btn px-3 py-1.5 rounded-lg text-xs font-mono text-slate-400 transition cursor-pointer"
+                    className="dock-btn h-7 px-2.5"
                   >
                     0°
                   </button>
                   <button
                     onClick={() => sendCommand('tilt_head', { angle_deg: Math.max(-25, (telemetry.robot.head_pitch_deg || 15) - 6) })}
-                    className="theme-btn px-3 py-1.5 rounded-lg text-xs font-mono text-slate-200 transition cursor-pointer"
+                    className="dock-btn h-7 px-2.5"
                   >
                     DN (-5°)
                   </button>
@@ -1004,7 +1181,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               {/* Quick Action Dock */}
               <button
                 onClick={() => sendCommand('dock')}
-                className="px-4 py-2.5 bg-gradient-to-r from-amber-500/30 to-yellow-500/30 hover:from-amber-500/40 hover:to-yellow-500/40 text-amber-200 border border-amber-500/50 font-bold rounded-xl text-xs font-mono tracking-wider shadow-[0_0_16px_rgba(245,158,11,0.25)] hover:scale-105 active:scale-95 transition flex items-center gap-2 cursor-pointer"
+                className="dock-btn dock-btn-amber dock-btn-active h-9 px-4 font-bold shadow-lg"
               >
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -1054,35 +1231,19 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   <span>{mapViewMode === '3d' ? '3D COZMO WORLD MAP' : '2D SEMANTIC WORLD MAP'}</span>
                 </span>
 
-                {/* 2D / 3D Mode Toggle Switch */}
-                <div className="flex items-center bg-black/40 p-0.5 rounded-lg border border-white/10 ml-2">
+                {/* 2D / 3D Mode Toggle Switch (Dock Style) */}
+                <div className="dock-nav-bar ml-2">
                   <button
                     onClick={() => setMapViewMode('2d')}
-                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-semibold transition-all ${
-                      mapViewMode === '2d'
-                        ? isRoyal
-                          ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                          : isIT
-                          ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                          : 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`dock-btn h-7 px-3 ${mapViewMode === '2d' ? 'dock-btn-active' : ''}`}
                   >
                     2D GRID
                   </button>
                   <button
                     onClick={() => setMapViewMode('3d')}
-                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-mono font-semibold transition-all flex items-center gap-1 ${
-                      mapViewMode === '3d'
-                        ? isRoyal
-                          ? 'bg-amber-500/30 text-amber-300 border border-amber-400/40 shadow-[0_0_10px_rgba(245,158,11,0.3)]'
-                          : isIT
-                          ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                          : 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 shadow-[0_0_10px_rgba(6,182,212,0.3)]'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`dock-btn h-7 px-3 ${mapViewMode === '3d' ? 'dock-btn-active' : ''}`}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    <span className={`w-1.5 h-1.5 rounded-full ${mapViewMode === '3d' ? 'bg-black animate-pulse' : 'bg-cyan-400'}`} />
                     3D MAP
                   </button>
                 </div>
@@ -1090,7 +1251,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
               <div className="flex items-center gap-3">
                 <span className="theme-badge px-3 py-1 rounded-lg text-xs font-mono text-slate-300">
-                  Pose: ({telemetry.robot.x.toFixed(0)}, {telemetry.robot.y.toFixed(0)})mm | Heading: {telemetry.robot.theta_deg.toFixed(0)}°
+                  Pose: ({(telemetry.robot.x / 10).toFixed(1)}, {(telemetry.robot.y / 10).toFixed(1)})cm | Heading: {telemetry.robot.theta_deg.toFixed(0)}°
                 </span>
               </div>
             </div>
@@ -1108,7 +1269,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   }}
                   onAnchorClick={(a) => {
                     if (a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')) {
-                      sendCommand('dock');
+                      handleSimulateDock();
                     }
                   }}
                 />
@@ -1124,7 +1285,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   }}
                   onAnchorClick={(a) => {
                     if (a.label.toLowerCase().includes('charger') || a.label.toLowerCase().includes('dock')) {
-                      sendCommand('dock');
+                      handleSimulateDock();
                     }
                   }}
                   onSimulateDock={handleSimulateDock}
@@ -1138,35 +1299,34 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
           <div className="w-full lg:w-1/3 min-w-0 flex flex-col gap-4 min-h-[520px]">
             {/* Card 1: Phase 5 Bidirectional A* & Cubes Manager */}
             <div className="theme-card rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/[0.1] flex flex-col gap-3">
-              <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold font-mono tracking-wider text-amber-300 flex items-center gap-1.5">
-                    <span>📦</span>
-                    <span>COZMO LIGHT CUBES</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2 flex-nowrap">
+                  <span className="text-xs font-bold font-mono tracking-wider text-amber-300 flex items-center gap-1.5 whitespace-nowrap">
+                    <span>LIGHT CUBES</span>
                   </span>
-                  <span className="theme-badge px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400">
-                    5cm Clearance
+                  <span className="theme-badge px-2 py-0.5 rounded-md text-[10px] font-mono text-emerald-400 whitespace-nowrap">
+                    5cm BUFFER
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="dock-nav-bar">
                   <button
                     onClick={handleResetSimulation}
-                    className="text-[10px] font-mono text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition"
-                    title="Reset Cozmo Pose to Origin"
+                    className="dock-btn dock-btn-amber h-6 px-2 text-[10px]"
+                    title="Reset Cozmo Pose to Origin (0, 0, 0°)"
                   >
                     Reset Pose
                   </button>
                   <button
                     onClick={handleResetBlocks}
-                    className="text-[10px] font-mono text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 transition"
-                    title="Reset Default Blocks"
+                    className="dock-btn h-6 px-2 text-[10px]"
+                    title="Reset Default 3-Cube Layout"
                   >
-                    Reset Blocks
+                    Reset Cubes
                   </button>
                   <button
                     onClick={handlePlanPath}
-                    className="text-[10px] font-mono text-cyan-300 hover:text-white px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 transition"
-                    title="Recalculate 2-Way A* Path"
+                    className="dock-btn dock-btn-active h-6 px-2 text-[10px]"
+                    title="Recalculate Two-Way A* Path"
                   >
                     Replan
                   </button>
@@ -1183,14 +1343,14 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-sm bg-cyan-400 shadow-[0_0_6px_rgba(6,182,212,0.6)]" />
                       <span className="text-white font-semibold">{blk.label}</span>
-                      <span className="text-[10px] text-slate-400">({blk.x.toFixed(0)}, {blk.y.toFixed(0)})mm</span>
+                      <span className="text-[10px] text-slate-400">({(blk.x / 10).toFixed(1)}, {(blk.y / 10).toFixed(1)})cm</span>
                     </div>
                     <button
                       onClick={() => handleDeleteBlock(blk.id)}
-                      className="text-slate-500 hover:text-rose-400 p-1 rounded hover:bg-rose-950/20 transition"
+                      className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90"
                       title="Remove Block"
                     >
-                      <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18" />
                         <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
@@ -1207,11 +1367,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-500">Path Length:</span>{' '}
-                  <span className="text-cyan-300 font-bold">{telemetry.path_info?.total_length_mm?.toFixed(0) || 0} mm</span>
+                  <span className="text-cyan-300 font-bold">{((telemetry.path_info?.total_length_mm || 0) / 10).toFixed(1)} cm</span>
                 </div>
                 <div>
                   <span className="text-slate-500">Safety Buffer:</span>{' '}
-                  <span className="text-emerald-400 font-bold">50mm (5cm)</span>
+                  <span className="text-emerald-400 font-bold">5.0 cm (50mm)</span>
                 </div>
                 <div>
                   <span className="text-slate-500">Compute Time:</span>{' '}
@@ -1229,7 +1389,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                   </svg>
                   <span>VISUAL ANCHORS</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono">
+                <span className="theme-badge px-2 py-0.5 rounded-md text-[10px] text-slate-400 font-mono">
                   {telemetry.anchors.length} Nodes
                 </span>
               </div>
@@ -1246,23 +1406,47 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                       className="flex items-center justify-between bg-white/[0.02] border border-white/[0.07] hover:border-white/[0.18] p-2.5 rounded-xl text-xs transition-all"
                     >
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-white font-semibold text-xs">{anchor.label}</span>
-                        <span className="text-[10px] text-slate-400 font-mono">({anchor.x.toFixed(0)}, {anchor.y.toFixed(0)})mm</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-white font-semibold text-xs">{anchor.label}</span>
+                          {anchor.is_locked && (
+                            <span className="theme-badge px-1 py-0.2 rounded text-[9px] font-mono text-amber-300 border border-amber-500/40">
+                              LOCKED 🔒
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono">({(anchor.x / 10).toFixed(1)}, {(anchor.y / 10).toFixed(1)})cm</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {anchor.label.toLowerCase().includes('charger') && (
-                          <button
-                            onClick={handleSimulateDock}
-                            className="px-2 py-0.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-lg text-[10px] font-mono font-semibold transition"
-                          >
-                            Dock
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={async () => {
+                                const action = anchor.is_locked ? 'unlock' : 'lock';
+                                await fetch(`http://${apiHost}:${apiPort}/api/cozmo/anchors/${encodeURIComponent(anchor.label)}/${action}`, {
+                                  method: 'POST'
+                                });
+                                setStatusMessage(`Charger coordinates ${action === 'lock' ? 'locked' : 'unlocked'}.`);
+                              }}
+                              className={`dock-btn ${anchor.is_locked ? 'dock-btn-amber dock-btn-active' : ''} h-6 px-1.5 text-[10px]`}
+                              title={anchor.is_locked ? "Click to unlock charger location" : "Click to lock charger location"}
+                            >
+                              {anchor.is_locked ? '🔒' : '🔓'}
+                            </button>
+                            <button
+                              onClick={handleSimulateDock}
+                              className="dock-btn dock-btn-emerald dock-btn-active h-6 px-2 text-[10px]"
+                              title="Lock charger and navigate along 2-Way A* trajectory"
+                            >
+                              Dock
+                            </button>
+                          </div>
                         )}
                         <button
                           onClick={() => handleDeleteAnchor(anchor.label)}
-                          className="text-slate-500 hover:text-rose-400 p-1 rounded hover:bg-rose-950/20 transition"
+                          className="w-7 h-7 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/30 flex items-center justify-center transition-all cursor-pointer select-none active:scale-90"
+                          title="Delete Anchor"
                         >
-                          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                           </svg>
@@ -1276,151 +1460,6 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
           </div>
         </div>
       </section>
-
-      {/* =========================================================================
-          ORIGINAL FOOTER (PRESERVED AS COMMENTED OUT PER INSTRUCTION)
-         ========================================================================= */}
-      {/*
-      <footer className="h-20 bg-slate-950 border-t border-cyan-900/40 px-5 flex items-center justify-between z-20">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              onMouseDown={() => sendCommand('drive', { turn_rate: 40.0 })}
-              onMouseUp={() => sendCommand('stop')}
-              className="w-10 h-10 bg-slate-900 hover:bg-cyan-600 active:bg-cyan-500 text-white rounded-lg border border-slate-800 flex items-center justify-center font-bold text-sm transition shadow"
-              title="Turn Left (A)"
-            >
-              ◀
-            </button>
-            <div className="flex flex-col gap-1.5">
-              <button
-                onMouseDown={() => sendCommand('drive', { speed_mms: 60.0 })}
-                onMouseUp={() => sendCommand('stop')}
-                className="w-10 h-10 bg-slate-900 hover:bg-cyan-600 active:bg-cyan-500 text-white rounded-lg border border-slate-800 flex items-center justify-center font-bold text-sm transition shadow"
-                title="Drive Forward (W)"
-              >
-                ▲
-              </button>
-              <button
-                onMouseDown={() => sendCommand('drive', { speed_mms: -60.0 })}
-                onMouseUp={() => sendCommand('stop')}
-                className="w-10 h-10 bg-slate-900 hover:bg-cyan-600 active:bg-cyan-500 text-white rounded-lg border border-slate-800 flex items-center justify-center font-bold text-sm transition shadow"
-                title="Drive Backward (S)"
-              >
-                ▼
-              </button>
-            </div>
-            <button
-              onMouseDown={() => sendCommand('drive', { turn_rate: -40.0 })}
-              onMouseUp={() => sendCommand('stop')}
-              className="w-10 h-10 bg-slate-900 hover:bg-cyan-600 active:bg-cyan-500 text-white rounded-lg border border-slate-800 flex items-center justify-center font-bold text-sm transition shadow"
-              title="Turn Right (D)"
-            >
-              ▶
-            </button>
-          </div>
-
-          <button
-            onClick={() => sendCommand('stop')}
-            className="h-10 px-3 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 rounded-lg text-xs font-bold transition flex items-center gap-1"
-          >
-            🛑 STOP
-          </button>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col items-center gap-1">
-            <span className="text-[10px] text-slate-400 font-semibold tracking-wide">HEAD PITCH</span>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => sendCommand('tilt_head', { angle_deg: Math.min(44, (telemetry.robot.head_pitch_deg || 15) + 6) })}
-                className="px-2.5 py-1 bg-slate-900 hover:bg-cyan-600 text-slate-200 border border-slate-800 rounded text-xs transition"
-              >
-                UP (+5°)
-              </button>
-              <button
-                onClick={() => sendCommand('tilt_head', { angle_deg: 0 })}
-                className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 rounded text-xs transition"
-              >
-                0°
-              </button>
-              <button
-                onClick={() => sendCommand('tilt_head', { angle_deg: Math.max(-25, (telemetry.robot.head_pitch_deg || 15) - 6) })}
-                className="px-2.5 py-1 bg-slate-900 hover:bg-cyan-600 text-slate-200 border border-slate-800 rounded text-xs transition"
-              >
-                DN (-5°)
-              </button>
-            </div>
-          </div>
-
-          <div className="h-8 w-px bg-slate-800" />
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => sendCommand('dock')}
-              className="px-4 py-2 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-bold rounded-lg text-xs shadow-[0_0_12px_rgba(245,158,11,0.35)] transition flex items-center gap-1.5"
-            >
-              ⚡ DOCK AT CHARGER
-            </button>
-          </div>
-        </div>
-
-        <div className="text-right">
-          <div className="text-[11px] text-cyan-400 font-mono">{statusMessage}</div>
-          <div className="text-[10px] text-slate-500">
-            Keyboard: WASD (Drive) | Space (Stop) | I/K (Head Tilt) | O (Headlight)
-          </div>
-        </div>
-      </footer>
-      */}
-
-      {/* =========================================================================
-          ORIGINAL TEACH MODAL (PRESERVED AS COMMENTED OUT PER INSTRUCTION)
-         ========================================================================= */}
-      {/*
-      {showTeachModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-cyan-500/50 rounded-xl p-5 max-w-sm w-full shadow-2xl">
-            <h3 className="text-sm font-bold text-cyan-300 mb-2 flex items-center gap-2">
-              🏷️ TEACH OBJECT ANCHOR
-            </h3>
-            <p className="text-xs text-slate-300 mb-4">
-              Enter a name for the selected object (e.g. <code>ChargingDock</code>, <code>CoffeeMug</code>, <code>Me</code>).
-              Its pure 384-D fingerprint and floor location will be stored permanently.
-            </p>
-
-            <input
-              type="text"
-              value={teachLabel}
-              onChange={(e) => setTeachLabel(e.target.value)}
-              placeholder="Object Label..."
-              autoFocus
-              className="w-full bg-slate-950 border border-cyan-800 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-400 mb-4"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSaveTeach();
-                if (e.key === 'Escape') setShowTeachModal(false);
-              }}
-            />
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                onClick={() => setShowTeachModal(false)}
-                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveTeach}
-                disabled={!teachLabel.trim()}
-                className="px-4 py-1.5 text-xs font-bold bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg transition shadow-md shadow-cyan-600/30"
-              >
-                Save Anchor
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      */}
 
       {/* 5. Interactive Object Labeling / Teach Modal */}
       {showTeachModal && (
@@ -1461,17 +1500,17 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
               }}
             />
 
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5">
               <button
                 onClick={handleCancelTeach}
-                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white rounded-xl transition cursor-pointer"
+                className="dock-btn h-8 px-4 font-semibold"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveTeach}
                 disabled={!teachLabel.trim()}
-                className="theme-btn px-5 py-2 text-xs font-bold text-white rounded-xl transition cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                className="dock-btn dock-btn-active h-8 px-5 font-bold disabled:opacity-40 disabled:pointer-events-none"
               >
                 Save Anchor
               </button>

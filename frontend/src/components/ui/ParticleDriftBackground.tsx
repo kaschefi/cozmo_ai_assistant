@@ -27,7 +27,7 @@ interface Node {
 export const ParticleDriftBackground: React.FC<ParticleDriftProps> = ({
   className = '',
   nodeCount,
-  primaryColor = '#00ff66',
+  primaryColor = '#12a574',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,12 +100,15 @@ export const ParticleDriftBackground: React.FC<ParticleDriftProps> = ({
       if (!ctx) return;
       ctx.clearRect(0, 0, width, height);
 
+      // Dynamically resolve particle color from index.css or fallback
+      const cssParticleRgb = getComputedStyle(document.documentElement).getPropertyValue('--particle-rgb').trim() || '18, 165, 116';
+
       // Interactive Nodes (ASCII)
       ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Proximity Grid Lines (Grey by default, green if near cursor)
+      // Proximity Grid Lines (Grey by default, phthalo green if near cursor)
       ctx.lineWidth = 0.5;
       for (let i = 0; i < nodes.length; i++) {
         const n1 = nodes[i];
@@ -118,7 +121,7 @@ export const ParticleDriftBackground: React.FC<ParticleDriftProps> = ({
             const isNearMouse = dMouse1 < 180 || dMouse2 < 180;
 
             if (isNearMouse) {
-              ctx.strokeStyle = `rgba(0, 255, 102, ${0.25 * (1 - d / 120)})`;
+              ctx.strokeStyle = `rgba(${cssParticleRgb}, ${0.25 * (1 - d / 120)})`;
             } else {
               ctx.strokeStyle = `rgba(156, 163, 175, ${0.12 * (1 - d / 120)})`;
             }
@@ -146,9 +149,9 @@ export const ParticleDriftBackground: React.FC<ParticleDriftProps> = ({
           n.char = chars[Math.floor(Math.random() * chars.length)];
         }
 
-        // Mouse Connection Ray (Green)
+        // Mouse Connection Ray (Phthalo Green)
         if (dist < 180) {
-          ctx.strokeStyle = `rgba(0, 255, 102, ${0.5 * (1 - dist / 180)})`;
+          ctx.strokeStyle = `rgba(${cssParticleRgb}, ${0.5 * (1 - dist / 180)})`;
           ctx.lineWidth = 0.8;
           ctx.beginPath();
           ctx.moveTo(n.x, n.y);
@@ -156,9 +159,9 @@ export const ParticleDriftBackground: React.FC<ParticleDriftProps> = ({
           ctx.stroke();
         }
 
-        // Connected to cursor: Vibrant Cyber Green (#00ff66). Default: Sleek Grey (#9ca3af at 75% opacity)
+        // Connected to cursor: Vibrant Phthalo Green. Default: Sleek Grey (#9ca3af at 75% opacity)
         if (dist < 180) {
-          ctx.fillStyle = primaryColor; // '#00ff66'
+          ctx.fillStyle = primaryColor || `rgb(${cssParticleRgb})`;
         } else {
           ctx.fillStyle = 'rgba(156, 163, 175, 0.75)'; // Sleek Grey at 75%
         }

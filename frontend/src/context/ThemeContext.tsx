@@ -31,8 +31,8 @@ export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: 'it',
     name: 'IT',
-    description: 'ASCII particle drift data streams, cyber green & deep cyber black',
-    previewColors: ['#020503', '#052e16', '#00ff66', '#ffffff'],
+    description: 'ASCII particle drift data streams, phthalo green & deep cyber black',
+    previewColors: ['#020503', '#052e16', '#12a574', '#ffffff'],
   },
 ];
 

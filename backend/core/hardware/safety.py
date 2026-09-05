@@ -21,6 +21,7 @@ class ReflexSafetyGuard:
         self.is_falling = False
         self.bump_detected = False
         self.is_evasive_active = False
+        self.is_docking_active = False
         self._evasive_thread_id: Optional[int] = None
 
         # Motor velocity tracking
@@ -35,11 +36,11 @@ class ReflexSafetyGuard:
         self.STALL_WINDOW_DURATION = 0.8  # seconds
         self.STALL_MIN_DISTANCE = 10.0    # mm
 
-        # Visual Motion / Camera Bump Detection state tracking (2-second sliding reference window)
+        # Visual Motion / Camera Bump Detection state tracking (3-second sliding reference window)
         self.visual_window_start_time = 0.0
         self.visual_window_ref_frame = None
-        self.VISUAL_STALL_WINDOW_DURATION = 1.0  # seconds
-        self.STALL_DIFF_THRESHOLD = 3.5  # Mean pixel difference threshold (below this = scene static)
+        self.VISUAL_STALL_WINDOW_DURATION = 3.0  # seconds
+        self.STALL_DIFF_THRESHOLD = 0.25  # Mean pixel difference threshold (below this = scene static)
 
         # Sensitivity thresholds for bump detection
         self.PITCH_BUMP_THRESHOLD = 0.35  # Radians (~20 degrees tilt upward)
@@ -170,7 +171,7 @@ class ReflexSafetyGuard:
         if is_driving_forward is None:
             is_driving_forward = (self.cmd_lwheel > 20.0 and self.cmd_rwheel > 20.0)
 
-        if bgr_image is None or not is_driving_forward or self.is_picked_up or self.is_evasive_active:
+        if bgr_image is None or not is_driving_forward or self.is_picked_up or self.is_evasive_active or getattr(self, "is_docking_active", False):
             self.visual_window_start_time = 0.0
             self.visual_window_ref_frame = None
             return False
@@ -187,14 +188,14 @@ class ReflexSafetyGuard:
 
         elapsed = now - self.visual_window_start_time
         if elapsed >= self.VISUAL_STALL_WINDOW_DURATION:
-            # Calculate absolute mean difference against reference frame captured 2 seconds ago
+            # Calculate absolute mean difference against reference frame captured 3 seconds ago
             diff = float(cv2.absdiff(blurred, self.visual_window_ref_frame).mean())
 
             if diff < self.STALL_DIFF_THRESHOLD:
                 self.visual_window_start_time = 0.0
                 self.visual_window_ref_frame = None
-                if not self.safety_tripped.is_set():
-                    print(f"\n[REFLEX SAFETY] Visual stall detected after 2.0s (diff: {diff:.2f})! Driving into obstacle.")
+                if not self.safety_tripped.is_set() and not getattr(self, "is_docking_active", False):
+                    print(f"\n[REFLEX SAFETY] Visual stall detected after 3.0s (diff: {diff:.2f})! Driving into obstacle.")
                     self.bump_detected = True
                     self._trigger_evasive_reflex("BUMP_DETECTED")
                     return True
@@ -333,7 +334,8 @@ class ReflexSafetyGuard:
             elif self.is_falling and not self.safety_tripped.is_set():
                 self._trigger_evasive_reflex("IS_FALLING")
             elif self.bump_detected and not self.safety_tripped.is_set():
-                self._trigger_evasive_reflex("BUMP_DETECTED")
+                if not getattr(self, "is_docking_active", False):
+                    self._trigger_evasive_reflex("BUMP_DETECTED")
         else:
             if self.safety_tripped.is_set() and not self.is_evasive_active:
                 if not self.cliff_detected and not self.is_falling and not self.bump_detected:
@@ -370,6 +372,8 @@ class ReflexSafetyGuard:
 
     def _trigger_evasive_reflex(self, reason: str):
         if self.is_evasive_active:
+            return
+        if getattr(self, "is_docking_active", False) and reason in ("BUMP_DETECTED", "IS_STALLED"):
             return
         self.safety_tripped.set()
         self.last_event_reason = reason
@@ -442,3 +446,9 @@ class ReflexSafetyGuard:
         self.pose_window_start_time = 0.0
         self.pose_window_ref_x = None
         self.pose_window_ref_y = None
+
+    def set_docking_mode(self, active: bool):
+        """When docking is active, suppresses false bump/stall trips during ramp climbing."""
+        self.is_docking_active = bool(active)
+        if active:
+            self.bump_detected = False

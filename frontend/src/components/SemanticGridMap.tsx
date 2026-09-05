@@ -14,6 +14,8 @@ export interface VisualAnchorData {
   label: string;
   x: number;
   y: number;
+  theta_deg?: number;
+  is_locked?: boolean;
   confidence_threshold?: number;
   is_permanent?: boolean;
   observation_count?: number;
@@ -236,7 +238,7 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       ctx.font = 'bold 10px monospace';
       ctx.fillStyle = '#f87171';
       ctx.textAlign = 'center';
-      ctx.fillText(`📦 ${blk.label} (5cm Buffer)`, cx, cy - clearanceRadiusPix - 4);
+      ctx.fillText(`${blk.label} (5cm Buffer)`, cx, cy - clearanceRadiusPix - 4);
       ctx.restore();
     });
 
@@ -280,49 +282,49 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
         const dockH = 42 * scale;
 
         // 5cm Safety Clearance U-Shape Barrier (Back & Sides)
+        // Barrier surrounds the rear (+X) and sides, leaving front entrance open on left (-X)
         const clearR = (48 + 50) * scale * 0.5;
         ctx.save();
         ctx.strokeStyle = 'rgba(16, 185, 129, 0.45)';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
-        // U-shape arc around back and sides (from top to back to bottom)
-        ctx.arc(cx, cy, clearR, -Math.PI * 0.55, Math.PI * 0.55, true);
+        ctx.arc(cx, cy, clearR, -Math.PI * 0.45, Math.PI * 0.45, false);
         ctx.stroke();
         ctx.restore();
 
         // U-Shaped Cradle Body
         ctx.fillStyle = 'rgba(16, 185, 129, 0.18)';
-        ctx.strokeStyle = '#10b981';
+        ctx.strokeStyle = a.is_locked ? '#f59e0b' : '#10b981';
         ctx.lineWidth = 2;
-        ctx.shadowColor = '#10b981';
+        ctx.shadowColor = a.is_locked ? '#f59e0b' : '#10b981';
         ctx.shadowBlur = 8;
 
-        // Draw physical U-shape housing (Back wall on left, sides top/bottom, open on right +X)
+        // Draw physical U-shape housing (Back wall on right, sides top/bottom, open on left -X)
         ctx.beginPath();
-        ctx.moveTo(cx + dockW * 0.4, cy - dockH * 0.5); // Top-right (front edge)
-        ctx.lineTo(cx - dockW * 0.5, cy - dockH * 0.5); // Top-left (rear corner)
-        ctx.lineTo(cx - dockW * 0.5, cy + dockH * 0.5); // Bottom-left (rear corner)
-        ctx.lineTo(cx + dockW * 0.4, cy + dockH * 0.5); // Bottom-right (front edge)
+        ctx.moveTo(cx - dockW * 0.4, cy - dockH * 0.5); // Top-left (front edge)
+        ctx.lineTo(cx + dockW * 0.5, cy - dockH * 0.5); // Top-right (rear corner)
+        ctx.lineTo(cx + dockW * 0.5, cy + dockH * 0.5); // Bottom-right (rear corner)
+        ctx.lineTo(cx - dockW * 0.4, cy + dockH * 0.5); // Bottom-left (front edge)
         ctx.stroke();
 
-        ctx.fillRect(cx - dockW * 0.5, cy - dockH * 0.5, dockW * 0.9, dockH);
+        ctx.fillRect(cx - dockW * 0.4, cy - dockH * 0.5, dockW * 0.9, dockH);
 
-        // Gold charging pin indicators (near back wall)
+        // Gold charging pin indicators (near back wall on right)
         ctx.fillStyle = '#ffd700';
         ctx.shadowColor = '#ffd700';
         ctx.shadowBlur = 4;
         ctx.beginPath();
-        ctx.arc(cx - dockW * 0.25, cy - dockH * 0.22, 2.5, 0, Math.PI * 2);
-        ctx.arc(cx - dockW * 0.25, cy + dockH * 0.22, 2.5, 0, Math.PI * 2);
+        ctx.arc(cx + dockW * 0.25, cy - dockH * 0.22, 2.5, 0, Math.PI * 2);
+        ctx.arc(cx + dockW * 0.25, cy + dockH * 0.22, 2.5, 0, Math.PI * 2);
         ctx.fill();
 
         // Dock Center Power Icon
-        ctx.fillStyle = '#10b981';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = a.is_locked ? '#f59e0b' : '#10b981';
+        ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('⚡', cx - dockW * 0.05, cy);
+        ctx.fillText(a.is_locked ? '🔒' : 'DOCK', cx + dockW * 0.05, cy);
       } else {
         // Outer Pulse Ring
         ctx.strokeStyle = color;
@@ -349,15 +351,17 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
       // Anchor Label Badge
       ctx.font = 'bold 11px sans-serif';
       ctx.shadowBlur = 0;
-      const displayLabel = isDock ? '⚡ CHARGER' : a.label.toUpperCase();
+      const displayLabel = isDock
+        ? (a.is_locked ? 'CHARGER [LOCKED]' : 'CHARGER')
+        : a.label.toUpperCase();
       const textWidth = ctx.measureText(displayLabel).width;
       ctx.fillStyle = 'rgba(15, 20, 30, 0.9)';
       ctx.fillRect(cx - textWidth / 2 - 6, cy + 18, textWidth + 12, 18);
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = isDock && a.is_locked ? '#f59e0b' : color;
       ctx.lineWidth = 1;
       ctx.strokeRect(cx - textWidth / 2 - 6, cy + 18, textWidth + 12, 18);
 
-      ctx.fillStyle = color;
+      ctx.fillStyle = isDock && a.is_locked ? '#fcd34d' : color;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(displayLabel, cx, cy + 27);
@@ -437,7 +441,7 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
     ctx.font = 'bold 11px monospace';
     ctx.fillText(`COZMO POSE:`, 18, 26);
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`X: ${robot.x.toFixed(1)}mm  Y: ${robot.y.toFixed(1)}mm`, 18, 40);
+    ctx.fillText(`X: ${(robot.x / 10).toFixed(1)}cm  Y: ${(robot.y / 10).toFixed(1)}cm`, 18, 40);
     ctx.fillText(`HDG: ${robot.theta_deg.toFixed(1)}°`, 18, 52);
     ctx.restore();
 
@@ -510,25 +514,25 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
         className="w-full h-full cursor-crosshair block"
       />
 
-      {/* Top-Right Canvas Controls */}
-      <div className="absolute top-3 right-3 flex items-center gap-2 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-lg border border-cyan-800/40">
+      {/* Top-Right Canvas Controls (Dock Style) */}
+      <div className="absolute top-3 right-3 flex items-center gap-1.5 dock-nav-bar">
         <button
           onClick={() => setScale((s) => Math.min(2.5, s * 1.2))}
-          className="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-cyan-600 text-white rounded text-sm transition"
+          className="dock-btn w-7 h-7 p-0 font-bold text-sm"
           title="Zoom In"
         >
           +
         </button>
         <button
           onClick={() => setScale((s) => Math.max(0.15, s * 0.8))}
-          className="w-7 h-7 flex items-center justify-center bg-slate-800 hover:bg-cyan-600 text-white rounded text-sm transition"
+          className="dock-btn w-7 h-7 p-0 font-bold text-sm"
           title="Zoom Out"
         >
           -
         </button>
         <button
           onClick={handleRecenter}
-          className="px-2.5 h-7 flex items-center justify-center bg-slate-800 hover:bg-cyan-600 text-cyan-300 hover:text-white rounded text-xs font-mono transition"
+          className="dock-btn h-7 px-2.5 font-mono"
           title="Center on Robot"
         >
           Recenter
