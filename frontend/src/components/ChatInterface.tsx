@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ThinkingOrb } from 'thinking-orbs';
 import { AnimatedTopDock } from '../shaders/animated-top-dock/AnimatedTopDock';
 import ThemeSelector from './ui/ThemeSelector';
 import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
@@ -661,13 +662,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   };
 
   return (
-    <div className={`relative w-screen h-screen ${
-      isBlackIce ? 'bg-[#020407]' : isRoyal ? 'bg-[#030407]' : isIT ? 'bg-[#020503]' : 'bg-[#030407]'
-    } overflow-hidden flex flex-col transition-colors duration-700 font-sans selection:bg-[var(--brand-primary)]/30 selection:text-white`}>
-      
+    <div className={`relative w-screen h-screen ${isBlackIce ? 'bg-[#020407]' : isRoyal ? 'bg-[#030407]' : isIT ? 'bg-[#020503]' : 'bg-[#030407]'
+      } overflow-hidden flex flex-col transition-colors duration-700 font-sans selection:bg-[var(--brand-primary)]/30 selection:text-white`}>
+
 
       {/* Dynamic Theme Background Shaders (10% opacity at rest, 50% opacity when conversation is active) */}
-      <div 
+      <div
         className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700 ease-in-out"
         style={{ opacity: isConversationStarted ? 0.50 : 0.10 }}
       >
@@ -754,11 +754,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
                 {/* Message bubble */}
                 <div
-                  className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${
-                    msg.sender === 'user'
-                      ? 'theme-card text-white rounded-tr-none'
-                      : 'rounded-tl-none text-slate-200'
-                  }`}
+                  className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${msg.sender === 'user'
+                    ? 'theme-card text-white rounded-tr-none'
+                    : 'rounded-tl-none text-slate-200'
+                    }`}
                   style={msg.sender === 'moka' ? {
                     background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 20, 28, 0.65) 100%)',
                     backdropFilter: 'blur(32px) saturate(160%)',
@@ -841,17 +840,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)]" />
                   MoKa
                 </span>
-                <div
-                  className="p-4 rounded-2xl rounded-tl-none flex gap-2 items-center justify-center min-w-[64px]"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(15, 20, 28, 0.65) 100%)',
-                    backdropFilter: 'blur(32px)',
-                    border: '1px solid rgba(255, 255, 255, 0.09)',
-                  }}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] animate-bounce" style={{ animationDelay: '300ms' }} />
+                <div className="flex items-center justify-center dark bg-transparent border-0 shadow-none">
+                  <ThinkingOrb state="solving" size={64} />
                 </div>
               </div>
             )}
@@ -863,18 +853,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
       {/* Sliding Input Box Container */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${
-          isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
-        }`}
+        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
+          }`}
       >
         <div className="w-full flex items-center theme-card rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] focus-within:border-[var(--brand-card-hover-border)] focus-within:shadow-[0_0_35px_var(--brand-glow)] transition-all duration-300 gap-3">
           <button
             onClick={handleToggleMute}
-            className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${
-              isMuted
-                ? 'bg-rose-950/60 border-rose-500/40 text-rose-400'
-                : 'theme-icon-box text-[var(--brand-primary)]'
-            }`}
+            className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${isMuted
+              ? 'bg-rose-950/60 border-rose-500/40 text-rose-400'
+              : 'theme-icon-box text-[var(--brand-primary)]'
+              }`}
             title={isMuted ? "Unmute speech output" : "Mute speech output"}
             aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
           >

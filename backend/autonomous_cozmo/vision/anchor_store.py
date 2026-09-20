@@ -644,6 +644,59 @@ class VisualAnchorStore:
                 self._obstacles.clear()
             self.save_to_disk()
 
+    def reset_session_anchors(
+        self,
+        charger_pose: Tuple[float, float, float] = (0.0, 0.0, 0.0),
+    ) -> VisualAnchor:
+        """
+        Resets session state to a clean slate:
+        - Removes all previously recorded transient objects and clutter (e.g., old phone positions).
+        - Permanently registers the charger at the session origin (default (0, 0, 0)), locked.
+        - Cleans up dynamic obstacles and caches.
+        """
+        with self._lock:
+            existing_charger = None
+            for key in ("charger", "ChargingDock", "charging_dock", "dock"):
+                if key in self._anchors:
+                    existing_charger = self._anchors[key]
+                    break
+
+            feat = (
+                existing_charger.feature_vector
+                if existing_charger and len(existing_charger.feature_vector) == 384
+                else ([1.0] + [0.0] * 383)
+            )
+
+            self._anchors.clear()
+            if hasattr(self, "_obstacles"):
+                self._obstacles.clear()
+
+            charger = VisualAnchor(
+                label="charger",
+                feature_vector=feat,
+                estimated_x=float(charger_pose[0]),
+                estimated_y=float(charger_pose[1]),
+                estimated_theta_deg=float(charger_pose[2]),
+                confidence_threshold=0.65,
+                is_permanent=True,
+                is_locked=True,
+                observation_count=1,
+                last_seen_at=time.time(),
+                notes="Session origin charger base",
+            )
+            self._anchors["charger"] = charger
+            self.save_to_disk()
+
+            # Also notify remind_engine if active
+            try:
+                from autonomous_cozmo.vision.remind_engine import remind_engine
+                if hasattr(remind_engine, "reset_memories"):
+                    remind_engine.reset_memories()
+            except Exception:
+                pass
+
+            return charger
+
 
 # Global Singleton Visual Anchor Store
 visual_anchor_store = VisualAnchorStore()

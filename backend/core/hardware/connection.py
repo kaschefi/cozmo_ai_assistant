@@ -140,6 +140,12 @@ class CozmoManager:
         if guard and hasattr(guard, "set_docking_mode"):
             guard.set_docking_mode(active)
 
+    def set_undocking_mode(self, active: bool):
+        """Notifies safety guard of active undocking to suppress cliff triggers during charger roll-off."""
+        guard = self.get_safety_guard()
+        if guard and hasattr(guard, "set_undocking_mode"):
+            guard.set_undocking_mode(active)
+
 
 
 

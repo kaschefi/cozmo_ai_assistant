@@ -172,6 +172,16 @@ class REMINDMemoryEngine:
                 attended_by_robot=True,
             )
 
+    def reset_memories(self):
+        """Clears memory bank and debounced clusters, re-synchronizing with anchor store."""
+        with self._lock:
+            self.memory_bank.clear()
+            if hasattr(self, "debouncer") and hasattr(self.debouncer, "_tentative_clusters"):
+                with self.debouncer._lock:
+                    self.debouncer._tentative_clusters.clear()
+            self._load_persistent_anchors()
+
+
 
     def enable_live_window(self, enable: bool = True):
         """Toggles real-time OpenCV desktop window displaying what Cozmo sees with DINO heatmap."""

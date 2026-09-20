@@ -35,6 +35,7 @@ from autonomous_cozmo.motion import (
     pose_tracker,
     bidirectional_astar_planner,
     visual_servoing_controller,
+    boot_roll_off_charger,
     DEFAULT_SAFETY_CLEARANCE_MM,
 )
 from autonomous_cozmo.vision import visual_anchor_store
@@ -63,12 +64,12 @@ async def run_single_docking_trial(
 
     t0 = time.time()
 
-    # 1. Resolve Charger Anchor
+    # 1. Resolve Charger Anchor (Session Origin)
     charger_anchor = visual_anchor_store.get_anchor("charger")
     if charger_anchor:
         cx, cy, c_theta = charger_anchor.estimated_x, charger_anchor.estimated_y, charger_anchor.estimated_theta_deg
     else:
-        cx, cy, c_theta = -150.0, 0.0, 0.0
+        cx, cy, c_theta = 0.0, 0.0, 0.0
     print(f"{BLUE}[1. REMIND Anchor] Charger grounded at ({cx:.1f}, {cy:.1f}), facing {c_theta:.1f}°{RESET}")
 
     # 2. Set Robot Pose to Start
@@ -211,6 +212,16 @@ def main():
                 cli.enable_camera(enable=True, color=True)
             except Exception:
                 pass
+
+    # Step 1: Clean-slate session initialization (wipe old objects, lock charger at 0, 0, 0)
+    print(f"\n{BLUE}[Session Init] Wiping stale objects (e.g. old phone positions) & grounding charger at (0, 0, 0)...{RESET}")
+    visual_anchor_store.reset_session_anchors(charger_pose=(0.0, 0.0, 0.0))
+    print(f"{GREEN}[OK] Clean slate initialized! Charger permanently set at origin (0, 0, 0).{RESET}")
+
+    # Step 2: Boot roll-off from charger cradle (10cm forward with isolated cliff bypass)
+    print(f"\n{BLUE}[Boot Undock] Rolling 10cm forward off charger cradle (cliff bypass active only during departure)...{RESET}")
+    roll_res = boot_roll_off_charger(distance_mm=100.0, speed_mm_s=35.0)
+    print(f"{GREEN}[OK] Successfully rolled off charger! Robot pose: {roll_res['robot_pose']}. Cliff safety 100% active.{RESET}\n")
 
     # Test positions away from charger with charger out of immediate FOV
     test_start_poses = [

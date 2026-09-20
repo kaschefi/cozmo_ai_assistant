@@ -348,3 +348,46 @@ def follow_path(
         "final_pose": pose_tracker.get_effective_pose(),
     }
 
+
+def boot_roll_off_charger(
+    distance_mm: float = 100.0,
+    speed_mm_s: float = 35.0,
+) -> Dict[str, Any]:
+    """
+    On session startup/boot, commands Cozmo to drive 10 cm (100 mm) forward off the charger cradle.
+    Cliff detection is temporarily bypassed solely during this maneuver (because Cozmo's front
+    cliff sensors trigger over the charger's white plastic lip and drop-off), and is restored immediately
+    once on the desk.
+    Synchronizes pose_tracker so Cozmo's new pose is (distance_mm, 0.0, 0.0) relative to the charger at (0, 0, 0).
+    """
+    cli = cozmo_manager.get_robot()
+
+    # Step 1: Enable undocking mode to suppress cliff triggers during roll-off
+    cozmo_manager.set_undocking_mode(True)
+
+    # Step 2: Initialize pose at charger origin
+    pose_tracker.reset_pose(0.0, 0.0, 0.0)
+
+    try:
+        if cli:
+            drive_time = abs(distance_mm) / max(5.0, speed_mm_s)
+            cli.drive_wheels(lwheel_speed=speed_mm_s, rwheel_speed=speed_mm_s)
+            time.sleep(drive_time)
+            cli.stop_all_motors()
+            time.sleep(0.1)
+        else:
+            time.sleep(0.05)
+    finally:
+        # Step 3: Immediately restore cliff safety
+        cozmo_manager.set_undocking_mode(False)
+
+    # Step 4: Update pose tracker to new position flat on the desk
+    pose_tracker.update_pose(distance_mm, 0.0, 0.0)
+
+    return {
+        "status": "success",
+        "action": "boot_roll_off_charger",
+        "distance_mm": distance_mm,
+        "robot_pose": (distance_mm, 0.0, 0.0),
+    }
+

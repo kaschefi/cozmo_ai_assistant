@@ -22,6 +22,7 @@ class ReflexSafetyGuard:
         self.bump_detected = False
         self.is_evasive_active = False
         self.is_docking_active = False
+        self.is_undocking_active = False
         self._evasive_thread_id: Optional[int] = None
 
         # Motor velocity tracking
@@ -217,7 +218,10 @@ class ReflexSafetyGuard:
         if status is None:
             status = getattr(cli, "robot_status", 0) or 0
 
-        self.cliff_detected = bool(status & pycozmo.robot.RobotStatusFlag.CLIFF_DETECTED)
+        if not getattr(self, "is_undocking_active", False):
+            self.cliff_detected = bool(status & pycozmo.robot.RobotStatusFlag.CLIFF_DETECTED)
+        else:
+            self.cliff_detected = False
         self.is_picked_up = getattr(cli, "robot_picked_up", False) or bool(
             status & pycozmo.robot.RobotStatusFlag.IS_PICKED_UP)
         self.is_falling = bool(status & pycozmo.robot.RobotStatusFlag.IS_FALLING)
@@ -364,6 +368,9 @@ class ReflexSafetyGuard:
             self.clear_safety()
 
     def _on_cliff_change(self, cli, state: bool):
+        if getattr(self, "is_undocking_active", False):
+            self.cliff_detected = False
+            return
         self.cliff_detected = bool(state)
         if self.cliff_detected and not self.is_picked_up and not self.is_evasive_active:
             self._trigger_evasive_reflex("CLIFF_DETECTED")
@@ -374,6 +381,8 @@ class ReflexSafetyGuard:
         if self.is_evasive_active:
             return
         if getattr(self, "is_docking_active", False) and reason in ("BUMP_DETECTED", "IS_STALLED"):
+            return
+        if getattr(self, "is_undocking_active", False) and reason == "CLIFF_DETECTED":
             return
         self.safety_tripped.set()
         self.last_event_reason = reason
@@ -452,3 +461,15 @@ class ReflexSafetyGuard:
         self.is_docking_active = bool(active)
         if active:
             self.bump_detected = False
+
+    def set_undocking_mode(self, active: bool):
+        """
+        When undocking is active on boot, suppresses cliff reflex during the initial
+        10cm forward roll-off from the charger cradle. Cliff safety is restored immediately
+        once the robot is flat on the desk.
+        """
+        self.is_undocking_active = bool(active)
+        if active:
+            self.cliff_detected = False
+            if self.safety_tripped.is_set() and self.last_event_reason == "CLIFF_DETECTED":
+                self.clear_safety()
