@@ -70,6 +70,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const mouseTargetRef = useRef({ x: 0, y: 0 });
   const mousePosTargetRef = useRef({ x: -9999, y: -9999 });
@@ -869,11 +870,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           style={{ overflow: 'visible' }}
         >
           <div
-            className="w-full flex items-center rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-[var(--brand-card-bg)] border border-[var(--brand-card-border)] backdrop-blur-2xl transition-all duration-300 gap-3 !overflow-visible"
-            onFocus={() => setIsInputFocused(true)}
-            onBlur={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                setIsInputFocused(false);
+            className="w-full flex items-center rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-[var(--brand-card-bg)] border border-[var(--brand-card-border)] backdrop-blur-2xl transition-all duration-300 gap-3 !overflow-visible cursor-text"
+            onClick={(e) => {
+              if (!(e.target as HTMLElement).closest('button')) {
+                inputRef.current?.focus();
               }
             }}
           >
@@ -944,6 +944,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             </button>
 
             <input
+              ref={inputRef}
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
@@ -955,7 +956,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             />
 
             <button
-              onClick={() => handleSendMessage()}
+              onClick={() => {
+                handleSendMessage();
+                inputRef.current?.focus();
+              }}
               disabled={!inputText.trim()}
               className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer active:scale-95 flex-shrink-0 text-black font-bold"
               style={{
