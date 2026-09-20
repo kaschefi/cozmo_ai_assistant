@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ThinkingOrb } from 'thinking-orbs';
+import { BorderBeam } from 'border-beam';
+import { Liquid } from 'liquid-gooey';
 import { AnimatedTopDock } from '../shaders/animated-top-dock/AnimatedTopDock';
 import ThemeSelector from './ui/ThemeSelector';
 import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
@@ -30,6 +32,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const [isConversationStarted, setIsConversationStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [open, setOpen] = useState(false);
   const [isMokaTyping, setIsMokaTyping] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<{ id: string; text: string; timestamp: string }[]>([]);
 
@@ -853,54 +857,119 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
       {/* Sliding Input Box Container */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 ${isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
+        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 !overflow-visible ${isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
           }`}
       >
-        <div className="w-full flex items-center theme-card rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] focus-within:border-[var(--brand-card-hover-border)] focus-within:shadow-[0_0_35px_var(--brand-glow)] transition-all duration-300 gap-3">
-          <button
-            onClick={handleToggleMute}
-            className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${isMuted
-              ? 'bg-rose-950/60 border-rose-500/40 text-rose-400'
-              : 'theme-icon-box text-[var(--brand-primary)]'
-              }`}
-            title={isMuted ? "Unmute speech output" : "Mute speech output"}
-            aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
-          >
-            {isMuted ? (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
-              </svg>
-            ) : (
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-              </svg>
-            )}
-          </button>
-
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message MoKa..."
-            className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-400 font-sans"
-          />
-
-          <button
-            onClick={() => handleSendMessage()}
-            disabled={!inputText.trim()}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer active:scale-95 flex-shrink-0 text-black font-bold"
-            style={{
-              background: 'var(--brand-primary)',
-              boxShadow: '0 0 20px var(--brand-glow)'
+        <BorderBeam
+          size="pulse-inner"
+          colorVariant="mono"
+          active={isInputFocused}
+          borderRadius={24}
+          className="w-full rounded-3xl !overflow-visible"
+          style={{ overflow: 'visible' }}
+        >
+          <div
+            className="w-full flex items-center rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-[var(--brand-card-bg)] border border-[var(--brand-card-border)] backdrop-blur-2xl transition-all duration-300 gap-3 !overflow-visible"
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setIsInputFocused(false);
+              }
             }}
-            aria-label="Send"
           >
-            <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-          </button>
-        </div>
+            {/* Liquid Gooey Menu on the left side of the mute button */}
+            <div className="relative w-10 h-10 flex-shrink-0 z-30">
+              <Liquid fill="#202020" className="relative w-10 h-10">
+                <Liquid.Item
+                  x={open ? -54 : 0}
+                  y={open ? -34 : 0}
+                  transition={{ duration: 550, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                  className="absolute top-0 left-0"
+                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
+                >
+                  <button className="round-btn" type="button" title="Document" aria-label="Document">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                  </button>
+                </Liquid.Item>
+                <Liquid.Item
+                  x={0}
+                  y={open ? -64 : 0}
+                  transition={{ duration: 550, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+                  delay={40}
+                  className="absolute top-0 left-0"
+                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
+                >
+                  <button className="round-btn" type="button" title="Image" aria-label="Image">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
+                  </button>
+                </Liquid.Item>
+                <Liquid.Item
+                  className="absolute top-0 left-0 z-10"
+                  style={{ position: 'absolute', top: 0, left: 0 }}
+                >
+                  <button
+                    className={`round-btn transition-transform duration-300 ${open ? 'rotate-45' : ''}`}
+                    type="button"
+                    onClick={() => setOpen((prev) => !prev)}
+                    aria-label="Toggle menu"
+                  >
+                    +
+                  </button>
+                </Liquid.Item>
+              </Liquid>
+            </div>
+
+            <button
+              onClick={handleToggleMute}
+              className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${isMuted
+                ? 'bg-[#202020] border-white/10 text-white hover:bg-[#2c2c2c]'
+                : 'theme-icon-box text-[var(--brand-primary)]'
+                }`}
+              title={isMuted ? "Unmute speech output" : "Mute speech output"}
+              aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
+            >
+              {isMuted ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                </svg>
+              )}
+            </button>
+
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsInputFocused(true)}
+              onBlur={() => setIsInputFocused(false)}
+              placeholder="Message MoKa..."
+              className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-400 font-sans"
+            />
+
+            <button
+              onClick={() => handleSendMessage()}
+              disabled={!inputText.trim()}
+              className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer active:scale-95 flex-shrink-0 text-black font-bold"
+              style={{
+                background: 'var(--brand-primary)',
+                boxShadow: '0 0 20px var(--brand-glow)'
+              }}
+              aria-label="Send"
+            >
+              <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </button>
+          </div>
+        </BorderBeam>
       </div>
     </div>
   );

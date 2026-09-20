@@ -561,3 +561,32 @@ body,
   scrollbar-width: thin;
   scrollbar-color: #1c1e29 #08090c;
 }
+
+/* Liquid Gooey Round Button */
+.round-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: #202020;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1;
+  user-select: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+
+.round-btn:hover {
+  background: #2c2c2c;
+}
+
+.round-btn:active {
+  transform: scale(0.92);
+}
