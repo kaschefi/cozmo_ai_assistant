@@ -274,6 +274,8 @@ export const ParticleCanvas: React.FC = () => {
     });
 
     let time = 0;
+    let blinkTimer = 0;
+    let blinkFactor = 1.0;
     let lastTimestamp = performance.now();
 
     const render = (now: number = performance.now()) => {
@@ -358,6 +360,26 @@ export const ParticleCanvas: React.FC = () => {
         lastStateRef.current = currentState;
       }
 
+      // Handle blinks
+      if (currentState === 'eyes') {
+        if (blinkTimer > 0) {
+          blinkTimer -= dt;
+          if (blinkTimer > 10) {
+            blinkFactor = Math.max(0, (blinkTimer - 10) / 10); // closing
+          } else {
+            blinkFactor = Math.min(1, (10 - blinkTimer) / 10); // opening
+          }
+        } else {
+          blinkFactor = 1.0;
+          if (Math.random() < 0.008 * dt) {
+            blinkTimer = 20; // total 20 frames for blink
+          }
+        }
+      } else {
+        blinkTimer = 0;
+        blinkFactor = 1.0;
+      }
+
       // Disable native shadowBlur to prevent performance drops and slow-motion lag!
       ctx.shadowBlur = 0;
       ctx.shadowColor = 'transparent';
@@ -388,7 +410,7 @@ export const ParticleCanvas: React.FC = () => {
             : (1.0 + mouseRef.current.x * 0.15);
 
           const scaledX = cx + dx * eyeScale;
-          const scaledY = cy + dy * eyeScale;
+          const scaledY = cy + dy * eyeScale * blinkFactor;
 
           // 3. Smooth gaze shift offset for the entire eye shapes
           const maxShift = 20; // maximum offset in logical pixels
