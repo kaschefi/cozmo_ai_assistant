@@ -32,7 +32,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const [isConversationStarted, setIsConversationStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(true);
   const [open, setOpen] = useState(false);
   const [isMokaTyping, setIsMokaTyping] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<{ id: string; text: string; timestamp: string }[]>([]);
@@ -75,6 +75,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const mouseTargetRef = useRef({ x: 0, y: 0 });
   const mousePosTargetRef = useRef({ x: -9999, y: -9999 });
   const animationFrameId = useRef<number | null>(null);
+
+  // Auto-focus input when entering the chat page
+  useEffect(() => {
+    inputRef.current?.focus();
+    const frameId = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+    return () => cancelAnimationFrame(frameId);
+  }, []);
 
   // Sync isConversationStarted to a ref to prevent state-closure stale bugs in the canvas loop
   const isConversationStartedRef = useRef(false);
@@ -945,6 +954,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
             <input
               ref={inputRef}
+              autoFocus
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
