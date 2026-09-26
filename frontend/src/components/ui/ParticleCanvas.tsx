@@ -371,7 +371,7 @@ export const ParticleCanvas: React.FC = () => {
           }
         } else {
           blinkFactor = 1.0;
-          if (Math.random() < 0.008 * dt) {
+          if (Math.random() < 0.01 * dt) {
             blinkTimer = 20; // total 20 frames for blink
           }
         }
