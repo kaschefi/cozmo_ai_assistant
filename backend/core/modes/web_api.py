@@ -21,6 +21,7 @@ from fastapi.security import APIKeyHeader
 import uvicorn
 
 # Import request models and unified brain router
+from pydantic import BaseModel
 from schemas.request_models import ChatRequest
 from core.routing.brain import process_user_intent
 
@@ -126,16 +127,59 @@ async def health_endpoint():
     """
     return {"status": "success", "connected": True}
 
+_CURRENT_MODEL_MODE = "local"
+
+
+class ModelModeRequest(BaseModel):
+    provider: str
+
+
+@app.get("/api/model-mode", dependencies=[Depends(verify_moka_token)])
+async def get_model_mode_endpoint():
+    return {
+        "status": "success",
+        "provider": _CURRENT_MODEL_MODE,
+        "cloud_model": os.getenv("AZURE_MODEL_NAME", "Phi-4-mini-instruct"),
+        "local_chat_model": os.getenv("CHAT_LLM_MODEL", "qwen2.5:3b"),
+        "local_agent_model": os.getenv("CALENDAR_LLM_MODEL", "qwen3.5:4b")
+    }
+
+
+@app.post("/api/model-mode", dependencies=[Depends(verify_moka_token)])
+async def set_model_mode_endpoint(req: ModelModeRequest):
+    global _CURRENT_MODEL_MODE
+    clean_provider = req.provider.lower().strip()
+    if clean_provider not in ["local", "cloud"]:
+        raise HTTPException(status_code=400, detail="Provider must be 'local' or 'cloud'.")
+    _CURRENT_MODEL_MODE = clean_provider
+    return {
+        "status": "success",
+        "provider": _CURRENT_MODEL_MODE,
+        "message": f"Active model provider updated to {_CURRENT_MODEL_MODE.upper()}"
+    }
+
+
 @app.post("/api/chat", dependencies=[Depends(verify_moka_token)])
 async def chat_endpoint(req: ChatRequest):
     """
     Direct endpoint mapping user chat prompts to the cognitive layer.
     """
     try:
-        response_text = await process_user_intent(req.message, session_id=req.session_id, mute=req.mute)
+        active_provider = (req.provider or _CURRENT_MODEL_MODE).lower().strip()
+        response_text = await process_user_intent(
+            req.message,
+            session_id=req.session_id,
+            mute=True,
+            provider=active_provider
+        )
+        if not req.mute and response_text:
+            from actions.physical.speak import respond
+            asyncio.create_task(respond(response_text, mute=False))
+
         return {
             "status": "success",
-            "response": response_text
+            "response": response_text,
+            "provider": active_provider
         }
     except Exception as e:
         print(f"[Web API Error] Failed to process message: {e}")
@@ -152,8 +196,14 @@ async def chat_stream_endpoint(req: ChatRequest):
     Direct SSE streaming endpoint pushing tokens token-by-token in real time.
     """
     from core.routing.brain import stream_user_intent
+    active_provider = (req.provider or _CURRENT_MODEL_MODE).lower().strip()
     return StreamingResponse(
-        stream_user_intent(req.message, session_id=req.session_id, mute=req.mute),
+        stream_user_intent(
+            req.message,
+            session_id=req.session_id,
+            mute=req.mute,
+            provider=active_provider
+        ),
         media_type="text/event-stream"
     )
 
@@ -183,6 +233,7 @@ except Exception as e:
     print(f"[Web API Warning] Could not mount Cozmo endpoints: {e}")
 
 if __name__ == "__main__":
-    print("Launching MoKa Web API server on http://127.0.0.1:8000...")
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print("Launching MoKa Web API server on http://0.0.0.0:8000...")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
 

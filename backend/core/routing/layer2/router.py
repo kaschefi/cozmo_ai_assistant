@@ -62,7 +62,8 @@ except Exception as db_err:
     cozmo_graph = builder.compile()  # Fallback to stateless memory if DB is down
 
 
-def run_cozmo_agent(user_input: str, thread_id: str = "cozmo_default_session") -> str:
+def run_cozmo_agent(user_input: str, thread_id: str = "cozmo_default_session", provider: str = "local") -> str:
+    print(f" [run_cozmo_agent] Starting agent run for thread_id='{thread_id}', provider='{provider}'...")
     config = {
         "configurable": {"thread_id": thread_id},
         "metadata": {
@@ -72,8 +73,11 @@ def run_cozmo_agent(user_input: str, thread_id: str = "cozmo_default_session") -
     }
     initial_state = {
         "messages": [HumanMessage(content=user_input)],
-        "retrieved_memories": []  # Empty initial layer container
+        "retrieved_memories": [],  # Empty initial layer container
+        "provider": provider
     }
 
+    print(f" [run_cozmo_agent] Invoking cozmo_graph...")
     result = cozmo_graph.invoke(initial_state, config=config)
+    print(f" [run_cozmo_agent] Finished cozmo_graph successfully!")
     return result["messages"][-1].content

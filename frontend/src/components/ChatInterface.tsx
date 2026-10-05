@@ -41,9 +41,38 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     return localStorage.getItem('moka_chat_muted') === 'true';
   });
 
+  const [modelMode, setModelMode] = useState<'local' | 'cloud'>(() => {
+    return (localStorage.getItem('moka_model_mode') as 'local' | 'cloud') || 'local';
+  });
+
+  const [sessionId] = useState<string>(() => 'web_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7));
+
   useEffect(() => {
     localStorage.setItem('moka_chat_muted', String(isMuted));
   }, [isMuted]);
+
+  useEffect(() => {
+    localStorage.setItem('moka_model_mode', modelMode);
+  }, [modelMode]);
+
+  const handleToggleModelMode = async (newMode: 'local' | 'cloud') => {
+    setModelMode(newMode);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['X-Moka-Token'] = token;
+      }
+      await fetch(`${API_BASE_URL}/api/model-mode`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ provider: newMode })
+      });
+    } catch (err) {
+      console.warn("Failed to sync model mode to backend:", err);
+    }
+  };
 
   const handleToggleMute = async () => {
     const nextMuted = !isMuted;
@@ -553,8 +582,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         headers,
         body: JSON.stringify({
           message: text,
+          session_id: sessionId,
           mute: isMuted,
-          muted: isMuted
+          muted: isMuted,
+          provider: modelMode
         })
       });
 
@@ -723,8 +754,40 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           <AnimatedTopDock defaultActive="chat" />
         </div>
 
-        {/* Right Side: Core Brain State, Token & Theme Selector */}
-        <div className="flex items-center gap-3 md:gap-4">
+        {/* Right Side: Core Brain State, Model Provider Toggle, Token & Theme Selector */}
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+          {/* Local vs Cloud Mode Toggle */}
+          <div 
+            className="flex items-center bg-white/[0.04] border border-white/[0.08] p-0.5 sm:p-1 rounded-full backdrop-blur-md shadow-inner"
+            title={modelMode === 'cloud' ? 'Cloud: Chat & Agents powered by Azure Phi-4-mini' : 'Local: Chat & Agents powered by local Ollama models'}
+          >
+            <button
+              id="model-mode-local-btn"
+              onClick={() => handleToggleModelMode('local')}
+              className={`px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-medium transition-all duration-300 flex items-center gap-1.5 ${
+                modelMode === 'local'
+                  ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.35)]'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>💻</span>
+              <span>Local</span>
+            </button>
+            <button
+              id="model-mode-cloud-btn"
+              onClick={() => handleToggleModelMode('cloud')}
+              className={`px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-medium transition-all duration-300 flex items-center gap-1.5 ${
+                modelMode === 'cloud'
+                  ? 'bg-purple-500/25 text-purple-200 border border-purple-400/40 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span>☁️</span>
+              <span>Cloud</span>
+              <span className="hidden xl:inline text-[9px] opacity-75 font-sans">(Phi-4)</span>
+            </button>
+          </div>
+
           <div className="hidden sm:flex items-center gap-2 text-xs md:text-sm text-slate-300 font-medium tracking-wide bg-white/[0.04] border border-white/[0.08] px-3 py-1.5 rounded-full backdrop-blur-md">
             <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
               ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]'
@@ -736,7 +799,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           </div>
 
           {token && (
-            <div className="hidden md:block text-[10px] text-cyan-300 bg-cyan-950/40 border border-cyan-800/60 px-2.5 py-1 rounded-full font-mono" title={token}>
+            <div className="hidden lg:block text-[10px] text-cyan-300 bg-cyan-950/40 border border-cyan-800/60 px-2.5 py-1 rounded-full font-mono" title={token}>
               Token: {token.length > 8 ? `${token.substring(0, 4)}...${token.substring(token.length - 4)}` : token}
             </div>
           )}

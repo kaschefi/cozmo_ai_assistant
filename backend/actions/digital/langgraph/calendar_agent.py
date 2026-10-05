@@ -14,7 +14,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
 from langchain_core.tools import tool
 from core.routing.llm_factory import get_llm
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
@@ -267,6 +267,7 @@ calendar_tools = [get_many_events, create_event, update_event, delete_event, get
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
+    provider: str
 
 
 SYSTEM_PROMPT = """You are a Google Calendar assistant agent.
@@ -287,13 +288,13 @@ Rules you must follow:
 3. Extract all relevant details (Title, Date/Time, Duration, Location, Description, Event ID).
 4. If required information is missing, ask the user a clarifying question before calling any tool.
 5. Map user intents:
-   - Add/schedule/create → "Create event"
-   - Modify/change → "Update event"
-   - Remove/cancel → "Delete event"
+   - Add/schedule/create → Call "Get many events" to check for conflicts first, then "Create event" if free
+   - Modify/change → Call "Get many events" first to find Event ID, then "Update event"
+   - Remove/cancel → Call "Get many events" first to find Event ID, then "Delete event"
    - Details of specific event → "Get event"
    - Schedule/time range view → "Get many events"
 
-6. BEFORE creating any new event, you MUST first check for conflicts(This rule ONLY applies to creating new events. Do NOT check for conflicts when deleting or updating an event:
+6. BEFORE creating any new event, you MUST first check for conflicts (this rule ONLY applies to creating new events. Do NOT check for conflicts when deleting or updating an event):
    - You must first call "Get many events" for the requested date and time range.
    - Check whether any existing event already occupies that time.
    - If there is ANY overlapping event, you MUST NOT create a new event. Instead, respond: "There is already an event scheduled at that time."
@@ -307,14 +308,23 @@ Rules you must follow:
 14. Once an action tool ("Delete event", "Update event", or "Create event") returns a "Success:" confirmation string, your final goal has been achieved. You must stop calling tools immediately.
 """
 
-llm = get_llm("CALENDAR_LLM_MODEL", "qwen3.5:4b", temperature=0).bind_tools(calendar_tools)
+from core.routing.llm_factory import get_calendar_llm
 
 
 def call_agent(state: AgentState):
     messages = state['messages']
     if not isinstance(messages[0], SystemMessage):
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
-    return {"messages": [llm.invoke(messages)]}
+    provider = state.get("provider", "local")
+
+    last_msg = messages[-1]
+    is_action_complete = (
+        isinstance(last_msg, ToolMessage)
+        and any(str(last_msg.content).strip().startswith(prefix) for prefix in ["Success:", "Error:"])
+    )
+    raw_llm = get_calendar_llm(mode=provider, temperature=0)
+    active_llm = raw_llm if is_action_complete else raw_llm.bind_tools(calendar_tools)
+    return {"messages": [active_llm.invoke(messages)]}
 
 
 def router_edge(state: AgentState) -> Literal["execute_tools", END]:
@@ -334,7 +344,7 @@ builder.add_edge("execute_tools", "agent")
 calendar_sub_agent = builder.compile()
 
 
-def run_calendar_agent(user_message: str, history: List[Any] = None) -> str:
+def run_calendar_agent(user_message: str, history: List[Any] = None, provider: str = "local") -> str:
     """
     This function is called directly by your router node.
     It takes the prompt context, executes the internal graph loops, and returns the final string response.
@@ -348,7 +358,8 @@ def run_calendar_agent(user_message: str, history: List[Any] = None) -> str:
     inputs = {
         "messages": history + [
             HumanMessage(content=f"[Context: Current Time is {current_time}]\n\nUser request: {user_message}")
-        ]
+        ],
+        "provider": provider
     }
 
     final_state = calendar_sub_agent.invoke(inputs)

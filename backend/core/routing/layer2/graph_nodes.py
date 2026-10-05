@@ -63,7 +63,11 @@ def summarize_conversation_node(state: AgentState):
     Output ONLY the updated summary, with no conversational filler, intros, or outros.
     """
 
-    response = chat_llm.invoke([
+    mode = state.get("provider", "local")
+    from core.routing.llm_factory import get_chat_companion_llm
+    active_summarizer_llm = get_chat_companion_llm(mode=mode, temperature=0.6)
+
+    response = active_summarizer_llm.invoke([
         SystemMessage(content="You are a precise conversation summarizer that only outputs the summary."),
         HumanMessage(content=summary_prompt)
     ])

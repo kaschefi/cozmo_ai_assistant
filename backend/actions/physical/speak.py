@@ -368,10 +368,19 @@ class VoiceSpeaker:
                     break
             return
 
-        # Wait for the audio stream to finish playing
-        # Sleep briefly to let the callback process the first chunk and flag actively_speaking
+        # Wait for the audio stream to finish playing with a strict safety timeout
         await asyncio.sleep(0.05)
+        loop_time = asyncio.get_running_loop().time()
+        max_duration = 20.0
         while self._stream.active and (self._actively_speaking or not self._audio_queue.empty()):
+            if (asyncio.get_running_loop().time() - loop_time) > max_duration:
+                while not self._audio_queue.empty():
+                    try:
+                        self._audio_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                self._actively_speaking = False
+                break
             await asyncio.sleep(0.05)
 
 

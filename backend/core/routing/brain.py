@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 import asyncio
 
-async def process_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False) -> str:
+async def process_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False, provider: str = "local") -> str:
     """
     The Unified Brain (Union Brain) of Cozmo.
     Processes any user input (from terminal or speech) through a tiered pipeline:
@@ -49,7 +49,7 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
     #  Tier 2: Heavy Cognitive Layer (LangGraph Router)
     print(f" [Union Brain] Tier 2 Triggered (LangGraph Router) for: '{command_clean}'")
     try:
-        final_answer = run_cozmo_agent(command_clean, thread_id=session_id)
+        final_answer = await asyncio.to_thread(run_cozmo_agent, command_clean, session_id, provider)
         await respond(final_answer, mute=mute)
         return final_answer
     except Exception as e:
@@ -61,7 +61,7 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
         return err_msg
 
 
-async def stream_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False):
+async def stream_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False, provider: str = "local"):
     """
     Streaming generator for the Unified Brain.
     Yields Server-Sent Events data chunks: data: {"token": "..."}\n\n
@@ -113,7 +113,8 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
     }
     initial_state = {
         "messages": [HumanMessage(content=command_clean)],
-        "retrieved_memories": []
+        "retrieved_memories": [],
+        "provider": provider
     }
 
     accumulated = []

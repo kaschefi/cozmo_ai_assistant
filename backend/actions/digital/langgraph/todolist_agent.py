@@ -217,6 +217,7 @@ todolist_tools = [get_tasks, create_task, update_task, complete_task, delete_tas
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
+    provider: str
 
 
 SYSTEM_PROMPT = """You are a Todoist list manager assistant agent.
@@ -255,14 +256,16 @@ Rules you must follow:
 12. IMPORTANT: Your final response to the user must be a maximum of one short sentence. Do not explain what you did. Just confirm the action is complete (e.g., "I've marked 'Buy milk' as completed.").
 """
 
-llm = get_llm("TODOLIST_LLM_MODEL", "qwen3.5:4b", temperature=0).bind_tools(todolist_tools)
+from core.routing.llm_factory import get_todolist_llm
 
 
 def call_agent(state: AgentState):
     messages = state['messages']
     if not isinstance(messages[0], SystemMessage):
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
-    return {"messages": [llm.invoke(messages)]}
+    provider = state.get("provider", "local")
+    active_llm = get_todolist_llm(mode=provider, temperature=0).bind_tools(todolist_tools)
+    return {"messages": [active_llm.invoke(messages)]}
 
 
 def router_edge(state: AgentState) -> Literal["execute_tools", END]:
@@ -282,7 +285,7 @@ builder.add_edge("execute_tools", "agent")
 todolist_sub_agent = builder.compile()
 
 
-def run_todolist_agent(user_message: str, history: List[Any] = None) -> str:
+def run_todolist_agent(user_message: str, history: List[Any] = None, provider: str = "local") -> str:
     """
     This function is called directly by your router node.
     It takes the prompt context, executes the internal graph loops, and returns the final string response.
@@ -296,7 +299,8 @@ def run_todolist_agent(user_message: str, history: List[Any] = None) -> str:
     inputs = {
         "messages": history + [
             HumanMessage(content=f"[Context: Current Time is {current_time}]\n\nUser request: {user_message}")
-        ]
+        ],
+        "provider": provider
     }
 
     final_state = todolist_sub_agent.invoke(inputs)

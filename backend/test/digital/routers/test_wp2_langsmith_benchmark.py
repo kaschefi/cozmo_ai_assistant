@@ -77,140 +77,19 @@ def ensure_wp2_dataset_exists(client: Client, force_refresh: bool = False) -> st
 
 
 # -----------------------------------------------------------------------------
-# 2. Predictor Runners
 # -----------------------------------------------------------------------------
-
-# --- Router Singletons for fast repeated execution ---
-_TWO_LAYER_LAYA_ROUTER = None
-_SINGLE_LAYER_LAYA_ROUTER = None
-
-
-def get_two_layer_laya_router():
-    global _TWO_LAYER_LAYA_ROUTER
-    if _TWO_LAYER_LAYA_ROUTER is None:
-        from test.digital.routers.test_two_layer_laya_router import TwoLayerLayaRouter
-        _TWO_LAYER_LAYA_ROUTER = TwoLayerLayaRouter()
-    return _TWO_LAYER_LAYA_ROUTER
-
-
-def get_single_layer_laya_router():
-    global _SINGLE_LAYER_LAYA_ROUTER
-    if _SINGLE_LAYER_LAYA_ROUTER is None:
-        from test.digital.routers.test_single_layer_laya_router import SingleLayerLayaRouter
-        _SINGLE_LAYER_LAYA_ROUTER = SingleLayerLayaRouter()
-    return _SINGLE_LAYER_LAYA_ROUTER
-
-
-def two_layer_laya_predictor(inputs: dict) -> dict:
-    """Predictor: Two-Layer Architecture with Layer 1 Reflexes + Layer 2 LAYA."""
-    router = get_two_layer_laya_router()
-    query = inputs["message"].strip()
-    res = router.route(query)
-    return {
-        "route": res["route"],
-        "tier": res["tier"],
-        "confidence": res.get("confidence", 0.0),
-        "latency_ms": res["latency_ms"],
-        "pipeline": "Two-Layer (Tier 1 Reflex + Tier 2 Laya)"
-    }
-
-
-def single_layer_laya_predictor(inputs: dict) -> dict:
-    """Predictor: Single-Layer Architecture with Monolithic LAYA across all tools."""
-    router = get_single_layer_laya_router()
-    query = inputs["message"].strip()
-    res = router.route(query)
-    return {
-        "route": res["route"],
-        "tier": res["tier"],
-        "confidence": res.get("confidence", 0.0),
-        "latency_ms": res["latency_ms"],
-        "pipeline": "Single-Layer (Direct Laya - 15 Tools)"
-    }
-
-
-def two_layer_ollama_predictor(inputs: dict) -> dict:
-    """Predictor: Production Two-Layer Architecture (Reflex + Tool RAG + Ollama qwen2.5:3b)."""
-    from core.routing.layer1.semantic_layer import check_layer_1
-    from core.routing.layer2.graph_nodes import tool_retrieval_node, route_query
-
-    query = inputs["message"].strip()
-    start_time = time.perf_counter()
-
-    layer_1_route = check_layer_1(query)
-    if layer_1_route:
-        latency_ms = (time.perf_counter() - start_time) * 1000
-        return {
-            "route": layer_1_route,
-            "tier": "Tier 1 (Semantic Reflex)",
-            "latency_ms": latency_ms,
-            "pipeline": "Two-Layer (Reflex + Ollama RAG)"
-        }
-
-    state_input = {"messages": [HumanMessage(content=query)]}
-    retrieval_output = tool_retrieval_node(state_input)
-    state_with_tools = {**state_input, **retrieval_output}
-    decision = route_query(state_with_tools)
-    layer_2_route = decision.get("next_route", "none")
-
-    latency_ms = (time.perf_counter() - start_time) * 1000
-    return {
-        "route": layer_2_route,
-        "tier": "Tier 2 (Tool RAG + Ollama)",
-        "latency_ms": latency_ms,
-        "pipeline": "Two-Layer (Reflex + Ollama RAG)"
-    }
-
-
-def baseline_monolithic_ollama_predictor(inputs: dict) -> dict:
-    """Predictor: Baseline Monolithic Prompt with Ollama qwen2.5:3b."""
-    from core.routing.baseline import baseline_classify_intent
-
-    query = inputs["message"].strip()
-    start_time = time.perf_counter()
-
-    decision = baseline_classify_intent(query)
-    latency_ms = (time.perf_counter() - start_time) * 1000
-
-    return {
-        "route": decision.route,
-        "tier": "Monolithic (All-Tools Prompt)",
-        "reasoning": decision.reasoning,
-        "latency_ms": latency_ms,
-        "pipeline": "Baseline (All-Tools Monolithic Ollama)"
-    }
-
-
+# 2. Modular Predictors and Experiment Runner
 # -----------------------------------------------------------------------------
-# 3. LangSmith Evaluators
-# -----------------------------------------------------------------------------
-def route_accuracy_evaluator(run, example) -> dict:
-    """Checks whether the predicted route matches the ground truth expected route."""
-    predicted_route = run.outputs.get("route", "")
-    expected_route = example.outputs.get("expected_route", "")
-    is_correct = (predicted_route == expected_route)
-    return {
-        "key": "route_accuracy",
-        "score": 1.0 if is_correct else 0.0,
-        "comment": f"Predicted: {predicted_route} | Expected: {expected_route}"
-    }
+from test.digital.routers.test_two_layer_laya_router import two_layer_laya_predictor
+from test.digital.routers.test_single_layer_laya_router import single_layer_laya_predictor
+from test.digital.routers.test_two_layer_llm_router import two_layer_llm_predictor
+from test.digital.routers.test_baseline_router import baseline_router_predictor
+from test.digital.routers.harness import evaluate_router_on_wp2
 
 
-def latency_evaluator(run, example) -> dict:
-    """Records routing latency in milliseconds."""
-    latency_ms = run.outputs.get("latency_ms", 0.0)
-    return {
-        "key": "latency_ms",
-        "score": latency_ms
-    }
-
-
-# -----------------------------------------------------------------------------
-# 4. Experiment Runner
-# -----------------------------------------------------------------------------
 def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
     """
-    Executes LangSmith evaluations under project 'WP2'.
+    Executes LangSmith evaluations under project 'WP2' using the modular router predictors.
     experiment choices:
       - 'laya': Runs Two-Layer Laya and Single-Layer Laya
       - 'ollama': Runs Two-Layer Ollama and Baseline Ollama
@@ -224,78 +103,44 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
     print(f"Selected Mode:           '{experiment}'")
     print("=" * 80)
 
-    client = Client()
-
-    # 1. Sync dataset
-    ensure_wp2_dataset_exists(client, force_refresh=force_refresh)
-    examples = list(client.list_examples(dataset_name=DATASET_NAME))
-    print(f"[LangSmith] Ready with {len(examples)} examples.\n")
-
-    evaluators = [route_accuracy_evaluator, latency_evaluator]
-    completed_experiments = []
-
-    # Experiment 1: WP2-Two-Layer-Laya
-    if experiment in ("laya", "all", "two_layer_laya"):
-        print("-" * 80)
-        print(">>> [WP2] Running Experiment: WP2-Two-Layer-Laya (Reflex + Layer 2 Laya)...")
-        print("-" * 80)
-        res = evaluate(
-            two_layer_laya_predictor,
-            data=examples,
-            evaluators=evaluators,
-            experiment_prefix="WP2-Two-Layer-Laya",
-            max_concurrency=1,
+    # Experiment 1: Two-Layer LAYA
+    if experiment in ("laya", "all", "two_layer_laya", "2-L-Laya"):
+        evaluate_router_on_wp2(
+            experiment_name="2-L-Laya",
+            predictor=two_layer_laya_predictor,
+            description="Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 LAYA Decision Model across 15 tools.",
+            force_refresh=force_refresh,
         )
-        completed_experiments.append(("WP2-Two-Layer-Laya", res))
-        print("[WP2] Completed: WP2-Two-Layer-Laya\n")
 
-    # Experiment 2: WP2-Single-Layer-Laya
-    if experiment in ("laya", "all", "single_layer_laya"):
-        print("-" * 80)
-        print(">>> [WP2] Running Experiment: WP2-Single-Layer-Laya (Direct Laya - 15 Tools)...")
-        print("-" * 80)
-        res = evaluate(
-            single_layer_laya_predictor,
-            data=examples,
-            evaluators=evaluators,
-            experiment_prefix="WP2-Single-Layer-Laya",
-            max_concurrency=1,
+    # Experiment 2: Single-Layer LAYA
+    if experiment in ("laya", "all", "single_layer_laya", "1-L-Laya"):
+        evaluate_router_on_wp2(
+            experiment_name="1-L-Laya",
+            predictor=single_layer_laya_predictor,
+            description="Single-Layer Monolithic LAYA decision model evaluated directly over 15 tools.",
+            force_refresh=False,
         )
-        completed_experiments.append(("WP2-Single-Layer-Laya", res))
-        print("[WP2] Completed: WP2-Single-Layer-Laya\n")
 
-    # Experiment 3: WP2-Two-Layer-Ollama
-    if experiment in ("ollama", "all", "two_layer_ollama"):
-        print("-" * 80)
-        print(">>> [WP2] Running Experiment: WP2-Two-Layer-Ollama (Reflex + Qwen2.5:3b RAG)...")
-        print("-" * 80)
-        res = evaluate(
-            two_layer_ollama_predictor,
-            data=examples,
-            evaluators=evaluators,
-            experiment_prefix="WP2-Two-Layer-Ollama",
-            max_concurrency=1,
+    # Experiment 3: Two-Layer LLM
+    if experiment in ("ollama", "all", "two_layer_ollama", "2-L-LLM", "2-Layer-LLM"):
+        evaluate_router_on_wp2(
+            experiment_name="2-L-LLM",
+            predictor=two_layer_llm_predictor,
+            description="Production Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Tool RAG with Ollama (qwen2.5:3b).",
+            force_refresh=False,
         )
-        completed_experiments.append(("WP2-Two-Layer-Ollama", res))
-        print("[WP2] Completed: WP2-Two-Layer-Ollama\n")
 
-    # Experiment 4: WP2-Baseline-Ollama
-    if experiment in ("ollama", "all", "baseline_ollama"):
-        print("-" * 80)
-        print(">>> [WP2] Running Experiment: WP2-Baseline-Ollama (Monolithic Qwen2.5:3b)...")
-        print("-" * 80)
-        res = evaluate(
-            baseline_monolithic_ollama_predictor,
-            data=examples,
-            evaluators=evaluators,
-            experiment_prefix="WP2-Baseline-Ollama",
-            max_concurrency=1,
+    # Experiment 4: Baseline LLM
+    if experiment in ("ollama", "all", "baseline_ollama", "Baseline-LLM"):
+        evaluate_router_on_wp2(
+            experiment_name="Baseline-LLM",
+            predictor=baseline_router_predictor,
+            description="Monolithic single-shot baseline router passing all tools to LLM (qwen2.5:3b).",
+            force_refresh=False,
         )
-        completed_experiments.append(("WP2-Baseline-Ollama", res))
-        print("[WP2] Completed: WP2-Baseline-Ollama\n")
 
     print("=" * 80)
-    print("ALL WP2 EXPERIMENTS SUBMITTED TO LANGSMITH!")
+    print("ALL REQUESTED WP2 EXPERIMENTS COMPLETED!")
     print(f"View in LangSmith Dashboard: https://smith.langchain.com -> Project '{os.environ['LANGCHAIN_PROJECT']}'")
     print("=" * 80)
 
@@ -306,7 +151,7 @@ if __name__ == "__main__":
         "--experiment",
         "-e",
         type=str,
-        default="laya",
+        default="all",
         choices=["laya", "ollama", "all", "two_layer_laya", "single_layer_laya", "two_layer_ollama", "baseline_ollama"],
         help="Which experiments to run (default: 'laya')"
     )

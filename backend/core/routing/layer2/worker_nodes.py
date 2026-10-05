@@ -12,7 +12,8 @@ chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 def calendar_node(state: AgentState):
     from actions.digital.langgraph.calendar_agent import run_calendar_agent
     last_message = state["messages"][-1].content
-    reply = run_calendar_agent(last_message)
+    provider = state.get("provider", "local")
+    reply = run_calendar_agent(last_message, provider=provider)
     return {"messages": [AIMessage(content=reply)]}
 
 
@@ -104,7 +105,11 @@ def weather_node(state: AgentState):
     Keep it to a single friendly sentence.
     """
     
-    response = chat_llm.invoke([
+    mode = state.get("provider", "local")
+    from core.routing.llm_factory import get_chat_companion_llm
+    active_chat_llm = get_chat_companion_llm(mode=mode, temperature=0.6)
+
+    response = active_chat_llm.invoke([
         SystemMessage(content="You are Cozmo. Write a friendly, single-sentence weather update including the exact temperature degrees."),
         HumanMessage(content=weather_prompt)
     ])
@@ -142,7 +147,11 @@ def chat_node(state: AgentState):
     messages_payload.append(SystemMessage(content=system_instructions))
     messages_payload.extend(state["messages"])
 
-    response = chat_llm.invoke(messages_payload)
+    mode = state.get("provider", "local")
+    from core.routing.llm_factory import get_chat_companion_llm
+    active_chat_llm = get_chat_companion_llm(mode=mode, temperature=0.6)
+
+    response = active_chat_llm.invoke(messages_payload)
     return {"messages": [response]}
 
 
@@ -156,7 +165,8 @@ def code_executor_node(state: AgentState):
 def todolist_node(state: AgentState):
     from actions.digital.langgraph.todolist_agent import run_todolist_agent
     last_message = state["messages"][-1].content
-    reply = run_todolist_agent(last_message)
+    provider = state.get("provider", "local")
+    reply = run_todolist_agent(last_message, provider=provider)
     return {"messages": [AIMessage(content=reply)]}
 
 

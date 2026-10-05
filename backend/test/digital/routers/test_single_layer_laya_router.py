@@ -66,10 +66,16 @@ def single_layer_laya_predictor(inputs: dict) -> dict:
     }
 
 
+class SingleLayerLayaRouter:
+    """Class wrapper around single_layer_laya_predictor for backward compatibility."""
+    def route(self, query: str) -> dict:
+        return single_layer_laya_predictor({"message": query})
+
+
 def test_single_layer_laya_router_wp2():
     """Pytest / Test runner entrypoint."""
     results = evaluate_router_on_wp2(
-        experiment_name="WP2-Single-Layer-Laya",
+        experiment_name="1-L-Laya",
         predictor=single_layer_laya_predictor,
         description="Single-Layer Monolithic LAYA decision model evaluated directly over 15 tools."
     )
@@ -78,7 +84,7 @@ def test_single_layer_laya_router_wp2():
 
 if __name__ == "__main__":
     evaluate_router_on_wp2(
-        experiment_name="WP2-Single-Layer-Laya",
+        experiment_name="1-L-Laya",
         predictor=single_layer_laya_predictor,
         description="Single-Layer Monolithic LAYA decision model evaluated directly over 15 tools."
     )

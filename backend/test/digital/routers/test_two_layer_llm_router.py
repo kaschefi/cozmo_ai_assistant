@@ -79,7 +79,7 @@ def two_layer_llm_predictor(inputs: dict) -> dict:
 def test_two_layer_llm_router_wp2():
     """Pytest / Test runner entrypoint."""
     results = evaluate_router_on_wp2(
-        experiment_name="WP2-Two-Layer-LLM",
+        experiment_name="2-L-LLM",
         predictor=two_layer_llm_predictor,
         description="Production Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Tool RAG with Ollama (qwen2.5:3b)."
     )
@@ -88,7 +88,7 @@ def test_two_layer_llm_router_wp2():
 
 if __name__ == "__main__":
     evaluate_router_on_wp2(
-        experiment_name="WP2-Two-Layer-LLM",
+        experiment_name="2-Layer-LLM",
         predictor=two_layer_llm_predictor,
         description="Production Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Tool RAG with Ollama (qwen2.5:3b)."
     )

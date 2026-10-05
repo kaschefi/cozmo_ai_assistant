@@ -58,7 +58,7 @@ def baseline_router_predictor(inputs: dict) -> dict:
 def test_baseline_router_wp2():
     """Pytest / Test runner entrypoint."""
     results = evaluate_router_on_wp2(
-        experiment_name="WP2-Baseline-LLM",
+        experiment_name="Baseline-LLM",
         predictor=baseline_router_predictor,
         description="Monolithic single-shot baseline router passing all tools to LLM (qwen2.5:3b)."
     )
@@ -67,7 +67,7 @@ def test_baseline_router_wp2():
 
 if __name__ == "__main__":
     evaluate_router_on_wp2(
-        experiment_name="WP2-Baseline-LLM",
+        experiment_name="Baseline-LLM",
         predictor=baseline_router_predictor,
         description="Monolithic single-shot baseline router passing all tools to LLM (qwen2.5:3b)."
     )

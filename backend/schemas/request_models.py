@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     active_tools: List[dict]
     retrieved_memories: List[str] # LONG-TERM CONTEXT INJECTION
     summary: str
+    provider: str # "local" (Ollama) or "cloud" (Azure GPT-4.1 Nano)
 
 # The Structured Output for the LLM
 class RouteDecision(BaseModel):
@@ -76,4 +77,8 @@ class ChatRequest(BaseModel):
     mute: bool = Field(
         default=False,
         description="If True, the agent will only output text response and not speak."
+    )
+    provider: str = Field(
+        default="local",
+        description="Model execution provider: 'local' (Ollama) or 'cloud' (Azure GPT-4.1 Nano for Chat & Calendar/Todoist)."
     )

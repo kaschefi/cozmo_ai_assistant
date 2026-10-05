@@ -81,10 +81,16 @@ def two_layer_laya_predictor(inputs: dict) -> dict:
     }
 
 
+class TwoLayerLayaRouter:
+    """Class wrapper around two_layer_laya_predictor for backward compatibility."""
+    def route(self, query: str) -> dict:
+        return two_layer_laya_predictor({"message": query})
+
+
 def test_two_layer_laya_router_wp2():
     """Pytest / Test runner entrypoint."""
     results = evaluate_router_on_wp2(
-        experiment_name="WP2-Two-Layer-Laya",
+        experiment_name="2-L-Laya",
         predictor=two_layer_laya_predictor,
         description="Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 LAYA Decision Model across 15 tools."
     )
@@ -93,7 +99,7 @@ def test_two_layer_laya_router_wp2():
 
 if __name__ == "__main__":
     evaluate_router_on_wp2(
-        experiment_name="WP2-Two-Layer-Laya",
+        experiment_name="2-L-Laya",
         predictor=two_layer_laya_predictor,
         description="Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 LAYA Decision Model across 15 tools."
     )
