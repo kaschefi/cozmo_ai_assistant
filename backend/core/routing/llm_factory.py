@@ -17,6 +17,7 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, pr
     else:
         resolved_provider = "OLLAMA"
 
+
     cache_key = (model_env_var, default_model, temperature, resolved_provider)
     if cache_key in _MODEL_CACHE:
         return _MODEL_CACHE[cache_key]
@@ -28,14 +29,11 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, pr
         deployment_name = (
             os.getenv(dep_var_name)
             or os.getenv("AZURE_MODEL_NAME")
+            or os.getenv("AZURE_DEPLOYMENT_NAME")
             or os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+            or "Phi-4-mini-instruct"
         )
-        if not deployment_name:
-            raw_nano = os.getenv("AZURE_GPT_4.1_NANO", "")
-            if raw_nano and "azureml://" not in raw_nano:
-                deployment_name = raw_nano
-            else:
-                deployment_name = "Phi-4-mini-instruct"
+
 
         endpoint = (
             os.getenv("AZURE_SERVICES_ENDPOINT")
@@ -64,9 +62,12 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, pr
                 base_url=base_url,
                 model=deployment_name,
                 api_key=api_key,
-                temperature=temperature
+                temperature=temperature,
+                timeout=90.0,
+                max_retries=2
             )
         else:
+
             from langchain_openai import AzureChatOpenAI
             clean_endpoint = endpoint.replace("/openai/v1", "").rstrip("/")
             client = AzureChatOpenAI(
@@ -94,6 +95,11 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, pr
         )
         _MODEL_CACHE[cache_key] = client
         return client
+
+
+def get_router_llm(temperature: float = 0.0):
+    """Returns the central router supervisor LLM (always local Ollama qwen2.5:3b)."""
+    return get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=temperature, provider="OLLAMA")
 
 
 def get_chat_companion_llm(mode: str = "local", temperature: float = 0.6):

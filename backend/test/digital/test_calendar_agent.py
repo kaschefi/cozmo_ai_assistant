@@ -122,7 +122,7 @@ def make_call_agent(tools, default_provider="local"):
         if ai_msg.tool_calls:
             calls = [f"{tc['name']}({tc['args']})" for tc in ai_msg.tool_calls]
             print(f"    -> Agent selected action: {', '.join(calls)}")
-        return {"messages": [ai_msg]}
+        return {"messages": [ai_msg], "provider": provider}
     return call_agent
 
 

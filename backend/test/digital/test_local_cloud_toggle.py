@@ -21,7 +21,7 @@ def test_llm_factory_modes():
 
     cloud_chat = get_chat_companion_llm("cloud")
     print(f"Cloud Chat Class: {cloud_chat.__class__.__name__}, Deployment: {getattr(cloud_chat, 'deployment_name', getattr(cloud_chat, 'model_name', 'N/A'))}")
-    assert cloud_chat.__class__.__name__ == "AzureChatOpenAI"
+    assert cloud_chat.__class__.__name__ in ["AzureChatOpenAI", "ChatOpenAI"]
 
     local_cal = get_calendar_llm("local")
     print(f"Local Calendar Class: {local_cal.__class__.__name__}, Model: {getattr(local_cal, 'model', 'N/A')}")
@@ -29,7 +29,7 @@ def test_llm_factory_modes():
 
     cloud_cal = get_calendar_llm("cloud")
     print(f"Cloud Calendar Class: {cloud_cal.__class__.__name__}, Deployment: {getattr(cloud_cal, 'deployment_name', getattr(cloud_cal, 'model_name', 'N/A'))}")
-    assert cloud_cal.__class__.__name__ == "AzureChatOpenAI"
+    assert cloud_cal.__class__.__name__ in ["AzureChatOpenAI", "ChatOpenAI"]
 
     local_todo = get_todolist_llm("local")
     print(f"Local Todo Class: {local_todo.__class__.__name__}")
@@ -37,7 +37,7 @@ def test_llm_factory_modes():
 
     cloud_todo = get_todolist_llm("cloud")
     print(f"Cloud Todo Class: {cloud_todo.__class__.__name__}")
-    assert cloud_todo.__class__.__name__ == "AzureChatOpenAI"
+    assert cloud_todo.__class__.__name__ in ["AzureChatOpenAI", "ChatOpenAI"]
 
     print(" ALL LLM Factory tests passed successfully!\n")
 

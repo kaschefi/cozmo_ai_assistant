@@ -13,7 +13,7 @@ from schemas.request_models import AgentState, RouteDecision
 GRAY = "\033[90m"
 RESET = "\033[0m"
 
-router_llm = get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=0)
+router_llm = get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=0, provider="OLLAMA")
 structured_router = router_llm.with_structured_output(RouteDecision)
 chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 

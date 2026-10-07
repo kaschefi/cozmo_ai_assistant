@@ -137,12 +137,14 @@ async def handle_get_date(command: str = "", **kwargs) -> str:
 # Cognitive Agents Handlers
 # -----------------------------------------------------------------------------
 async def handle_calendar_node(command: str, **kwargs) -> str:
+    provider = kwargs.get("provider", "local")
     try:
         from actions.digital.langgraph.calendar_agent import run_calendar_agent
-        return run_calendar_agent(command)
+        return run_calendar_agent(command, provider=provider)
     except Exception:
         from actions.digital.n8n_agents import call_n8n_calendar
         return call_n8n_calendar(command)
+
 
 
 async def handle_weather_node(command: str, **kwargs) -> str:
@@ -194,8 +196,9 @@ async def handle_code_executor_node(command: str, **kwargs) -> str:
 
 
 async def handle_todolist_node(command: str, **kwargs) -> str:
+    provider = kwargs.get("provider", "local")
     from actions.digital.langgraph.todolist_agent import run_todolist_agent
-    return run_todolist_agent(command)
+    return run_todolist_agent(command, provider=provider)
 
 
 async def handle_none_chat(command: str, **kwargs) -> str:

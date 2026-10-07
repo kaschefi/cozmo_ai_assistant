@@ -275,47 +275,161 @@ SYSTEM_PROMPT = """You are a Google Calendar assistant agent.
 Your job is to help the user manage their Google Calendar by understanding their natural language requests and calling the correct calendar tool.
 Today's date and time is provided dynamically in the conversation context.
 
-You have access to the following actions:
-- Create event
-- Update event
-- Delete event
-- Get event
-- Get many events (list events)
+Available tools:
+- create_event: Create an event (needs title, start_time, end_time in ISO 8601).
+- update_event: Update an existing event by its event_id.
+- delete_event: Delete an event by its event_id.
+- get_event: Retrieve details of an event by its event_id.
+- get_many_events: List events within a time range to check availability or find event IDs.
 
-Rules you must follow:
-1. Carefully analyze the user message and determine the intent.
-2. Choose ONLY the tool that matches the user request.
-3. Extract all relevant details (Title, Date/Time, Duration, Location, Description, Event ID).
-4. If required information is missing, ask the user a clarifying question before calling any tool.
-5. Map user intents:
-   - Add/schedule/create → Call "Get many events" to check for conflicts first, then "Create event" if free
-   - Modify/change → Call "Get many events" first to find Event ID, then "Update event"
-   - Remove/cancel → Call "Get many events" first to find Event ID, then "Delete event"
-   - Details of specific event → "Get event"
-   - Schedule/time range view → "Get many events"
+Guidelines:
+1. Intent Mapping:
+   - To schedule/create an event: First call `get_many_events` to check for overlapping events in that time range. If an overlapping event exists, do NOT create the event; reply to the user that there is already an event scheduled at that time. If free, call `create_event`.
+   - To modify or delete an event: If you do not have the event_id, first call `get_many_events` to locate the event and obtain its event_id, then call `update_event` or `delete_event`.
+   - To view events or schedule: Call `get_many_events`.
+   - To view details of a specific event: Call `get_event`.
+2. Do not invent details or event IDs. If mandatory information is missing and cannot be determined, ask the user a brief clarifying question.
+3. If the user's request is not related to Google Calendar, politely decline and state that you only handle calendar management.
+4. When deciding to use a tool, invoke the tool directly without narrating your plan.
+5. After an action tool (create_event, update_event, or delete_event) returns a result (Success or Error), your work is done. Do not call any further tools; provide a concise, friendly final confirmation sentence to the user.
+"""
 
-6. BEFORE creating any new event, you MUST first check for conflicts (this rule ONLY applies to creating new events. Do NOT check for conflicts when deleting or updating an event):
-   - You must first call "Get many events" for the requested date and time range.
-   - Check whether any existing event already occupies that time.
-   - If there is ANY overlapping event, you MUST NOT create a new event. Instead, respond: "There is already an event scheduled at that time."
-7. Only proceed with "Create event" if the time slot is completely free.
-8. Always respond in a friendly and helpful tone.
-9. Do not invent event details.
-10. If the request is not related to Google Calendar, politely explain that you only handle calendar management.
-11. When you decide to use a tool, do NOT narrate your intentions. Execute the tool immediately.
-12. IMPORTANT: Your final response to the user must be a maximum of one short sentence. Do not explain what you did. Just confirm the action is complete (e.g., "I have moved your meeting to 4 PM.").
-13. You do NOT inherently know internal Event IDs. Before you can EVER use "Update event" or "Delete event", you MUST first call "Get many events" to search the calendar and extract the exact Event ID.
-14. Once an action tool ("Delete event", "Update event", or "Create event") returns a "Success:" confirmation string, your final goal has been achieved. You must stop calling tools immediately.
+CLOUD_SYSTEM_PROMPT = """You are a helpful calendar assistant. The user wants to manage or check their calendar.
+You have the following tools available:
+- get_many_events: List calendar events within a specific ISO 8601 time range.
+- create_event: Create a new calendar event.
+- update_event: Modify an existing event.
+- delete_event: Remove an event.
+- get_event: Retrieve full details of an event.
+
+To check today's events, schedule, or plan, call `get_many_events` with time_min and time_max covering today in ISO 8601 format.
+Output your tool call directly.
 """
 
 from core.routing.llm_factory import get_calendar_llm
 
 
+
+
+def _extract_tool_calls_from_text(content: str) -> List[Dict[str, Any]]:
+    """Extract tool calls if a model outputs json function calls in text instead of native tool_calls."""
+    import re
+    import json
+    import uuid
+    tool_calls = []
+    name_map = {
+        "get_events": "get_many_events",
+        "list_events": "get_many_events",
+        "check_calendar": "get_many_events",
+        "check calendar": "get_many_events",
+        "get_many_events": "get_many_events",
+        "create_event": "create_event",
+        "update_event": "update_event",
+        "delete_event": "delete_event",
+        "get_event": "get_event",
+    }
+
+    def _add_call(raw_name, raw_args):
+        if not raw_name:
+            return
+        target_name = name_map.get(str(raw_name).strip().lower()) or name_map.get(str(raw_name).strip())
+        if not target_name:
+            return
+        args = raw_args
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except Exception:
+                args = {}
+        if not isinstance(args, dict):
+            args = {}
+
+        if target_name == "get_many_events":
+            now = datetime.datetime.now()
+            today_str = now.strftime("%Y-%m-%d")
+            if not args.get("time_min"):
+                args["time_min"] = f"{today_str}T00:00:00Z"
+            if not args.get("time_max"):
+                args["time_max"] = f"{today_str}T23:59:59Z"
+
+        tool_calls.append({
+            "name": target_name,
+            "args": args,
+            "id": f"call_{uuid.uuid4().hex[:8]}",
+            "type": "tool_call"
+        })
+
+    cleaned = content.strip()
+    # 1. Direct JSON (array or object)
+    if cleaned.startswith(("[", "{")):
+        try:
+            parsed = json.loads(cleaned)
+            items = parsed if isinstance(parsed, list) else [parsed]
+            for it in items:
+                if isinstance(it, dict):
+                    fn_name = it.get("name") or it.get("function", {}).get("name")
+                    fn_args = it.get("arguments") or it.get("parameters") or it.get("args") or it.get("function", {}).get("arguments") or {}
+                    _add_call(fn_name, fn_args)
+        except Exception:
+            pass
+
+    # 2. Markdown code blocks
+    if not tool_calls:
+        blocks = re.findall(r'```(?:json)?\s*([\[\{].*?[\]\}])\s*```', content, re.DOTALL)
+        for block in blocks:
+            try:
+                parsed = json.loads(block)
+                items = parsed if isinstance(parsed, list) else [parsed]
+                for it in items:
+                    if isinstance(it, dict):
+                        fn_name = it.get("name") or it.get("function", {}).get("name")
+                        fn_args = it.get("arguments") or it.get("parameters") or it.get("args") or it.get("function", {}).get("arguments") or {}
+                        _add_call(fn_name, fn_args)
+            except Exception:
+                continue
+
+    # 3. Conversational refusal or simulation offer fallback
+    if not tool_calls:
+        refusal_indicators = [
+            "simulate a function call",
+            "personal calendar",
+            "access to personal data",
+            "access their personal data",
+            "access your personal calendar",
+            "access personal data or calendars",
+            "don't have access to personal data",
+            "don't have access to your personal",
+            "cannot access your personal",
+            "no access to personal",
+            "personal schedule",
+            "check your calendar",
+            "check your personal calendar",
+            "get_many_events",
+            "get_events"
+        ]
+        if any(ind in content.lower() for ind in refusal_indicators):
+            now = datetime.datetime.now()
+            today_str = now.strftime("%Y-%m-%d")
+            tool_calls.append({
+                "name": "get_many_events",
+                "args": {
+                    "time_min": f"{today_str}T00:00:00Z",
+                    "time_max": f"{today_str}T23:59:59Z"
+                },
+                "id": f"call_{uuid.uuid4().hex[:8]}",
+                "type": "tool_call"
+            })
+
+    return tool_calls
+
+
 def call_agent(state: AgentState):
     messages = state['messages']
-    if not isinstance(messages[0], SystemMessage):
-        messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
     provider = state.get("provider", "local")
+    is_cloud = str(provider).lower() in ["cloud", "azure"]
+    active_prompt = CLOUD_SYSTEM_PROMPT if is_cloud else SYSTEM_PROMPT
+    if not isinstance(messages[0], SystemMessage):
+        messages = [SystemMessage(content=active_prompt)] + messages
 
     last_msg = messages[-1]
     is_action_complete = (
@@ -323,13 +437,35 @@ def call_agent(state: AgentState):
         and any(str(last_msg.content).strip().startswith(prefix) for prefix in ["Success:", "Error:"])
     )
     raw_llm = get_calendar_llm(mode=provider, temperature=0)
-    active_llm = raw_llm if is_action_complete else raw_llm.bind_tools(calendar_tools)
-    return {"messages": [active_llm.invoke(messages)]}
+    
+    # Cloud models (e.g. Phi-4-mini on Azure) emit function syntax or text directly,
+    # avoiding xgrammar schema timeouts on Azure AI endpoints.
+    # Local models (ChatOllama) natively support tool binding.
+    if is_cloud or is_action_complete:
+        active_llm = raw_llm
+    else:
+        try:
+            active_llm = raw_llm.bind_tools(calendar_tools)
+        except Exception:
+            active_llm = raw_llm
+
+    response = active_llm.invoke(messages)
+
+    # If the model emitted function calls in text rather than native tool_calls, extract them
+    if not getattr(response, "tool_calls", None) and hasattr(response, "content") and response.content:
+        extracted = _extract_tool_calls_from_text(str(response.content))
+        if extracted:
+            response.tool_calls = extracted
+
+    return {
+        "messages": [response],
+        "provider": provider
+    }
 
 
 def router_edge(state: AgentState) -> Literal["execute_tools", END]:
     last_message = state['messages'][-1]
-    return "execute_tools" if last_message.tool_calls else END
+    return "execute_tools" if getattr(last_message, "tool_calls", None) else END
 
 
 # Compile Workflow Graph

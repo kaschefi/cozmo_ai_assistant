@@ -644,7 +644,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         await triggerMockMokaResponse(text);
       }
     }
-  }, [token, isMuted, triggerMockMokaResponse]);
+  }, [token, isMuted, modelMode, triggerMockMokaResponse]);
 
   // Submit handler
   const handleSendMessage = async (textToSend?: string) => {

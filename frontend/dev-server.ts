@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import net from 'net';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,42 +21,76 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-console.log(`\x1b[36m[Dev Manager] Using Python executable: ${pythonPath}\x1b[0m`);
+// Function to check if a port is already listening
+function isPortInUse(port: number, host = '127.0.0.1'): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(500);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('error', () => {
+      resolve(false);
+    });
+    socket.connect(port, host);
+  });
+}
 
-// Spawn backend
-const backendProcess: ChildProcess = spawn(pythonPath, ['-m', 'core.modes.web_api'], {
-  cwd: rootDir,
-  env: {
-    ...process.env,
-    PYTHONPATH: path.join(rootDir, 'backend')
-  },
-  stdio: 'inherit'
-});
+async function start() {
+  const backendAlreadyRunning = await isPortInUse(8000);
+  let backendProcess: ChildProcess | null = null;
 
-// Spawn frontend (Vite)
-const frontendProcess: ChildProcess = spawn('npx', ['vite'], {
-  cwd: __dirname,
-  stdio: 'inherit',
-  shell: true
-});
+  if (backendAlreadyRunning) {
+    console.log('\x1b[33m[Dev Manager] Port 8000 is already active. Reusing existing backend server.\x1b[0m');
+  } else {
+    console.log(`\x1b[36m[Dev Manager] Using Python executable: ${pythonPath}\x1b[0m`);
+    // Spawn backend
+    backendProcess = spawn(pythonPath, ['-m', 'core.modes.web_api'], {
+      cwd: rootDir,
+      env: {
+        ...process.env,
+        PYTHONPATH: path.join(rootDir, 'backend')
+      },
+      stdio: 'inherit'
+    });
 
-// Handle exits
-const cleanup = () => {
-  console.log('\n\x1b[33m[Dev Manager] Shutting down backend and frontend servers...\x1b[0m');
-  backendProcess.kill();
-  frontendProcess.kill();
-  process.exit();
-};
+    backendProcess.on('exit', () => {
+      console.log('\x1b[31m[Dev Manager] Backend server exited.\x1b[0m');
+      cleanup();
+    });
+  }
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+  // Spawn frontend (Vite)
+  const frontendProcess: ChildProcess = spawn('npx', ['vite'], {
+    cwd: __dirname,
+    stdio: 'inherit',
+    shell: true
+  });
 
-backendProcess.on('exit', () => {
-  console.log('\x1b[31m[Dev Manager] Backend server exited.\x1b[0m');
-  cleanup();
-});
+  // Handle exits
+  const cleanup = () => {
+    console.log('\n\x1b[33m[Dev Manager] Shutting down backend and frontend servers...\x1b[0m');
+    if (backendProcess && !backendProcess.killed) {
+      backendProcess.kill();
+    }
+    if (!frontendProcess.killed) {
+      frontendProcess.kill();
+    }
+    process.exit();
+  };
 
-frontendProcess.on('exit', () => {
-  console.log('\x1b[31m[Dev Manager] Frontend server exited.\x1b[0m');
-  cleanup();
-});
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+
+  frontendProcess.on('exit', () => {
+    console.log('\x1b[31m[Dev Manager] Frontend server exited.\x1b[0m');
+    cleanup();
+  });
+}
+
+start();

@@ -33,7 +33,7 @@ class BaselineRouter:
     """
 
     def __init__(self, model_env_var: str = "ROUTER_LLM_MODEL", default_model: str = "qwen2.5:3b", temperature: float = 0.0):
-        self.router_llm = get_llm(model_env_var, default_model, temperature=temperature)
+        self.router_llm = get_llm(model_env_var, default_model, temperature=temperature, provider="OLLAMA")
         self.structured_router = self.router_llm.with_structured_output(BaselineDecision)
         self.actions_menu = build_action_menu_string()
 
@@ -72,7 +72,7 @@ CLASSIFICATION RULES:
 
         return decision
 
-    async def process_user_intent(self, command: str, mute: bool = False) -> Dict[str, Any]:
+    async def process_user_intent(self, command: str, mute: bool = False, provider: str = "local") -> Dict[str, Any]:
         """
         Full end-to-end baseline routing and execution pipeline.
         Measures classification latency and returns the route and response.
@@ -85,7 +85,7 @@ CLASSIFICATION RULES:
         decision = self.classify_intent(command_clean)
         latency = time.perf_counter() - start_time
 
-        response = await dispatch_action(decision.route, command=command_clean)
+        response = await dispatch_action(decision.route, command=command_clean, provider=provider)
 
         if not mute:
             try:
@@ -111,7 +111,8 @@ def baseline_classify_intent(user_input: str) -> BaselineDecision:
     return baseline_router.classify_intent(user_input)
 
 
-async def baseline_process_intent(command: str, mute: bool = False) -> str:
+async def baseline_process_intent(command: str, mute: bool = False, provider: str = "local") -> str:
     """Convenience function for end-to-end baseline processing."""
-    res = await baseline_router.process_user_intent(command, mute=mute)
+    res = await baseline_router.process_user_intent(command, mute=mute, provider=provider)
     return res.get("response", "")
+
