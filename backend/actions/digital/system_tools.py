@@ -35,14 +35,12 @@ async def tell_time(mute: bool = False):
 
 @reflex_registry.reflex(
     name="get_date",
-    score_threshold=0.84,
+    score_threshold=0.88,
     utterances=[
         "what is the date",
-        "what is today",
         "what is today's date",
         "tell me the date",
         "what day is it today",
-        "what day of the week is it today",
         "tell me the full date today",
         "what's the date today",
     ]

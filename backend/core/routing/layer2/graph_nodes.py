@@ -5,6 +5,10 @@ import sys
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, RemoveMessage
 from langsmith import traceable
 
+import os
+os.environ["USE_TF"] = "0"
+import laya
+
 from core.routing.llm_factory import get_llm
 from core.routing.layer2.tool_vector_db import tool_rag_registry
 from schemas.memory_db import long_term_memory
@@ -13,8 +17,18 @@ from schemas.request_models import AgentState, RouteDecision
 GRAY = "\033[90m"
 RESET = "\033[0m"
 
-router_llm = get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=0, provider="OLLAMA")
-structured_router = router_llm.with_structured_output(RouteDecision)
+_LAYA_AGENT = None
+_LAYA_LOCK = threading.Lock()
+
+def get_laya_agent(model_id: str = "convaiinnovations/laya-typed-decisions"):
+    global _LAYA_AGENT
+    if _LAYA_AGENT is None:
+        with _LAYA_LOCK:
+            if _LAYA_AGENT is None:
+                print(f"[LayaRouter] Pre-loading LAYA Typed Decision Model '{model_id}'...")
+                _LAYA_AGENT = laya.load(model_id)
+                print("[LayaRouter] LAYA Decision Model initialized successfully.")
+    return _LAYA_AGENT
 chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 
 
@@ -165,7 +179,8 @@ def memory_extraction_node(state: AgentState):
             6. STRICT GUARDRAIL: Only extract facts that the USER explicitly shares, states, or confirms. Never extract facts or preferences from details that the ASSISTANT suggests, hallucinates, or introduces in conversation (e.g., if the Assistant says 'You probably like movies' but the User doesn't explicitly confirm it, DO NOT extract it).
             """
 
-            response = router_llm.invoke([
+            extractor_llm = get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=0, provider="OLLAMA")
+            response = extractor_llm.invoke([
                 SystemMessage(content="You are a precise fact filtering pipeline. Output Fact | Category or 'NONE'."),
                 HumanMessage(content=selective_extraction_prompt)
             ])
@@ -202,36 +217,33 @@ def route_query(state: AgentState):
     last_message = state["messages"][-1].content
     active_tools = state.get("active_tools", [])
 
-    # If no tools passed the RAG similarity gate, bypass LLM classification completely
+    # If no tools passed the RAG similarity gate, bypass router classification completely
     if not active_tools:
         return {"next_route": "none"}
 
-    # Format the retrieved tools dynamically
-    tool_menu_string = ""
-    for tool in active_tools:
-        tool_menu_string += f'- "{tool["name"]}": {tool["description"]}\n'
+    # Formulate typed choice criteria dictionary from Top-K RAG selection
+    tools_dict = {tool["name"]: tool["description"] for tool in active_tools}
+    tools_dict["none"] = "Core conversational channel. Select for casual chat, greetings, personal facts, or general discussion."
 
-    dynamic_prompt = f"""You are Cozmo's routing supervisor. Your role is to accurately classify the intent of the user's latest message.
-        AVAILABLE UTILITY CHANNELS RETRIEVED FOR THIS TURN:
-        {tool_menu_string}- "none": Core conversational channel. Fall back to this for anything that doesn't strictly match a specific tool option above.
-        
-        CLASSIFICATION PHILOSOPHY & CRITERIA:
-        1. INTENT-DRIVEN SELECTION: You must ONLY select a specific tool node if the user is explicitly requesting an action, operation, or real-time data lookup that requires external service execution. 
-        2. CASUAL CHAT & PERSONAL FACTS ("none"): If the user is sharing personal information, making states of being, telling you facts about themselves, greeting you, or engaging in casual/philosophical discussion, you MUST select "none".
-        3. TOOL BOUNDARY RULE: Never assume or extrapolate. If a query vaguely mentions a topic but does not contain a clear directive to execute a tool's capability, keep the execution local by routing to "none".
-        
-        STRICT RULES:
-        - Output a structured decision containing the exact string name of the chosen route.
-        - If no tool matches the intent profile perfectly, output "none".
-        - Never attempt to answer or fulfill the user's request yourself. Your only job is classification.
-        """
+    questions = {
+        "tool_selection": {
+            "type": "choice",
+            "instructions": (
+                "Select the appropriate tool or action to execute given the user's input/state. "
+                "If the user input is casual chat, greetings, personal facts, jokes, or does not require "
+                "executing any specific action or tool, select 'none'."
+            ),
+            "criteria": tools_dict,
+        }
+    }
 
-    decision = structured_router.invoke([
-        SystemMessage(content=dynamic_prompt),
-        HumanMessage(content=last_message)
-    ])
+    agent = get_laya_agent()
+    result = agent.predict(last_message, questions)
+    answers = result.get("answers", result)
+    decision = answers.get("tool_selection", {})
+    selected_route = decision.get("choice", "none")
 
-    return {"next_route": decision.route}
+    return {"next_route": selected_route}
 
 
 def decide_next_step(state: AgentState) -> str:

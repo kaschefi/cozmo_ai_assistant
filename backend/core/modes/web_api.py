@@ -43,7 +43,11 @@ async def _background_warmup():
         from core.routing.layer1.semantic_layer import initialize_router
         await loop.run_in_executor(None, initialize_router)
 
-        # 3. Warm up Kokoro ONNX speaker model
+        # 3. Warm up LAYA Typed Decision Router
+        from core.routing.layer2.graph_nodes import get_laya_agent
+        await loop.run_in_executor(None, get_laya_agent)
+
+        # 4. Warm up Kokoro ONNX speaker model
         from actions.physical.speak import speaker
         await loop.run_in_executor(None, speaker.warmup)
 
