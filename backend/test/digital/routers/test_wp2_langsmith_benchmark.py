@@ -80,10 +80,12 @@ def ensure_wp2_dataset_exists(client: Client, force_refresh: bool = False) -> st
 # -----------------------------------------------------------------------------
 # 2. Modular Predictors and Experiment Runner
 # -----------------------------------------------------------------------------
-from test.digital.routers.test_two_layer_laya_router import two_layer_laya_predictor
-from test.digital.routers.test_single_layer_laya_router import single_layer_laya_predictor
-from test.digital.routers.test_two_layer_llm_router import two_layer_llm_predictor
-from test.digital.routers.test_baseline_router import baseline_router_predictor
+from test.digital.routers.two_layer_laya import two_layer_laya_predictor
+from test.digital.routers.single_layer_laya import single_layer_laya_predictor
+from test.digital.routers.two_layer_laya_topk import two_layer_laya_topk_predictor
+from test.digital.routers.single_layer_laya_topk import single_layer_laya_topk_predictor
+from test.digital.routers.two_layer_llm import two_layer_llm_predictor
+from test.digital.routers.baseline_router import baseline_router_predictor
 from test.digital.routers.harness import evaluate_router_on_wp2
 
 
@@ -92,9 +94,10 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
     Executes LangSmith evaluations under project 'WP2' using the modular router predictors.
     experiment choices:
       - 'laya': Runs Two-Layer Laya and Single-Layer Laya
+      - 'laya_topk': Runs Two-Layer Laya Top-K and Single-Layer Laya Top-K
       - 'ollama': Runs Two-Layer Ollama and Baseline Ollama
-      - 'all': Runs all 4 router architectures
-      - specific names: 'two_layer_laya', 'single_layer_laya', 'two_layer_ollama', 'baseline_ollama'
+      - 'all': Runs all 6 router architectures
+      - specific names: '2-L-Laya', '1-L-Laya', '2-L-Laya-TopK', '1-L-Laya-TopK', '2-L-LLM', 'Baseline-LLM'
     """
     print("=" * 80)
     print("MOKA AI ASSISTANT - WP2 ROUTER BENCHMARK SUITE")
@@ -103,7 +106,7 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
     print(f"Selected Mode:           '{experiment}'")
     print("=" * 80)
 
-    # Experiment 1: Two-Layer LAYA
+    # Experiment 1: Two-Layer LAYA (All 15 Tools)
     if experiment in ("laya", "all", "two_layer_laya", "2-L-Laya"):
         evaluate_router_on_wp2(
             experiment_name="2-L-Laya",
@@ -112,7 +115,7 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
             force_refresh=force_refresh,
         )
 
-    # Experiment 2: Single-Layer LAYA
+    # Experiment 2: Single-Layer LAYA (All 15 Tools)
     if experiment in ("laya", "all", "single_layer_laya", "1-L-Laya"):
         evaluate_router_on_wp2(
             experiment_name="1-L-Laya",
@@ -121,7 +124,25 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
             force_refresh=False,
         )
 
-    # Experiment 3: Two-Layer LLM
+    # Experiment 3: Two-Layer LAYA with Top-K Tool RAG
+    if experiment in ("laya_topk", "all", "two_layer_laya_topk", "2-L-Laya-TopK"):
+        evaluate_router_on_wp2(
+            experiment_name="2-L-Laya-TopK",
+            predictor=two_layer_laya_topk_predictor,
+            description="Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-K Tool RAG with LAYA (k=3).",
+            force_refresh=False,
+        )
+
+    # Experiment 4: Single-Layer LAYA with Top-K Tool RAG
+    if experiment in ("laya_topk", "all", "single_layer_laya_topk", "1-L-Laya-TopK"):
+        evaluate_router_on_wp2(
+            experiment_name="1-L-Laya-TopK",
+            predictor=single_layer_laya_topk_predictor,
+            description="Single-Layer LAYA router with Top-K FastEmbed Tool RAG retrieval (k=3).",
+            force_refresh=False,
+        )
+
+    # Experiment 5: Two-Layer LLM
     if experiment in ("ollama", "all", "two_layer_ollama", "2-L-LLM", "2-Layer-LLM"):
         evaluate_router_on_wp2(
             experiment_name="2-L-LLM",
@@ -130,7 +151,7 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
             force_refresh=False,
         )
 
-    # Experiment 4: Baseline LLM
+    # Experiment 6: Baseline LLM
     if experiment in ("ollama", "all", "baseline_ollama", "Baseline-LLM"):
         evaluate_router_on_wp2(
             experiment_name="Baseline-LLM",
@@ -152,8 +173,14 @@ if __name__ == "__main__":
         "-e",
         type=str,
         default="all",
-        choices=["laya", "ollama", "all", "two_layer_laya", "single_layer_laya", "two_layer_ollama", "baseline_ollama"],
-        help="Which experiments to run (default: 'laya')"
+        choices=[
+            "laya", "laya_topk", "ollama", "all",
+            "two_layer_laya", "single_layer_laya",
+            "two_layer_laya_topk", "single_layer_laya_topk",
+            "two_layer_ollama", "baseline_ollama",
+            "2-L-Laya", "1-L-Laya", "2-L-Laya-TopK", "1-L-Laya-TopK", "2-L-LLM", "Baseline-LLM"
+        ],
+        help="Which experiments to run (default: 'all')"
     )
     parser.add_argument(
         "--force-refresh",

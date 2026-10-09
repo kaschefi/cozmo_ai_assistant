@@ -1,4 +1,4 @@
-# backend/test/digital/routers/test_single_layer_laya_router.py
+# backend/test/digital/routers/single_layer_laya.py
 """
 Router 3: Single-Layer Monolithic LAYA Router Evaluation (WP2 Experiment).
 

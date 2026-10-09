@@ -22,7 +22,12 @@ if __name__ == "__main__":
         "-e",
         type=str,
         default="laya",
-        choices=["laya", "ollama", "all", "two_layer_laya", "single_layer_laya", "two_layer_ollama", "baseline_ollama"],
+        choices=[
+            "laya", "laya_topk", "ollama", "all",
+            "two_layer_laya", "single_layer_laya",
+            "two_layer_laya_topk", "single_layer_laya_topk",
+            "two_layer_ollama", "baseline_ollama"
+        ],
         help="Which experiments to run (default: 'laya')"
     )
     parser.add_argument(

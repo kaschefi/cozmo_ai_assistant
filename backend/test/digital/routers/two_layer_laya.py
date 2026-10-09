@@ -1,4 +1,4 @@
-# backend/test/digital/routers/test_two_layer_laya_router.py
+# backend/test/digital/routers/two_layer_laya.py
 """
 Router 4: Two-Layer Architecture with LAYA Router Evaluation (WP2 Experiment).
 

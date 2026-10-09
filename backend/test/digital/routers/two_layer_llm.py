@@ -1,4 +1,4 @@
-# backend/test/digital/routers/test_two_layer_llm_router.py
+# backend/test/digital/routers/two_layer_llm.py
 """
 Router 2: Two-Layer Architecture with LLM Router Evaluation (WP2 Experiment).
 

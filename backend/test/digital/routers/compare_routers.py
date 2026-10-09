@@ -1,14 +1,16 @@
 # backend/test/digital/routers/compare_routers.py
 """
-Comparative Evaluation Runner across all 4 WP2 Router Architectures.
+Comparative Evaluation Runner across WP2 Router Architectures.
 
-1. Baseline Monolithic LLM (test_baseline_router.py)
-2. Production Two-Layer LLM (test_two_layer_llm_router.py)
-3. Single-Layer LAYA Monolithic (test_single_layer_laya_router.py)
-4. Two-Layer LAYA (test_two_layer_laya_router.py)
+1. Baseline Monolithic LLM (baseline_router.py)
+2. Production Two-Layer LLM (two_layer_llm.py)
+3. Single-Layer LAYA Monolithic (single_layer_laya.py)
+4. Two-Layer LAYA (two_layer_laya.py)
+5. Single-Layer LAYA Top-K (single_layer_laya_topk.py)
+6. Two-Layer LAYA Top-K (two_layer_laya_topk.py)
 
 Each implementation is independently runnable and self-contained.
-This script can execute all 4 or display the summary comparison table.
+This script can execute all or display the summary comparison table.
 """
 
 import os
@@ -19,10 +21,12 @@ backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
-from test.digital.routers.test_baseline_router import baseline_router_predictor
-from test.digital.routers.test_two_layer_llm_router import two_layer_llm_predictor
-from test.digital.routers.test_single_layer_laya_router import single_layer_laya_predictor
-from test.digital.routers.test_two_layer_laya_router import two_layer_laya_predictor
+from test.digital.routers.baseline_router import baseline_router_predictor
+from test.digital.routers.two_layer_llm import two_layer_llm_predictor
+from test.digital.routers.single_layer_laya import single_layer_laya_predictor
+from test.digital.routers.two_layer_laya import two_layer_laya_predictor
+from test.digital.routers.single_layer_laya_topk import single_layer_laya_topk_predictor
+from test.digital.routers.two_layer_laya_topk import two_layer_laya_topk_predictor
 from test.digital.routers.harness import evaluate_router_on_wp2
 
 
@@ -46,6 +50,16 @@ ROUTERS = [
         "name": "WP2-Two-Layer-Laya",
         "description": "Two-Layer architecture with FastEmbed semantic reflexes + Layer 2 LAYA.",
         "predictor": two_layer_laya_predictor,
+    },
+    {
+        "name": "WP2-Single-Layer-Laya-TopK",
+        "description": "Single-Layer LAYA router with FastEmbed Tool RAG retrieval (top-3 candidates).",
+        "predictor": single_layer_laya_topk_predictor,
+    },
+    {
+        "name": "WP2-Two-Layer-Laya-TopK",
+        "description": "Two-Layer architecture with FastEmbed reflexes + Layer 2 Tool RAG with LAYA (top-3 candidates).",
+        "predictor": two_layer_laya_topk_predictor,
     },
 ]
 
