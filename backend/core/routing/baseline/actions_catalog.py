@@ -57,7 +57,7 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     # -------------------------------------------------------------------------
     "setup_gaming": {
         "category": "digital_setup",
-        "description": "Launches the gaming environment on the laptop, opening Steam, CS2, and Discord. Use when the user wants to play games, activate gaming mode, or open gaming apps.",
+        "description": "Prepares the laptop environment for playing video games, launching Steam, CS2, and Discord. Use when user wants to play video games or activate PC gaming mode. Do not use for sports games, tournament results, hardware manufacturers, or tech company queries.",
         "examples": ["set my laptop for gaming", "gaming mode", "open steam and discord", "time to game", "prepare for gaming", "gaming work"],
     },
     "setup_study": {
@@ -90,7 +90,7 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     # -------------------------------------------------------------------------
     "calendar_node": {
         "category": "cognitive_agent",
-        "description": "Manages Google Calendar operations. Use this if the user wants to check, create, schedule, move, reschedule, change, or delete meetings, events, appointments, or check for scheduling conflicts.",
+        "description": "Manages Google Calendar operations, schedules, and appointments. Use when user wants to view, check, create, schedule, sync, reschedule, move, change, or delete meetings, appointments, team standups, calendar events, or check agenda.",
         "examples": [
             "schedule a meeting with Bob tomorrow at 3pm",
             "what is on my calendar for Friday?",
@@ -111,7 +111,7 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     },
     "web_search_node": {
         "category": "cognitive_agent",
-        "description": "Searches the live web for general real-time information, breaking news, sports scores, stock prices, recent events, or external factual knowledge that changes over time.",
+        "description": "Searches the web to answer user questions about sports, match winners, game scores, tournaments, current news headlines, company market cap, stock prices, or real-world factual information.",
         "examples": [
             "who won the Champions League yesterday?",
             "what is the latest stock price of Apple?",

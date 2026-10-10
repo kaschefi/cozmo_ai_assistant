@@ -121,6 +121,10 @@ def move_lift(speed: float, duration: float = 1.0):
         "move forward a bit",
         "step forward a little bit",
         "drive ahead",
+        "roll forward",
+        "roll straight ahead",
+        "roll ahead",
+        "roll straight",
     ],
     score_threshold=0.80
 )
@@ -184,6 +188,9 @@ def turn_in_place(angle_degrees: float, speed_deg_s: float = DEFAULT_TURN_SPEED)
         "rotate 90 degrees to the left",
         "spin left and face the window",
         "turn to the left",
+        "turn counterclockwise",
+        "spin counterclockwise",
+        "rotate counterclockwise",
     ],
     score_threshold=0.80
 )
@@ -201,6 +208,12 @@ async def turn_left(angle_degrees: float = 90.0, speed_deg_s: float = DEFAULT_TU
         "rotate to the right",
         "spin right 90 degrees",
         "turn to the right",
+        "turn clockwise",
+        "spin clockwise",
+        "rotate clockwise",
+        "rotate ninety degrees to the right",
+        "make a ninety degree right turn",
+        "ninety degree right turn",
     ],
     score_threshold=0.80
 )
@@ -214,10 +227,16 @@ async def turn_right(angle_degrees: float = 90.0, speed_deg_s: float = DEFAULT_T
         "turn around",
         "spin around",
         "do a 180",
+        "do a one-eighty",
+        "do a one eighty",
+        "do a complete one-eighty turn",
+        "do a complete 180 turn",
+        "one-eighty turn",
         "about face",
         "do a 180 degree turn",
         "about face and turn backwards",
         "turn back",
+        "turn around completely",
     ],
     score_threshold=0.80
 )

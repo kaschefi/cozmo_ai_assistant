@@ -66,7 +66,7 @@ ROUTERS = [
 
 def run_all_comparisons():
     print("=" * 80)
-    print("RUNNING ALL 4 WP2 ROUTER BENCHMARKS ON LANGSMITH")
+    print("RUNNING ALL 6 WP2 ROUTER BENCHMARKS ON LANGSMITH")
     print("=" * 80)
 
     results = []
@@ -80,7 +80,7 @@ def run_all_comparisons():
         results.append(res)
 
     print("\n" + "=" * 90)
-    print("FINAL 4-WAY ROUTER COMPARISON MATRIX (WP2 BENCHMARK)")
+    print("FINAL 6-WAY ROUTER COMPARISON MATRIX (WP2 BENCHMARK)")
     print("=" * 90)
     header = f"{'Router Architecture':<24} | {'Accuracy':<14} | {'P50 (ms)':<10} | {'Mean (ms)':<10} | {'P90 (ms)':<10}"
     print(header)

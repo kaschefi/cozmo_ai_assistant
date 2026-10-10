@@ -8,7 +8,7 @@ from actions.physical.speak import respond
 
 tool_rag_registry.register_tool_schema(
     name="setup_gaming",
-    description="Prepares the laptop for gaming, launching Steam, CS2, and Discord. Use when the user wants to play games, launch game launcher, or start gaming session."
+    description="Launches PC video game applications (Steam, Counter-Strike, Discord) to play video games on the laptop."
 )
 tool_rag_registry.register_tool_schema(
     name="setup_study",

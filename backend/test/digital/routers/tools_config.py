@@ -47,8 +47,7 @@ TOOLS_15: Dict[str, str] = {
     # OS Setups & Digital Automation (3 tools)
     # -------------------------------------------------------------------------
     "setup_gaming": (
-        "Launches the gaming environment on the laptop, opening Steam, CS2, and Discord. "
-        "Use when user wants to play games, activate gaming mode, or open gaming apps."
+        "Launches PC video game applications (Steam, Counter-Strike, Discord) to play video games on the laptop."
     ),
     "setup_study": (
         "Prepares the study workstation by opening browser tabs for Moodle, Gemini, NotebookLM, and YouTube. "
@@ -68,31 +67,32 @@ TOOLS_15: Dict[str, str] = {
     ),
     "get_date": (
         "Provides today's full date (day of week, month, day, year). "
-        "Use when user asks what is today's date, what day is it today, or tell me the date."
+        "Use when user asks what is today's date, what day it is today, or tell me the date."
     ),
 
     # -------------------------------------------------------------------------
     # Cognitive Sub-Agents (3 tools)
     # -------------------------------------------------------------------------
     "calendar_node": (
-        "Manages Google Calendar operations. "
-        "Use this if user wants to check, create, schedule, move, reschedule, change, or delete meetings, events, or appointments."
+        "Manages Google Calendar operations, schedules, and appointments. "
+        "Use when user wants to view, check, create, schedule, sync, reschedule, move, change, or delete meetings, "
+        "appointments, team standups, calendar events, or check agenda."
     ),
     "weather_node": (
         "Provides real-time weather conditions, forecasts, and temperatures (Celsius) for any specified city. "
         "Use for rain, temperature, outside conditions, or weather forecasts."
     ),
     "web_search_node": (
-        "Searches the live web for real-time information, sports match results, sports scores, recent news, stock market prices, or current events. "
-        "Use when user asks about winners of recent matches, current stock prices, or live web news."
+        "Searches the live web to find online information, breaking news headlines, space exploration, "
+        "sports match winners and scores, company financial market cap, or answering general factual questions."
     ),
 
     # -------------------------------------------------------------------------
     # Conversational Fallback (1 route)
     # -------------------------------------------------------------------------
     "none": (
-        "Core conversational channel. Use for casual chat, greetings, asking about identity/personality, "
-        "sharing personal facts or hobbies, jokes, philosophical discussion, or anything not requiring an action or tool."
+        "Core conversational channel. Use for casual chat, greetings, social pleasantries, asking about "
+        "identity/personality, sharing personal facts or hobbies, jokes, philosophical discussion, or small talk."
     ),
 }
 
@@ -105,9 +105,9 @@ def build_laya_questions(tools_dict: Dict[str, str] = TOOLS_15) -> Dict[str, Any
         "tool_selection": {
             "type": "choice",
             "instructions": (
-                "Select the appropriate tool or action to execute given the user's input/state. "
-                "If the user input is casual chat, greetings, personal facts, jokes, or does not require "
-                "executing any specific action or tool, select 'none'."
+                "Select the appropriate tool or service to handle the user's request, question, or command. "
+                "Use 'web_search_node' whenever the user wants to look up information, search the web, check company market data, sports results, or news. "
+                "Select 'none' only if the user is simply chatting, greeting, sharing personal facts, or making casual small talk."
             ),
             "criteria": tools_dict,
         }
