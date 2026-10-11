@@ -749,44 +749,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           />
         </div>
 
-        {/* Center: ThreeUI AnimatedTopDock */}
-        <div className="flex-1 flex justify-center items-center overflow-visible">
-          <AnimatedTopDock defaultActive="chat" />
+        {/* Center: ThreeUI AnimatedTopDock - Mathematically centered in viewport */}
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center pointer-events-none z-10">
+          <div className="pointer-events-auto">
+            <AnimatedTopDock defaultActive="chat" />
+          </div>
         </div>
 
-        {/* Right Side: Core Brain State, Model Provider Toggle, Token & Theme Selector */}
-        <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
-          {/* Local vs Cloud Mode Toggle */}
-          <div 
-            className="flex items-center bg-white/[0.04] border border-white/[0.08] p-0.5 sm:p-1 rounded-full backdrop-blur-md shadow-inner"
-            title={modelMode === 'cloud' ? 'Cloud: Chat & Agents powered by Azure Phi-4-mini' : 'Local: Chat & Agents powered by local Ollama models'}
-          >
-            <button
-              id="model-mode-local-btn"
-              onClick={() => handleToggleModelMode('local')}
-              className={`px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-medium transition-all duration-300 flex items-center gap-1.5 ${
-                modelMode === 'local'
-                  ? 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/40 shadow-[0_0_12px_rgba(6,182,212,0.35)]'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>💻</span>
-              <span>Local</span>
-            </button>
-            <button
-              id="model-mode-cloud-btn"
-              onClick={() => handleToggleModelMode('cloud')}
-              className={`px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-mono font-medium transition-all duration-300 flex items-center gap-1.5 ${
-                modelMode === 'cloud'
-                  ? 'bg-purple-500/25 text-purple-200 border border-purple-400/40 shadow-[0_0_12px_rgba(168,85,247,0.35)]'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>☁️</span>
-              <span>Cloud</span>
-              <span className="hidden xl:inline text-[9px] opacity-75 font-sans">(Phi-4)</span>
-            </button>
-          </div>
+        {/* Right Side: Core Brain State, Token & Theme Selector */}
+        <div className="flex items-center gap-2 sm:gap-3 md:gap-4 z-10">
 
           <div className="hidden sm:flex items-center gap-2 text-xs md:text-sm text-slate-300 font-medium tracking-wide bg-white/[0.04] border border-white/[0.08] px-3 py-1.5 rounded-full backdrop-blur-md">
             <span className={`w-2 h-2 rounded-full animate-pulse ${isConnected
@@ -928,125 +899,160 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         </div>
       )}
 
-      {/* Sliding Input Box Container */}
+      {/* Sliding Input Box Container - 100% dead center in viewport */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 !overflow-visible ${isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
-          }`}
+        className={`absolute left-1/2 -translate-x-1/2 w-full px-6 transition-all duration-700 ease-in-out z-20 !overflow-visible ${
+          isConversationStarted ? 'bottom-6 max-w-2xl' : 'bottom-10 max-w-xl'
+        }`}
       >
-        <BorderBeam
-          size="pulse-inner"
-          colorVariant="mono"
-          active={isInputFocused}
-          borderRadius={24}
-          className="w-full rounded-3xl !overflow-visible"
-          style={{ overflow: 'visible' }}
-        >
-          <div
-            className="w-full flex items-center rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-[var(--brand-card-bg)] border border-[var(--brand-card-border)] backdrop-blur-2xl transition-all duration-300 gap-3 !overflow-visible cursor-text"
-            onClick={(e) => {
-              if (!(e.target as HTMLElement).closest('button')) {
-                inputRef.current?.focus();
-              }
-            }}
+        <div className="relative w-full !overflow-visible">
+          <BorderBeam
+            size="pulse-inner"
+            colorVariant="mono"
+            active={isInputFocused}
+            borderRadius={24}
+            className="w-full rounded-3xl !overflow-visible"
+            style={{ overflow: 'visible' }}
           >
-            {/* Liquid Gooey Menu on the left side of the mute button */}
-            <div className="relative w-10 h-10 flex-shrink-0 z-30">
-              <Liquid fill="#202020" className="relative w-10 h-10">
-                <Liquid.Item
-                  x={open ? -54 : 0}
-                  y={open ? -34 : 0}
-                  transition={{ duration: 550, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                  className="absolute top-0 left-0"
-                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
-                >
-                  <button className="round-btn" type="button" title="Document" aria-label="Document">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-                    </svg>
-                  </button>
-                </Liquid.Item>
-                <Liquid.Item
-                  x={0}
-                  y={open ? -64 : 0}
-                  transition={{ duration: 550, ease: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
-                  delay={40}
-                  className="absolute top-0 left-0"
-                  style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
-                >
-                  <button className="round-btn" type="button" title="Image" aria-label="Image">
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                    </svg>
-                  </button>
-                </Liquid.Item>
-                <Liquid.Item
-                  className="absolute top-0 left-0 z-10"
-                  style={{ position: 'absolute', top: 0, left: 0 }}
-                >
-                  <button
-                    className={`round-btn transition-transform duration-300 ${open ? 'rotate-45' : ''}`}
-                    type="button"
-                    onClick={() => setOpen((prev) => !prev)}
-                    aria-label="Toggle menu"
+            <div
+              className="w-full flex items-center rounded-3xl p-2.5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-[var(--brand-card-bg)] border border-[var(--brand-card-border)] backdrop-blur-2xl transition-all duration-300 gap-3 !overflow-visible cursor-text"
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest('button')) {
+                  inputRef.current?.focus();
+                }
+              }}
+            >
+              {/* Liquid Gooey Menu on the left side of the mute button */}
+              <div className="relative w-10 h-10 flex-shrink-0 z-30">
+                <Liquid fill="#202020" className="relative w-10 h-10">
+                  <Liquid.Item
+                    x={open ? -58 : 0}
+                    y={0}
+                    transition={{ duration: 500, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+                    className="absolute top-0 left-0"
+                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
                   >
-                    +
-                  </button>
-                </Liquid.Item>
-              </Liquid>
+                    <button
+                      id="model-mode-toggle-btn"
+                      className="round-btn"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleModelMode(modelMode === 'local' ? 'cloud' : 'local');
+                      }}
+                      title={modelMode === 'cloud' ? 'Cloud Mode (Azure Phi-4) · Click to switch to Local (Ollama)' : 'Local Mode (Ollama) · Click to switch to Cloud (Azure Phi-4)'}
+                      aria-label={modelMode === 'cloud' ? 'Cloud Mode (Azure Phi-4)' : 'Local Mode (Ollama)'}
+                    >
+                      {modelMode === 'local' ? (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <rect x="4" y="4" width="16" height="16" rx="2" />
+                          <path d="M9 9h6v6H9z" />
+                          <path strokeLinecap="round" d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                        </svg>
+                      )}
+                    </button>
+                  </Liquid.Item>
+                  <Liquid.Item
+                    x={open ? -34 : 0}
+                    y={open ? -48 : 0}
+                    transition={{ duration: 500, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+                    delay={40}
+                    className="absolute top-0 left-0"
+                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
+                  >
+                    <button className="round-btn" type="button" title="Document" aria-label="Document">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                      </svg>
+                    </button>
+                  </Liquid.Item>
+                  <Liquid.Item
+                    x={open ? 22 : 0}
+                    y={open ? -56 : 0}
+                    transition={{ duration: 500, ease: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+                    delay={80}
+                    className="absolute top-0 left-0"
+                    style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
+                  >
+                    <button className="round-btn" type="button" title="Image" aria-label="Image">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                    </button>
+                  </Liquid.Item>
+                  <Liquid.Item
+                    className="absolute top-0 left-0 z-10"
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+                  >
+                    <button
+                      className={`round-btn transition-transform duration-300 ${open ? 'rotate-45' : ''}`}
+                      type="button"
+                      onClick={() => setOpen((prev) => !prev)}
+                      aria-label="Toggle menu"
+                    >
+                      +
+                    </button>
+                  </Liquid.Item>
+                </Liquid>
+              </div>
+
+              <button
+                onClick={handleToggleMute}
+                className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${isMuted
+                  ? 'bg-[#202020] border-white/10 text-white hover:bg-[#2c2c2c]'
+                  : 'theme-icon-box text-[var(--brand-primary)]'
+                  }`}
+                title={isMuted ? "Unmute speech output" : "Mute speech output"}
+                aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
+              >
+                {isMuted ? (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+                  </svg>
+                )}
+              </button>
+
+              <input
+                ref={inputRef}
+                autoFocus
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
+                placeholder="Message MoKa..."
+                className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-400 font-sans min-w-0"
+              />
+
+              <button
+                onClick={() => {
+                  handleSendMessage();
+                  inputRef.current?.focus();
+                }}
+                disabled={!inputText.trim()}
+                className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer active:scale-95 flex-shrink-0 text-black font-bold"
+                style={{
+                  background: 'var(--brand-primary)',
+                  boxShadow: '0 0 20px var(--brand-glow)'
+                }}
+                aria-label="Send"
+              >
+                <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
             </div>
-
-            <button
-              onClick={handleToggleMute}
-              className={`w-10 h-10 rounded-2xl border transition-all duration-300 cursor-pointer flex items-center justify-center flex-shrink-0 ${isMuted
-                ? 'bg-[#202020] border-white/10 text-white hover:bg-[#2c2c2c]'
-                : 'theme-icon-box text-[var(--brand-primary)]'
-                }`}
-              title={isMuted ? "Unmute speech output" : "Mute speech output"}
-              aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
-            >
-              {isMuted ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
-                </svg>
-              )}
-            </button>
-
-            <input
-              ref={inputRef}
-              autoFocus
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsInputFocused(true)}
-              onBlur={() => setIsInputFocused(false)}
-              placeholder="Message MoKa..."
-              className="flex-1 bg-transparent border-0 outline-none text-white text-base px-2 placeholder-slate-400 font-sans"
-            />
-
-            <button
-              onClick={() => {
-                handleSendMessage();
-                inputRef.current?.focus();
-              }}
-              disabled={!inputText.trim()}
-              className="w-10 h-10 rounded-2xl flex items-center justify-center transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer active:scale-95 flex-shrink-0 text-black font-bold"
-              style={{
-                background: 'var(--brand-primary)',
-                boxShadow: '0 0 20px var(--brand-glow)'
-              }}
-              aria-label="Send"
-            >
-              <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </button>
-          </div>
-        </BorderBeam>
+          </BorderBeam>
+        </div>
       </div>
     </div>
   );
