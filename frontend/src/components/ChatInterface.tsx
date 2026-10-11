@@ -10,12 +10,17 @@ import ParticleDriftBackground from './ui/ParticleDriftBackground';
 import { useTheme } from '../context/ThemeContext';
 import '../shaders/threeui.css';
 
-interface Message {
-  id: string;
-  sender: 'user' | 'moka';
-  text: string;
-  timestamp: string;
-}
+import {
+  type Message,
+  type ChatSession,
+  loadChatSessions,
+  saveChatSessions,
+  getActiveSessionId,
+  setActiveSessionId,
+  generateSessionId,
+  generateSessionTitle
+} from '../lib/chatHistory';
+import ChatHistoryDrawer from './ChatHistoryDrawer';
 
 interface ChatInterfaceProps {
   onBackToLanding?: () => void;
@@ -29,8 +34,43 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const isRoyal = theme === 'royal';
   const isIT = theme === 'it';
 
-  const [isConversationStarted, setIsConversationStarted] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessions, setSessions] = useState<ChatSession[]>(() => loadChatSessions());
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const isSessionLoadingRef = useRef(false);
+
+  const [sessionId, setSessionId] = useState<string>(() => {
+    const savedActiveId = getActiveSessionId();
+    const initialSessions = loadChatSessions();
+    if (savedActiveId && initialSessions.some(s => s.id === savedActiveId)) {
+      return savedActiveId;
+    }
+    const newId = generateSessionId();
+    setActiveSessionId(newId);
+    return newId;
+  });
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const savedActiveId = getActiveSessionId();
+    const initialSessions = loadChatSessions();
+    if (savedActiveId) {
+      const activeSession = initialSessions.find(s => s.id === savedActiveId);
+      if (activeSession && activeSession.messages.length > 0) {
+        return activeSession.messages;
+      }
+    }
+    return [];
+  });
+
+  const [isConversationStarted, setIsConversationStarted] = useState(() => {
+    const savedActiveId = getActiveSessionId();
+    const initialSessions = loadChatSessions();
+    if (savedActiveId) {
+      const activeSession = initialSessions.find(s => s.id === savedActiveId);
+      return !!(activeSession && activeSession.messages.length > 0);
+    }
+    return false;
+  });
+
   const [inputText, setInputText] = useState('');
   const [isInputFocused, setIsInputFocused] = useState(true);
   const [open, setOpen] = useState(false);
@@ -45,7 +85,105 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     return (localStorage.getItem('moka_model_mode') as 'local' | 'cloud') || 'local';
   });
 
-  const [sessionId] = useState<string>(() => 'web_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7));
+  // Synchronize current messages to active session in sessions & localStorage
+  useEffect(() => {
+    if (messages.length === 0 || isSessionLoadingRef.current) return;
+
+    setSessions(prevSessions => {
+      const existingIndex = prevSessions.findIndex(s => s.id === sessionId);
+      let nextSessions: ChatSession[];
+
+      if (existingIndex >= 0) {
+        const existing = prevSessions[existingIndex];
+        const updated: ChatSession = {
+          ...existing,
+          updatedAt: Date.now(),
+          messages,
+          modelMode
+        };
+        nextSessions = [
+          updated,
+          ...prevSessions.filter((_, idx) => idx !== existingIndex)
+        ];
+      } else {
+        const firstUserMsg = messages.find(m => m.sender === 'user')?.text || 'New Conversation';
+        const newSession: ChatSession = {
+          id: sessionId,
+          title: generateSessionTitle(firstUserMsg),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+          messages,
+          modelMode
+        };
+        nextSessions = [newSession, ...prevSessions];
+      }
+
+      saveChatSessions(nextSessions);
+      return nextSessions;
+    });
+  }, [messages, sessionId, modelMode]);
+
+  const handleSelectSession = useCallback((selectedSession: ChatSession) => {
+    isSessionLoadingRef.current = true;
+    setSessionId(selectedSession.id);
+    setActiveSessionId(selectedSession.id);
+    setMessages(selectedSession.messages);
+    setIsConversationStarted(selectedSession.messages.length > 0);
+    setPendingQueue([]);
+    setIsHistoryOpen(false);
+    setTimeout(() => {
+      isSessionLoadingRef.current = false;
+    }, 100);
+  }, []);
+
+  const handleNewChat = useCallback(() => {
+    const newId = generateSessionId();
+    setSessionId(newId);
+    setActiveSessionId(newId);
+    setMessages([]);
+    setIsConversationStarted(false);
+    setPendingQueue([]);
+    setInputText('');
+    setIsHistoryOpen(false);
+    inputRef.current?.focus();
+  }, []);
+
+  const handleDeleteSession = useCallback((idToDelete: string) => {
+    setSessions(prev => {
+      const nextSessions = prev.filter(s => s.id !== idToDelete);
+      saveChatSessions(nextSessions);
+      return nextSessions;
+    });
+
+    if (idToDelete === sessionId) {
+      const newId = generateSessionId();
+      setSessionId(newId);
+      setActiveSessionId(newId);
+      setMessages([]);
+      setIsConversationStarted(false);
+      setPendingQueue([]);
+    }
+  }, [sessionId]);
+
+  const handleRenameSession = useCallback((idToRename: string, newTitle: string) => {
+    setSessions(prev => {
+      const nextSessions = prev.map(s => s.id === idToRename ? { ...s, title: newTitle } : s);
+      saveChatSessions(nextSessions);
+      return nextSessions;
+    });
+  }, []);
+
+  const handleClearAll = useCallback(() => {
+    setSessions([]);
+    saveChatSessions([]);
+    const newId = generateSessionId();
+    setSessionId(newId);
+    setActiveSessionId(newId);
+    setMessages([]);
+    setIsConversationStarted(false);
+    setPendingQueue([]);
+    setIsHistoryOpen(false);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('moka_chat_muted', String(isMuted));
@@ -810,13 +948,26 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       </div>
 
 
+      {/* Slide-out Left-side Chat History Drawer */}
+      <ChatHistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        sessions={sessions}
+        activeSessionId={sessionId}
+        onSelectSession={handleSelectSession}
+        onNewChat={handleNewChat}
+        onDeleteSession={handleDeleteSession}
+        onRenameSession={handleRenameSession}
+        onClearAll={handleClearAll}
+      />
+
       {/* Sticky Top Navigation Header */}
       <header
         data-identity-state={headerState}
         className="fixed top-0 left-0 w-full h-20 md:h-24 bg-[#03060a]/85 border-b border-white/[0.06] backdrop-blur-2xl z-30 flex items-center justify-between px-6 md:px-10 overflow-visible"
       >
-        {/* Left Side: Particle Logo Area */}
-        <div className="flex items-center gap-3.5">
+        {/* Left Side: Particle Logo Area & History Toggle */}
+        <div className="flex items-center gap-3 sm:gap-4 z-20">
           <div
             onClick={onBackToLanding}
             className="w-28 sm:w-36 h-10 cursor-pointer"
@@ -824,6 +975,43 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             role="button"
             tabIndex={0}
           />
+
+          {/* History Button (Between MOKA logo and Center Nav Dock) */}
+          <button
+            id="chat-history-toggle-btn"
+            onClick={() => setIsHistoryOpen(prev => !prev)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium tracking-wide transition-all duration-300 cursor-pointer backdrop-blur-md group ${
+              isHistoryOpen
+                ? 'bg-[var(--brand-primary)]/15 border-[var(--brand-primary)] text-[var(--brand-primary)] shadow-[0_0_15px_var(--brand-glow)]'
+                : 'bg-white/[0.04] border-white/[0.08] text-slate-300 hover:text-white hover:border-white/20 hover:bg-white/[0.08]'
+            }`}
+            title="Chat History"
+            aria-label="Toggle chat history"
+            aria-expanded={isHistoryOpen}
+          >
+            <svg
+              className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${
+                isHistoryOpen ? 'text-[var(--brand-primary)]' : 'text-slate-400 group-hover:text-white'
+              }`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+            <span className="hidden sm:inline font-sans">History</span>
+            {sessions.length > 0 && (
+              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
+                isHistoryOpen
+                  ? 'bg-[var(--brand-primary)]/20 border-[var(--brand-primary)]/40 text-[var(--brand-primary)]'
+                  : 'bg-white/[0.06] border-white/[0.1] text-slate-400'
+              }`}>
+                {sessions.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Center: ThreeUI AnimatedTopDock - Mathematically centered in viewport */}
