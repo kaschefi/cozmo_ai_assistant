@@ -120,6 +120,45 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     isConversationStartedRef.current = isConversationStarted;
   }, [isConversationStarted]);
 
+  // Track active typing to animate eyes looking down and excited for 1s per length change (+ or -)
+  const isTypingRef = useRef(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevInputLengthRef = useRef(inputText.length);
+
+  const triggerTypingPulse = useCallback(() => {
+    isTypingRef.current = true;
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+    }
+    typingTimerRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      typingTimerRef.current = null;
+    }, 1000);
+  }, []);
+
+  const resetTypingState = useCallback(() => {
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+    isTypingRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (inputText.length !== prevInputLengthRef.current) {
+      prevInputLengthRef.current = inputText.length;
+      triggerTypingPulse();
+    }
+  }, [inputText, triggerTypingPulse]);
+
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+    };
+  }, []);
+
   // Header loop state to cycle between MOKA text and mini-eyes every 15 seconds
   const [headerState, setHeaderState] = useState<'moka' | 'eyes'>('moka');
   const headerStateRef = useRef<'moka' | 'eyes'>('moka');
@@ -324,6 +363,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     let time = 0;
     let blinkTimer = 0;
     let blinkFactor = 1.0;
+    let typingExcitedFactor = 0; // 0 (idle) to 1 (activated strictly when user is typing)
     let lastTimestamp = performance.now();
 
     const render = (now: number = performance.now()) => {
@@ -354,7 +394,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       const cssColor = getComputedStyle(document.documentElement).getPropertyValue('--particle-rgb').trim();
       const rgb = cssColor || '0, 243, 255';
 
-      // Handle blinks
+      // Smoothly interpolate typing excitement factor (0 to 1) - activated strictly when typing
+      const targetTyping = isTypingRef.current ? 1.0 : 0.0;
+      typingExcitedFactor += (targetTyping - typingExcitedFactor) * Math.min(0.12 * dt, 1);
+
+      // Handle blinks (more frequent & alert when excited)
       if (blinkTimer > 0) {
         blinkTimer -= dt;
         if (blinkTimer > 10) {
@@ -364,8 +408,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         }
       } else {
         blinkFactor = 1.0;
-        if (Math.random() < 0.006 * dt) {
-          blinkTimer = 20; // total 20 frames for blink
+        const blinkProbability = (0.006 + 0.006 * typingExcitedFactor) * dt;
+        if (Math.random() < blinkProbability) {
+          blinkTimer = 18;
         }
       }
 
@@ -388,32 +433,47 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
         if (!isConversationStartedVal) {
           // Centered Big Eyes
-          const cx = p.eyeX < 600 ? 400 : 800;
-          const cy = 300;
-
-          const dx = p.eyeX - cx;
-          const dy = p.eyeY - cy;
-
-          // 2. Interactive eye sizing based on mouse side (3D perspective gaze like home page)
           const isLeftEye = p.eyeX < 600;
-          const eyeScale = (isLeftEye
-            ? (1.0 - mouseRef.current.x * 0.15)
-            : (1.0 + mouseRef.current.x * 0.15)) * (1.0 + Math.sin(time * 0.04 + p.seed) * 0.015);
+          const eyeCenterX = isLeftEye ? 400 : 800;
+          const eyeCenterY = 300;
 
-          const scaledX = cx + dx * eyeScale;
-          const scaledY = cy + dy * eyeScale * blinkFactor;
+          const dx = p.eyeX - eyeCenterX;
+          const dy = p.eyeY - eyeCenterY;
 
-          // 3. Smooth gaze shift offset for the entire eye shapes
-          const maxShift = 20;
-          const shiftX = mouseRef.current.x * maxShift;
-          const shiftY = mouseRef.current.y * maxShift;
+          // Mouse tracking: when typing, gaze locks downwards toward the input field
+          const mouseInfluence = 1.0 - 0.75 * typingExcitedFactor;
+          const mouseTilt = mouseRef.current.x * 0.10 * mouseInfluence;
+          const eyeScaleBase = isLeftEye ? (1.0 - mouseTilt) : (1.0 + mouseTilt);
 
-          // Breathe cycle
-          const idleX = Math.sin(time * 0.08 + p.seed * 5) * 1.0;
-          const idleY = Math.cos(time * 0.08 + p.seed * 5) * 0.8;
+          // Excited uniform dilation (+8%) with a subtle organic breath
+          const excitedDilation = 1.0 + (0.08 + Math.sin(time * 0.12) * 0.02) * typingExcitedFactor;
+          const totalScale = eyeScaleBase * excitedDilation * (1.0 + Math.sin(time * 0.04 + p.seed) * 0.015);
 
-          targetX = (scaledX + shiftX) * scale + offsetX + idleX;
-          targetY = (scaledY + shiftY) * scale + offsetY + idleY;
+          // Inquisitive, eager Cozmo tilt (\  /) — rigid rotation preserving the pristine dot scanline matrix
+          const tiltAngle = (isLeftEye ? 0.06 : -0.06) * typingExcitedFactor;
+          const cosA = Math.cos(tiltAngle);
+          const sinA = Math.sin(tiltAngle);
+
+          const rotX = (dx * cosA - dy * sinA) * totalScale;
+          const rotY = (dx * sinA + dy * cosA) * totalScale * blinkFactor;
+
+          // Inward focal convergence: eyes glance inward toward the input field centered below
+          const focalConvergence = (isLeftEye ? 12 : -12) * typingExcitedFactor;
+
+          // Smooth gaze shift: Downward gaze toward the message input box (+34px)
+          const shiftX = mouseRef.current.x * 16 * mouseInfluence;
+          const lookDownY = 34 * typingExcitedFactor;
+          const shiftY = mouseRef.current.y * 12 * mouseInfluence + lookDownY;
+
+          // Eager, happy breathing bob of the entire eye unit
+          const excitedBobY = Math.sin(time * 0.15) * 3.5 * typingExcitedFactor;
+
+          // Idle breathing
+          const idleX = Math.sin(time * 0.08 + p.seed * 5) * 0.8;
+          const idleY = Math.cos(time * 0.08 + p.seed * 5) * 0.6;
+
+          targetX = (eyeCenterX + focalConvergence + rotX + shiftX) * scale + offsetX + idleX;
+          targetY = (eyeCenterY + rotY + shiftY) * scale + offsetY + idleY + excitedBobY;
           pTargetAlpha = 1.0;
         } else {
           // In-conversation state: Mini eyes / Moka text in header
@@ -447,7 +507,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
             const maxShiftMini = 10;
             const shiftX = mouseRef.current.x * maxShiftMini;
-            const shiftY = mouseRef.current.y * maxShiftMini;
+            const shiftYMini = mouseRef.current.y * maxShiftMini + 7 * typingExcitedFactor;
+            const excitedMiniBobY = Math.sin(time * 0.18) * 1.5 * typingExcitedFactor;
 
             const idleX = Math.sin(time * 0.07 + p.seed * 5) * 0.3;
             const idleY = Math.cos(time * 0.07 + p.seed * 5) * 0.2;
@@ -456,7 +517,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             const relativeY = (scaledY - 300) * miniScale;
 
             targetX = headerCenterX + relativeX + shiftX + idleX;
-            targetY = headerCenterY + relativeY + shiftY + idleY;
+            targetY = headerCenterY + relativeY + shiftYMini + idleY + excitedMiniBobY;
             pTargetAlpha = 1.0;
           }
         }
@@ -495,8 +556,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           const isScaledDown = isConversationStartedVal;
           const currentSize = isScaledDown ? p.size * 0.72 * scale : p.size * scale;
 
-          // Draw soft glowing outer aura (subtler size and opacity to avoid over-glowing)
-          ctx.fillStyle = `rgba(${rgb}, ${p.alpha * 0.12})`;
+          // Draw soft glowing outer aura with focus excitement boost
+          const auraAlpha = p.alpha * (0.12 + 0.06 * typingExcitedFactor);
+          ctx.fillStyle = `rgba(${rgb}, ${auraAlpha})`;
           ctx.beginPath();
           ctx.arc(p.x, p.y, currentSize * 1.5, 0, Math.PI * 2);
           ctx.fill();
@@ -673,7 +735,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       timestamp
     };
 
-    if (!textToSend) setInputText('');
+    if (!textToSend) {
+      setInputText('');
+      prevInputLengthRef.current = 0;
+      resetTypingState();
+    }
 
     if (isMokaTyping || pendingQueue.length > 0 || !isConnected) {
       setPendingQueue(prev => [...prev, newMessage]);
@@ -712,6 +778,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      resetTypingState();
       handleSendMessage();
     }
   };
@@ -1035,7 +1102,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                 autoFocus
                 type="text"
                 value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val.length !== prevInputLengthRef.current) {
+                    prevInputLengthRef.current = val.length;
+                    triggerTypingPulse();
+                  }
+                  setInputText(val);
+                }}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
