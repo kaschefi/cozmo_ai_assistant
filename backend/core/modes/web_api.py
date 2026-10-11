@@ -23,6 +23,7 @@ import uvicorn
 # Import request models and unified brain router
 from pydantic import BaseModel
 from schemas.request_models import ChatRequest
+from schemas.chat_history_db import chat_history_db
 from core.routing.brain import process_user_intent
 
 
@@ -60,6 +61,16 @@ async def _background_warmup():
 async def lifespan(app: FastAPI):
     # Launch background pre-warming without blocking server boot
     asyncio.create_task(_background_warmup())
+    
+    # Auto-seed history from LangSmith if DB is currently empty
+    try:
+        existing_sessions = chat_history_db.get_all_sessions()
+        if not existing_sessions:
+            print("[MoKa Startup] Chat history DB is empty. Syncing past conversations from LangSmith...")
+            asyncio.create_task(asyncio.to_thread(chat_history_db.sync_from_langsmith, 50))
+    except Exception as e:
+        print(f"[MoKa Startup] Notice during history check: {e}")
+
     yield
 
 
@@ -163,19 +174,103 @@ async def set_model_mode_endpoint(req: ModelModeRequest):
     }
 
 
+class RenameSessionRequest(BaseModel):
+    title: str
+
+
+@app.get("/api/history", dependencies=[Depends(verify_moka_token)])
+async def get_chat_history_endpoint():
+    """
+    Returns all saved chat sessions and messages stored in the database.
+    """
+    sessions = chat_history_db.get_all_sessions()
+    return {
+        "status": "success",
+        "sessions": sessions,
+        "storage": "postgres" if chat_history_db.use_postgres else "sqlite"
+    }
+
+
+@app.get("/api/history/{session_id}", dependencies=[Depends(verify_moka_token)])
+async def get_session_history_endpoint(session_id: str):
+    session = chat_history_db.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+    return {"status": "success", "session": session}
+
+
+@app.post("/api/history", dependencies=[Depends(verify_moka_token)])
+async def upsert_chat_history_endpoint(session: dict):
+    success = chat_history_db.upsert_session(session)
+    return {"status": "success" if success else "failed"}
+
+
+@app.patch("/api/history/{session_id}", dependencies=[Depends(verify_moka_token)])
+async def rename_session_history_endpoint(session_id: str, req: RenameSessionRequest):
+    success = chat_history_db.rename_session(session_id, req.title)
+    return {"status": "success" if success else "failed"}
+
+
+@app.delete("/api/history/{session_id}", dependencies=[Depends(verify_moka_token)])
+async def delete_session_history_endpoint(session_id: str):
+    success = chat_history_db.delete_session(session_id)
+    return {"status": "success" if success else "failed"}
+
+
+@app.delete("/api/history", dependencies=[Depends(verify_moka_token)])
+async def clear_all_history_endpoint():
+    success = chat_history_db.clear_all_sessions()
+    return {"status": "success" if success else "failed"}
+
+
+@app.post("/api/history/sync-langsmith", dependencies=[Depends(verify_moka_token)])
+async def sync_langsmith_history_endpoint():
+    """
+    Fetches historical conversation runs logged to LangSmith and stores them in the database.
+    """
+    count = chat_history_db.sync_from_langsmith(limit=50)
+    sessions = chat_history_db.get_all_sessions()
+    return {
+        "status": "success",
+        "synced_count": count,
+        "sessions": sessions
+    }
+
+
 @app.post("/api/chat", dependencies=[Depends(verify_moka_token)])
 async def chat_endpoint(req: ChatRequest):
     """
     Direct endpoint mapping user chat prompts to the cognitive layer.
+    Automatically persists conversations to PostgreSQL / SQLite.
     """
     try:
         active_provider = (req.provider or _CURRENT_MODEL_MODE).lower().strip()
+        
+        # 1. Immediately persist user message to database
+        chat_history_db.add_message(
+            session_id=req.session_id,
+            sender="user",
+            text=req.message,
+            model_mode=active_provider
+        )
+
+        # 2. Process cognitive response
         response_text = await process_user_intent(
             req.message,
             session_id=req.session_id,
             mute=True,
             provider=active_provider
         )
+
+        # 3. Persist AI response to database
+        if response_text:
+            chat_history_db.add_message(
+                session_id=req.session_id,
+                sender="moka",
+                text=response_text,
+                model_mode=active_provider
+            )
+
         if not req.mute and response_text:
             from actions.physical.speak import respond
             asyncio.create_task(respond(response_text, mute=False))
@@ -193,21 +288,54 @@ async def chat_endpoint(req: ChatRequest):
         )
 
 from fastapi.responses import StreamingResponse
+import json
 
 @app.post("/api/chat/stream", dependencies=[Depends(verify_moka_token)])
 async def chat_stream_endpoint(req: ChatRequest):
     """
     Direct SSE streaming endpoint pushing tokens token-by-token in real time.
+    Automatically saves full stream to the database.
     """
     from core.routing.brain import stream_user_intent
     active_provider = (req.provider or _CURRENT_MODEL_MODE).lower().strip()
-    return StreamingResponse(
-        stream_user_intent(
+
+    # 1. Persist user message to database
+    chat_history_db.add_message(
+        session_id=req.session_id,
+        sender="user",
+        text=req.message,
+        model_mode=active_provider
+    )
+
+    async def stream_and_record():
+        accumulated_chunks = []
+        async for chunk in stream_user_intent(
             req.message,
             session_id=req.session_id,
             mute=req.mute,
             provider=active_provider
-        ),
+        ):
+            if chunk.startswith("data: ") and not chunk.startswith("data: [DONE]"):
+                try:
+                    payload = json.loads(chunk[6:].strip())
+                    if "token" in payload:
+                        accumulated_chunks.append(payload["token"])
+                except Exception:
+                    pass
+            yield chunk
+
+        # 2. Persist complete streamed AI response to database
+        full_reply = "".join(accumulated_chunks).strip()
+        if full_reply:
+            chat_history_db.add_message(
+                session_id=req.session_id,
+                sender="moka",
+                text=full_reply,
+                model_mode=active_provider
+            )
+
+    return StreamingResponse(
+        stream_and_record(),
         media_type="text/event-stream"
     )
 

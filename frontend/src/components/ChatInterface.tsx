@@ -18,7 +18,13 @@ import {
   getActiveSessionId,
   setActiveSessionId,
   generateSessionId,
-  generateSessionTitle
+  generateSessionTitle,
+  fetchChatHistoryFromApi,
+  saveChatSessionToApi,
+  renameChatSessionInApi,
+  deleteChatSessionInApi,
+  clearAllChatSessionsInApi,
+  syncHistoryFromLangSmith
 } from '../lib/chatHistory';
 import ChatHistoryDrawer from './ChatHistoryDrawer';
 
@@ -33,6 +39,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const isBlackIce = theme === 'black-ice';
   const isRoyal = theme === 'royal';
   const isIT = theme === 'it';
+
+  const [token, setToken] = useState<string>('');
+
+  useEffect(() => {
+    const fetchLocalToken = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/token/local`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.token) {
+            setToken(data.token);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to automatically retrieve local token:", err);
+      }
+    };
+    fetchLocalToken();
+  }, []);
 
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadChatSessions());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -85,7 +110,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     return (localStorage.getItem('moka_model_mode') as 'local' | 'cloud') || 'local';
   });
 
-  // Synchronize current messages to active session in sessions & localStorage
+  // Synchronize current messages to active session in sessions, localStorage & backend DB
   useEffect(() => {
     if (messages.length === 0 || isSessionLoadingRef.current) return;
 
@@ -119,9 +144,43 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       }
 
       saveChatSessions(nextSessions);
+      saveChatSessionToApi(nextSessions[0], token);
       return nextSessions;
     });
-  }, [messages, sessionId, modelMode]);
+  }, [messages, sessionId, modelMode, token]);
+
+  // Load persistent history from backend database on mount
+  useEffect(() => {
+    fetchChatHistoryFromApi(token).then(dbSessions => {
+      if (dbSessions && dbSessions.length > 0) {
+        setSessions(dbSessions);
+      }
+    });
+  }, [token]);
+
+  const [isSyncingLangSmith, setIsSyncingLangSmith] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleSyncLangSmith = useCallback(async () => {
+    setIsSyncingLangSmith(true);
+    setSyncNotice(null);
+    try {
+      const result = await syncHistoryFromLangSmith(token);
+      if (result.sessions.length > 0) {
+        setSessions(result.sessions);
+        setSyncNotice(`Synced ${result.syncedCount} conversations from LangSmith!`);
+        setTimeout(() => setSyncNotice(null), 4000);
+      } else {
+        setSyncNotice('No new conversations found in LangSmith.');
+        setTimeout(() => setSyncNotice(null), 3000);
+      }
+    } catch {
+      setSyncNotice('Failed to sync from LangSmith.');
+      setTimeout(() => setSyncNotice(null), 3000);
+    } finally {
+      setIsSyncingLangSmith(false);
+    }
+  }, [token]);
 
   const handleSelectSession = useCallback((selectedSession: ChatSession) => {
     isSessionLoadingRef.current = true;
@@ -149,6 +208,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   }, []);
 
   const handleDeleteSession = useCallback((idToDelete: string) => {
+    deleteChatSessionInApi(idToDelete, token);
     setSessions(prev => {
       const nextSessions = prev.filter(s => s.id !== idToDelete);
       saveChatSessions(nextSessions);
@@ -163,17 +223,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       setIsConversationStarted(false);
       setPendingQueue([]);
     }
-  }, [sessionId]);
+  }, [sessionId, token]);
 
   const handleRenameSession = useCallback((idToRename: string, newTitle: string) => {
+    renameChatSessionInApi(idToRename, newTitle, token);
     setSessions(prev => {
       const nextSessions = prev.map(s => s.id === idToRename ? { ...s, title: newTitle } : s);
       saveChatSessions(nextSessions);
       return nextSessions;
     });
-  }, []);
+  }, [token]);
 
   const handleClearAll = useCallback(() => {
+    clearAllChatSessionsInApi(token);
     setSessions([]);
     saveChatSessions([]);
     const newId = generateSessionId();
@@ -183,7 +245,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     setIsConversationStarted(false);
     setPendingQueue([]);
     setIsHistoryOpen(false);
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     localStorage.setItem('moka_chat_muted', String(isMuted));
@@ -323,24 +385,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   useEffect(() => {
     isConnectedRef.current = isConnected;
   }, [isConnected]);
-  const [token, setToken] = useState<string>('');
-
-  useEffect(() => {
-    const fetchLocalToken = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/token/local`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.token) {
-            setToken(data.token);
-          }
-        }
-      } catch (err) {
-        console.warn("Failed to automatically retrieve local token:", err);
-      }
-    };
-    fetchLocalToken();
-  }, []);
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
@@ -959,6 +1003,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         onDeleteSession={handleDeleteSession}
         onRenameSession={handleRenameSession}
         onClearAll={handleClearAll}
+        onSyncLangSmith={handleSyncLangSmith}
+        isSyncingLangSmith={isSyncingLangSmith}
+        syncNotice={syncNotice}
       />
 
       {/* Sticky Top Navigation Header */}

@@ -14,6 +14,9 @@ interface ChatHistoryDrawerProps {
   onDeleteSession: (sessionId: string) => void;
   onRenameSession: (sessionId: string, newTitle: string) => void;
   onClearAll: () => void;
+  onSyncLangSmith?: () => Promise<void>;
+  isSyncingLangSmith?: boolean;
+  syncNotice?: string | null;
 }
 
 export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
@@ -26,6 +29,9 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
   onDeleteSession,
   onRenameSession,
   onClearAll,
+  onSyncLangSmith,
+  isSyncingLangSmith,
+  syncNotice,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
@@ -173,8 +179,8 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
           </button>
         </div>
 
-        {/* Action: New Chat Button */}
-        <div className="p-4 pb-2">
+        {/* Action: New Chat & LangSmith Sync Buttons */}
+        <div className="p-4 pb-2 flex flex-col gap-2">
           <button
             onClick={() => {
               onNewChat();
@@ -193,6 +199,32 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
             </svg>
             <span>New Conversation</span>
           </button>
+
+          {onSyncLangSmith && (
+            <button
+              onClick={onSyncLangSmith}
+              disabled={isSyncingLangSmith}
+              className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-cyan-500/30 text-slate-300 hover:text-cyan-300 font-medium text-[11px] tracking-wide transition-all cursor-pointer disabled:opacity-50 group"
+              title="Restore previous conversations from LangSmith project traces"
+            >
+              <svg
+                className={`w-3.5 h-3.5 text-cyan-400 ${isSyncingLangSmith ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+              <span>{isSyncingLangSmith ? 'Syncing from LangSmith...' : 'Sync from LangSmith'}</span>
+            </button>
+          )}
+
+          {syncNotice && (
+            <div className="text-[10px] text-cyan-300 font-mono text-center bg-cyan-950/40 border border-cyan-800/50 py-1 px-2 rounded-lg">
+              {syncNotice}
+            </div>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -392,9 +424,14 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500 font-mono">
-                  {sessions.length} {sessions.length === 1 ? 'chat' : 'chats'} stored locally
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {sessions.length} {sessions.length === 1 ? 'chat' : 'chats'} in database
+                  </span>
+                  <span className="text-[9px] text-slate-500 font-sans">
+                    Auto-deleted after 30 days
+                  </span>
+                </div>
                 <button
                   onClick={() => setShowClearConfirm(true)}
                   className="text-[11px] text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
