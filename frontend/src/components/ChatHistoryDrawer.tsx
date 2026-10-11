@@ -144,17 +144,17 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
     <>
       {/* Backdrop overlay */}
       <div
-        className={`fixed inset-0 bg-black/65 backdrop-blur-sm z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Flyout Drawer Panel: Positioned smoothly beside the left rail */}
+      {/* Flyout Drawer Panel: Clean Frosted Glass Beside Left Rail */}
       <aside
         id="chat-history-sidebar"
-        className={`fixed top-0 bottom-0 left-14 sm:left-16 h-full w-[320px] sm:w-[360px] max-w-[calc(100vw-3.5rem)] sm:max-w-[calc(100vw-4rem)] z-50 flex flex-col bg-[#03060c]/98 border-r border-white/[0.08] backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out ${
+        className={`fixed top-0 bottom-0 left-14 sm:left-16 h-full w-[320px] sm:w-[350px] max-w-[calc(100vw-3.5rem)] sm:max-w-[calc(100vw-4rem)] z-50 flex flex-col bg-[#03060a]/92 border-r border-white/[0.08] backdrop-blur-2xl shadow-[24px_0_50px_rgba(0,0,0,0.7)] transition-transform duration-300 ease-out select-none ${
           isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+4rem)]'
         }`}
         aria-label="Chat history sidebar"
@@ -163,16 +163,16 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
         {/* Top Header Bar */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 flex items-center justify-center text-[var(--brand-primary)] shadow-[0_0_12px_var(--brand-glow)]">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
                 <circle cx="12" cy="12" r="9" />
               </svg>
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-white tracking-wide flex items-center gap-2">
+              <h2 className="text-xs font-semibold text-white tracking-widest uppercase font-mono flex items-center gap-2">
                 Chat History
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-slate-400 font-normal">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-400 font-normal">
                   {sessions.length}
                 </span>
               </h2>
@@ -181,27 +181,27 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+            className="w-8 h-8 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-95"
             title="Close history"
             aria-label="Close history"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Action: New Chat & LangSmith Sync Buttons */}
+        {/* Primary Action: New Conversation & LangSmith Sync */}
         <div className="p-4 pb-2 flex flex-col gap-2">
           <button
             onClick={() => {
               onNewChat();
               onClose();
             }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl bg-[var(--brand-primary)]/15 hover:bg-[var(--brand-primary)]/25 border border-[var(--brand-primary)]/35 text-[var(--brand-primary)] hover:text-white font-medium text-xs tracking-wide transition-all duration-200 cursor-pointer shadow-[0_0_20px_var(--brand-glow)] group"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-white/90 text-black font-semibold text-xs tracking-wider uppercase font-mono transition-all duration-200 cursor-pointer shadow-[0_4px_16px_rgba(255,255,255,0.15)] active:scale-[0.99] group"
           >
             <svg
-              className="w-4 h-4 transition-transform duration-300 group-hover:rotate-90 text-[var(--brand-primary)]"
+              className="w-3.5 h-3.5 transition-transform duration-300 group-hover:rotate-90 text-black"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -216,24 +216,24 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
             <button
               onClick={onSyncLangSmith}
               disabled={isSyncingLangSmith}
-              className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-cyan-500/30 text-slate-300 hover:text-cyan-300 font-medium text-[11px] tracking-wide transition-all cursor-pointer disabled:opacity-50 group"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-slate-300 hover:text-white font-mono text-[11px] tracking-wide transition-all cursor-pointer disabled:opacity-40 group"
               title="Restore previous conversations from LangSmith project traces"
             >
               <svg
-                className={`w-3.5 h-3.5 text-cyan-400 ${isSyncingLangSmith ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}
+                className={`w-3.5 h-3.5 text-slate-400 group-hover:text-white ${isSyncingLangSmith ? 'animate-spin' : 'group-hover:scale-110 transition-transform'}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                strokeWidth={2}
+                strokeWidth={1.8}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
               </svg>
-              <span>{isSyncingLangSmith ? 'Syncing from LangSmith...' : 'Sync from LangSmith'}</span>
+              <span>{isSyncingLangSmith ? 'Syncing...' : 'Sync from LangSmith'}</span>
             </button>
           )}
 
           {syncNotice && (
-            <div className="text-[10px] text-cyan-300 font-mono text-center bg-cyan-950/40 border border-cyan-800/50 py-1 px-2 rounded-lg">
+            <div className="text-[10px] text-slate-300 font-mono text-center bg-white/[0.04] border border-white/[0.08] py-1 px-2 rounded-lg">
               {syncNotice}
             </div>
           )}
@@ -244,11 +244,11 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
           <div className="px-4 py-2">
             <div className="relative w-full">
               <svg
-                className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-                strokeWidth={2}
+                strokeWidth={1.8}
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
@@ -258,7 +258,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search history..."
-                className="w-full pl-8 pr-7 py-2 bg-white/[0.04] border border-white/[0.08] focus:border-[var(--brand-primary)]/50 focus:bg-white/[0.06] rounded-xl text-xs text-white placeholder-slate-500 outline-none transition-all"
+                className="w-full pl-8 pr-7 py-2 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-white/25 focus:bg-white/[0.06] rounded-xl text-xs text-white placeholder-slate-500 font-sans outline-none transition-all"
               />
               {searchQuery && (
                 <button
@@ -280,21 +280,21 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
           {sessions.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
               <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-3 text-slate-500">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.27z" />
                 </svg>
               </div>
-              <p className="text-xs font-medium text-slate-400">No chat history yet</p>
-              <p className="text-[11px] text-slate-600 mt-1">Your conversations with MoKa will be saved here automatically.</p>
+              <p className="text-xs font-mono font-medium text-slate-300">NO CHAT HISTORY</p>
+              <p className="text-[11px] text-slate-500 mt-1">Conversations are saved automatically and preserved for 30 days.</p>
             </div>
           ) : filteredSessions.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs">
+            <div className="py-12 text-center text-slate-500 text-xs font-mono">
               No conversations found matching &ldquo;{searchQuery}&rdquo;
             </div>
           ) : (
             groupedSessions.map(([groupName, groupItems]) => (
               <div key={groupName} className="space-y-1.5">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 px-2 py-1 font-semibold">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 px-2 py-1 font-semibold">
                   {groupName}
                 </div>
                 {groupItems.map(session => {
@@ -314,8 +314,8 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                       }}
                       className={`group relative p-3 rounded-xl border transition-all duration-200 cursor-pointer flex flex-col gap-1.5 ${
                         isActive
-                          ? 'bg-[var(--brand-primary)]/10 border-[var(--brand-primary)]/40 shadow-[0_0_16px_var(--brand-glow)]'
-                          : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/15'
+                          ? 'bg-white/[0.08] border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.5)]'
+                          : 'bg-white/[0.02] hover:bg-white/[0.06] border-white/[0.05] hover:border-white/12'
                       }`}
                     >
                       {/* Top row: Title and Actions */}
@@ -332,11 +332,11 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                               onChange={e => setEditTitleText(e.target.value)}
                               onKeyDown={e => handleKeyDownRename(e, session.id)}
                               onBlur={() => handleSaveRename(session.id)}
-                              className="w-full bg-black/60 border border-[var(--brand-primary)] rounded-lg px-2 py-0.5 text-xs text-white outline-none"
+                              className="w-full bg-black/70 border border-white/25 rounded-lg px-2 py-0.5 text-xs text-white outline-none focus:border-white/50"
                             />
                             <button
                               onClick={() => handleSaveRename(session.id)}
-                              className="p-1 text-[var(--brand-primary)] hover:text-white cursor-pointer"
+                              className="p-1 text-slate-300 hover:text-white cursor-pointer"
                               title="Save"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -348,11 +348,11 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                           <>
                             <div className="flex items-center gap-2 min-w-0 flex-1">
                               {isActive && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)] shadow-[0_0_6px_var(--brand-primary)] flex-shrink-0" />
+                                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)] flex-shrink-0" />
                               )}
                               <span
-                                className={`text-xs font-medium truncate ${
-                                  isActive ? 'text-white font-semibold' : 'text-slate-300 group-hover:text-white'
+                                className={`text-xs truncate ${
+                                  isActive ? 'text-white font-semibold' : 'text-slate-300 group-hover:text-white font-medium'
                                 }`}
                                 title={session.title}
                               >
@@ -399,7 +399,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                             `${messageCount} messages`
                           )}
                         </span>
-                        <span className="font-mono text-slate-500 whitespace-nowrap">
+                        <span className="font-mono text-slate-500 whitespace-nowrap text-[9px]">
                           {formatSessionTime(session.updatedAt || session.createdAt)}
                         </span>
                       </div>
@@ -411,19 +411,19 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
           )}
         </div>
 
-        {/* Bottom Bar: Clear All or Info */}
+        {/* Bottom Bar: Clear All & 30-Day Retention Notice */}
         {sessions.length > 0 && (
-          <div className="p-4 border-t border-white/[0.06] bg-black/40">
+          <div className="px-5 py-3.5 border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-md">
             {showClearConfirm ? (
               <div className="flex flex-col gap-2">
-                <p className="text-[11px] text-rose-300 font-medium">Delete all saved conversations?</p>
+                <p className="text-[11px] text-rose-300 font-mono">Delete all saved conversations?</p>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => {
                       onClearAll();
                       setShowClearConfirm(false);
                     }}
-                    className="flex-1 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs font-semibold cursor-pointer transition-all"
+                    className="flex-1 py-1.5 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs font-semibold font-mono cursor-pointer transition-all"
                   >
                     Yes, Clear All
                   </button>
@@ -439,18 +439,18 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-slate-400 font-mono">
-                    {sessions.length} {sessions.length === 1 ? 'chat' : 'chats'} in database
+                    {sessions.length} {sessions.length === 1 ? 'chat' : 'chats'} stored
                   </span>
-                  <span className="text-[9px] text-slate-500 font-sans">
+                  <span className="text-[9px] text-slate-500 font-mono tracking-wide">
                     Auto-deleted after 30 days
                   </span>
                 </div>
                 <button
                   onClick={() => setShowClearConfirm(true)}
-                  className="text-[11px] text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-mono text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1.5 cursor-pointer"
                   title="Clear all conversations"
                 >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
                   </svg>
                   Clear All

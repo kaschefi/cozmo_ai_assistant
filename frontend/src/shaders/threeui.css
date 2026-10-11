@@ -997,6 +997,164 @@ img.sunset-valley-fallback {
   opacity: 1;
 }
 
+/* ========================================================
+   Vertical Pill Dock (Left Rail Spring Physics Navigation)
+   ======================================================== */
+.animated-vertical-dock__nav {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px;
+  overflow: visible;
+  background: transparent;
+  border: none;
+  isolation: isolate;
+}
+
+.animated-vertical-dock__item {
+  position: relative;
+  z-index: 6;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-start;
+  height: 38px;
+  width: 38px;
+  min-width: 38px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  outline: none;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.04);
+  font: 600 10.5px/1 "ThreeUI Fragment Mono", ui-monospace, monospace;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  transform-origin: 0% 50%;
+  transition: color 0.15s, background 0.18s;
+  will-change: width, height, transform;
+  cursor: pointer;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.animated-vertical-dock__item[data-dock-near="true"],
+.animated-vertical-dock__item:hover,
+.animated-vertical-dock__item:focus-visible {
+  z-index: 8;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.animated-vertical-dock__item:active,
+.animated-vertical-dock__item[aria-pressed="true"],
+.animated-vertical-dock__item[data-active="true"] {
+  z-index: 9;
+  color: #09090b !important;
+  border-color: #ffffff !important;
+  background: #ffffff !important;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(255, 255, 255, 0.25);
+}
+
+.animated-vertical-dock__item:active .animated-vertical-dock__icon,
+.animated-vertical-dock__item[aria-pressed="true"] .animated-vertical-dock__icon,
+.animated-vertical-dock__item[data-active="true"] .animated-vertical-dock__icon {
+  opacity: 1 !important;
+  color: #09090b !important;
+}
+
+.animated-vertical-dock__item:active .animated-vertical-dock__icon svg,
+.animated-vertical-dock__item[aria-pressed="true"] .animated-vertical-dock__icon svg,
+.animated-vertical-dock__item[data-active="true"] .animated-vertical-dock__icon svg {
+  stroke: #09090b !important;
+}
+
+.animated-vertical-dock__item:active .animated-vertical-dock__badge,
+.animated-vertical-dock__item[aria-pressed="true"] .animated-vertical-dock__badge,
+.animated-vertical-dock__item[data-active="true"] .animated-vertical-dock__badge {
+  background: #09090b !important;
+  color: #ffffff !important;
+  border-color: #09090b !important;
+}
+
+.animated-vertical-dock__item:active .animated-vertical-dock__icon span,
+.animated-vertical-dock__item[aria-pressed="true"] .animated-vertical-dock__icon span,
+.animated-vertical-dock__item[data-active="true"] .animated-vertical-dock__icon span {
+  background: #09090b !important;
+}
+
+.animated-vertical-dock__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  opacity: 0.75;
+  transition: opacity 0.16s, transform 0.2s;
+}
+
+.animated-vertical-dock__item[data-dock-near="true"] .animated-vertical-dock__icon,
+.animated-vertical-dock__item:hover .animated-vertical-dock__icon,
+.animated-vertical-dock__item:active .animated-vertical-dock__icon,
+.animated-vertical-dock__item[aria-pressed="true"] .animated-vertical-dock__icon {
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+.animated-vertical-dock__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.animated-vertical-dock__label {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 10px;
+  opacity: 0;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out;
+}
+
+.animated-vertical-dock__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+.animated-vertical-dock__hint {
+  margin-left: 8px;
+  font-size: 9px;
+  font-family: ui-monospace, monospace;
+  color: #64748b;
+  opacity: 0.8;
+}
+
 .animated-top-dock-component__caption {
   right: 18px;
   bottom: 16px;
