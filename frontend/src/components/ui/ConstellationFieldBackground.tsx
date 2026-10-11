@@ -164,15 +164,30 @@ export const ConstellationFieldBackground: React.FC<ConstellationFieldProps> = (
           p.x = Math.random() * width;
         }
 
-        // Gentle cursor push & glow
+        // Gentle cursor push & interactive tether lines
         if (mouse.active) {
           const mdx = p.x - mouse.x;
           const mdy = p.y - mouse.y;
           const mdist = Math.hypot(mdx, mdy);
           if (mdist < 140 && mdist > 0) {
-            const force = (1 - mdist / 140) * 0.45;
+            const force = (1 - mdist / 140) * 0.55;
             p.x += (mdx / mdist) * force;
             p.y += (mdy / mdist) * force;
+          }
+
+          if (mdist < linkDistance) {
+            const cursorLineAlpha = (1 - mdist / linkDistance) * 0.6 * dynamicOpacity;
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 243, 255, ${cursorLineAlpha * 0.75})`;
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(224, 248, 255, ${cursorLineAlpha * 0.95})`;
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(mouse.x, mouse.y);
+            ctx.stroke();
           }
         }
 

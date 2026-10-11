@@ -369,10 +369,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         }
       }
 
-      // Smooth mouse damping
-      const mouseSpeed = 0.08 * dt;
-      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * mouseSpeed;
-      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * mouseSpeed;
+      // Smoothly interpolate cursor position (lerp) exactly like home page ParticleCanvas
+      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * Math.min(1 * dt, 1);
+      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * Math.min(1 * dt, 1);
 
       // Scale matrix to fit screen width and height uniformly with margins matching original home page
       const scale = Math.min(width / logicalW, height / logicalH) * 0.82;
@@ -395,13 +394,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           const dx = p.eyeX - cx;
           const dy = p.eyeY - cy;
 
-          // Organic scaling with idle breathing
-          const eyeScale = 1.0 + Math.sin(time * 0.04 + p.seed) * 0.015;
+          // 2. Interactive eye sizing based on mouse side (3D perspective gaze like home page)
+          const isLeftEye = p.eyeX < 600;
+          const eyeScale = (isLeftEye
+            ? (1.0 - mouseRef.current.x * 0.15)
+            : (1.0 + mouseRef.current.x * 0.15)) * (1.0 + Math.sin(time * 0.04 + p.seed) * 0.015);
+
           const scaledX = cx + dx * eyeScale;
           const scaledY = cy + dy * eyeScale * blinkFactor;
 
-          // Apply mouse shift
-          const maxShift = 18;
+          // 3. Smooth gaze shift offset for the entire eye shapes
+          const maxShift = 20;
           const shiftX = mouseRef.current.x * maxShift;
           const shiftY = mouseRef.current.y * maxShift;
 
@@ -434,11 +437,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             const dx_eye = p.eyeX - cx;
             const dy_eye = p.eyeY - cy;
 
-            const eyeScale = 1.0;
+            const isLeftEye = p.eyeX < 600;
+            const eyeScale = isLeftEye
+              ? (1.0 - mouseRef.current.x * 0.15)
+              : (1.0 + mouseRef.current.x * 0.15);
+
             const scaledX = cx + dx_eye * eyeScale;
             const scaledY = cy + dy_eye * eyeScale * blinkFactor;
 
-            const maxShiftMini = 6;
+            const maxShiftMini = 10;
             const shiftX = mouseRef.current.x * maxShiftMini;
             const shiftY = mouseRef.current.y * maxShiftMini;
 
@@ -472,8 +479,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         targetX += avoidX;
         targetY += avoidY;
 
-        // Update positions with frame-rate independent easing
-        const ease = 0.08 + p.speedOffset * 0.05;
+        // Dynamic easing factor: snappy tracking close by, smooth transition when far
+        const dxDist = targetX - p.x;
+        const dyDist = targetY - p.y;
+        const dist = Math.hypot(dxDist, dyDist);
+        const ease = dist > 180 ? (0.13 + p.speedOffset * 0.04) : (0.12 + p.speedOffset * 0.08);
         const effectiveEase = Math.min(1 - Math.pow(Math.max(0, 1 - ease), dt), 1);
         p.x += (targetX - p.x) * effectiveEase;
         p.y += (targetY - p.y) * effectiveEase;
@@ -711,10 +721,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       } overflow-hidden flex flex-col transition-colors duration-700 font-sans selection:bg-[var(--brand-primary)]/30 selection:text-white`}>
 
 
-      {/* Dynamic Theme Background Shaders (10% opacity at rest, 50% opacity when conversation is active) */}
+      {/* Dynamic Theme Background Shaders (85% opacity at rest matching home page, 40% when conversation is active) */}
       <div
         className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700 ease-in-out"
-        style={{ opacity: isConversationStarted ? 0.50 : 0.10 }}
+        style={{ opacity: isConversationStarted ? 0.40 : 0.85 }}
       >
         {/* 🌌 ThreeUI Constellation Field Background for Black Ice */}
         {isBlackIce && (
