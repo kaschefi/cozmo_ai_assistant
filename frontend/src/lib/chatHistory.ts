@@ -1,8 +1,16 @@
+export interface MessageTelemetry {
+  elapsedSeconds?: number;
+  tool?: string;
+  provider?: string;
+  steps?: string[];
+}
+
 export interface Message {
   id: string;
   sender: 'user' | 'moka';
   text: string;
   timestamp: string;
+  telemetry?: MessageTelemetry;
 }
 
 export interface ChatSession {

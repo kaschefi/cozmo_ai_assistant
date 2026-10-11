@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ThinkingOrb } from 'thinking-orbs';
 import { BorderBeam } from 'border-beam';
 import { Liquid } from 'liquid-gooey';
 import { AnimatedTopDock } from '../shaders/animated-top-dock/AnimatedTopDock';
@@ -28,6 +27,8 @@ import {
 } from '../lib/chatHistory';
 import ChatHistoryDrawer from './ChatHistoryDrawer';
 import ChatLeftRail from './ChatLeftRail';
+import { CognitiveTelemetryCard, type TelemetryData } from './CognitiveTelemetryCard';
+import { CompletedTelemetryBadge } from './CompletedTelemetryBadge';
 
 interface ChatInterfaceProps {
   onBackToLanding?: () => void;
@@ -102,7 +103,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const [isInputFocused, setIsInputFocused] = useState(true);
   const [open, setOpen] = useState(false);
   const [isMokaTyping, setIsMokaTyping] = useState(false);
+  const [isMokaThinking, setIsMokaThinking] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<{ id: string; text: string; timestamp: string }[]>([]);
+
+  // Real-time Cognitive Telemetry State
+  const [cognitiveTelemetry, setCognitiveTelemetry] = useState<TelemetryData>({
+    stage: 'intent',
+    title: 'INTENT ROUTER',
+    text: 'Analyzing user query & checking semantic reflexes...',
+    step: 1,
+    provider: 'local',
+    elapsedSeconds: 0,
+  });
+  const telemetryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const telemetryStartTimeRef = useRef<number>(0);
 
   const [isMuted, setIsMuted] = useState(() => {
     return localStorage.getItem('moka_chat_muted') === 'true';
@@ -204,6 +218,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     setMessages([]);
     setIsConversationStarted(false);
     setPendingQueue([]);
+    setIsMokaThinking(false);
+    setIsMokaTyping(false);
     setInputText('');
     setIsHistoryOpen(false);
     inputRef.current?.focus();
@@ -435,7 +451,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   // Scroll to bottom helper
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isMokaTyping]);
+  }, [messages, isMokaTyping, isMokaThinking]);
 
   // High-performance Particle Canvas Eye system
   useEffect(() => {
@@ -807,6 +823,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
   // Context-aware replies mock response logic returning a Promise
   const triggerMockMokaResponse = useCallback((userMsg: string): Promise<void> => {
+    setIsMokaThinking(true);
     setIsMokaTyping(true);
 
     return new Promise((resolve) => {
@@ -833,18 +850,84 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             id: Math.random().toString(),
             sender: 'moka',
             text: reply,
-            timestamp
+            timestamp,
+            telemetry: {
+              elapsedSeconds: 1.2,
+              tool: 'Local Companion Engine',
+              provider: modelMode,
+              steps: ['Episodic Memory', 'Intent Router', 'Local Companion Engine', 'Dialogue Synthesis']
+            }
           }
         ]);
+        setIsMokaThinking(false);
         setIsMokaTyping(false);
         resolve();
       }, 1200);
     });
-  }, []);
+  }, [modelMode]);
 
   // Process message stream with backend
   const processMessage = useCallback(async (messageId: string, text: string, timestamp: string) => {
+    setIsMokaThinking(true);
     setIsMokaTyping(true);
+
+    // 1. Initialize telemetry state & live timer
+    telemetryStartTimeRef.current = Date.now();
+    setCognitiveTelemetry({
+      stage: 'intent',
+      title: 'INTENT ROUTER',
+      text: 'Analyzing user query & checking semantic reflexes...',
+      step: 1,
+      provider: modelMode,
+      elapsedSeconds: 0,
+    });
+
+    if (telemetryTimerRef.current) {
+      clearInterval(telemetryTimerRef.current);
+    }
+    telemetryTimerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - telemetryStartTimeRef.current) / 1000;
+      setCognitiveTelemetry(prev => ({
+        ...prev,
+        elapsedSeconds: elapsed,
+      }));
+    }, 100);
+
+    const mokaMsgId = (Date.now() + 1).toString();
+    const mokaTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let finalTool: string | undefined = undefined;
+    let accumulatedText = '';
+
+    // Soft fallback timer progression in case of model latency
+    const fallbackTimeout1 = setTimeout(() => {
+      setCognitiveTelemetry(prev => {
+        if (prev.step === 1 && prev.stage === 'intent') {
+          return {
+            ...prev,
+            stage: 'memory',
+            title: 'EPISODIC MEMORY',
+            text: 'Scanning memory core for user context & preferences...',
+            step: 1,
+          };
+        }
+        return prev;
+      });
+    }, 800);
+
+    const fallbackTimeout2 = setTimeout(() => {
+      setCognitiveTelemetry(prev => {
+        if (prev.step <= 2 && prev.stage !== 'executing') {
+          return {
+            ...prev,
+            stage: 'tools_rag',
+            title: 'INTENT ROUTER',
+            text: 'Evaluating candidate tools and conversation routes...',
+            step: 2,
+          };
+        }
+        return prev;
+      });
+    }, 1600);
 
     try {
       const headers: Record<string, string> = {
@@ -854,7 +937,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         headers['X-Moka-Token'] = token;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -870,46 +953,131 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const mokaMsgId = (Date.now() + 1).toString();
-      const mokaTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-      setMessages(prev => [
-        ...prev,
-        {
-          id: mokaMsgId,
-          sender: 'moka',
-          text: '',
-          timestamp: mokaTimestamp
-        }
-      ]);
-
       const contentType = response.headers.get('content-type') || '';
-      let replyText = '';
 
-      if (contentType.includes('application/json')) {
-        const data = await response.json();
-        replyText = data.response !== undefined ? data.response : (data.message !== undefined ? data.message : (data.text !== undefined ? data.text : JSON.stringify(data)));
-      } else {
-        const rawText = await response.text();
-        try {
-          const parsed = JSON.parse(rawText);
-          replyText = parsed.response !== undefined ? parsed.response : (parsed.message !== undefined ? parsed.message : (parsed.text !== undefined ? parsed.text : rawText));
-        } catch {
-          replyText = rawText;
+      if (contentType.includes('text/event-stream') && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data: ')) continue;
+            const payloadStr = trimmed.slice(6).trim();
+            if (payloadStr === '[DONE]') continue;
+
+            try {
+              const data = JSON.parse(payloadStr);
+
+              if (data.type === 'status') {
+                if (data.tool) finalTool = data.tool;
+                setCognitiveTelemetry(prev => ({
+                  ...prev,
+                  stage: data.stage || prev.stage,
+                  title: data.title || prev.title,
+                  text: data.text || prev.text,
+                  step: data.step !== undefined ? data.step : prev.step,
+                  tool: data.tool || prev.tool,
+                  provider: data.provider || prev.provider,
+                }));
+              } else if (data.type === 'token' || data.token !== undefined) {
+                const tokenStr = data.token !== undefined ? data.token : '';
+                accumulatedText += tokenStr;
+
+                // Stop showing the thinking orb card as soon as response tokens start streaming
+                setIsMokaThinking(false);
+
+                setMessages(prev => {
+                  const exists = prev.some(m => m.id === mokaMsgId);
+                  if (!exists) {
+                    return [
+                      ...prev,
+                      {
+                        id: mokaMsgId,
+                        sender: 'moka',
+                        text: accumulatedText,
+                        timestamp: mokaTimestamp
+                      }
+                    ];
+                  }
+                  return prev.map(m => m.id === mokaMsgId ? { ...m, text: accumulatedText } : m);
+                });
+              }
+            } catch {
+              // Ignore partial JSON chunks
+            }
+          }
         }
+      } else {
+        // Fallback for non-streaming response
+        const data = await response.json();
+        accumulatedText = data.response !== undefined ? data.response : (data.message !== undefined ? data.message : JSON.stringify(data));
+        setIsMokaThinking(false);
       }
 
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === mokaMsgId
-            ? { ...msg, text: replyText }
-            : msg
-        )
-      );
+      clearTimeout(fallbackTimeout1);
+      clearTimeout(fallbackTimeout2);
+      if (telemetryTimerRef.current) {
+        clearInterval(telemetryTimerRef.current);
+        telemetryTimerRef.current = null;
+      }
+      const totalElapsed = (Date.now() - telemetryStartTimeRef.current) / 1000;
 
+      // Finalize message with complete telemetry metadata
+      setMessages(prev => {
+        const exists = prev.some(m => m.id === mokaMsgId);
+        if (!exists) {
+          return [
+            ...prev,
+            {
+              id: mokaMsgId,
+              sender: 'moka',
+              text: accumulatedText,
+              timestamp: mokaTimestamp,
+              telemetry: {
+                elapsedSeconds: totalElapsed,
+                tool: finalTool,
+                provider: modelMode,
+                steps: ['Episodic Memory', 'Intent Router', finalTool || 'Neural Chat', 'Response']
+              }
+            }
+          ];
+        }
+        return prev.map(msg =>
+          msg.id === mokaMsgId
+            ? {
+                ...msg,
+                text: accumulatedText,
+                telemetry: {
+                  elapsedSeconds: totalElapsed,
+                  tool: finalTool,
+                  provider: modelMode,
+                  steps: ['Episodic Memory', 'Intent Router', finalTool || 'Neural Chat', 'Response']
+                }
+              }
+            : msg
+        );
+      });
+
+      setIsMokaThinking(false);
       setIsMokaTyping(false);
     } catch (error) {
+      clearTimeout(fallbackTimeout1);
+      clearTimeout(fallbackTimeout2);
+      if (telemetryTimerRef.current) {
+        clearInterval(telemetryTimerRef.current);
+        telemetryTimerRef.current = null;
+      }
       console.warn("Backend API stream error:", error);
+      setIsMokaThinking(false);
       if (!isConnectedRef.current) {
         setMessages(prev => prev.filter(m => m.id !== messageId));
         setPendingQueue(prev => [
@@ -921,7 +1089,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         await triggerMockMokaResponse(text);
       }
     }
-  }, [token, isMuted, modelMode, triggerMockMokaResponse]);
+  }, [token, sessionId, isMuted, modelMode, triggerMockMokaResponse]);
 
   // Submit handler
   const handleSendMessage = async (textToSend?: string) => {
@@ -1113,6 +1281,11 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                   {msg.sender === 'user' ? 'You' : 'MoKa'}
                 </span>
 
+                {/* If completed telemetry exists on assistant message */}
+                {msg.sender === 'moka' && msg.telemetry && (
+                  <CompletedTelemetryBadge telemetry={msg.telemetry} />
+                )}
+
                 {/* Message bubble */}
                 <div
                   className={`p-4 rounded-2xl text-sm md:text-base leading-relaxed ${msg.sender === 'user'
@@ -1194,16 +1367,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               </div>
             ))}
 
-            {/* Typing indicator bubble */}
-            {isMokaTyping && (
-              <div className="flex flex-col self-start items-start max-w-[85%]">
-                <span className="text-[10px] text-slate-400 font-mono font-semibold uppercase tracking-wider mb-1 px-1 flex items-center gap-1.5">
+            {/* Thinking indicator bubble with cognitive telemetry (only shown during routing/thinking phase before text tokens) */}
+            {isMokaThinking && (
+              <div className="flex flex-col self-start items-start max-w-[95%] sm:max-w-[85%]">
+                <span className="text-[10px] text-slate-400 font-mono font-semibold uppercase tracking-wider mb-1.5 px-1 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)]" />
                   MoKa
                 </span>
-                <div className="flex items-center justify-center dark bg-transparent border-0 shadow-none">
-                  <ThinkingOrb state="solving" size={64} />
-                </div>
+                <CognitiveTelemetryCard telemetry={cognitiveTelemetry} />
               </div>
             )}
 
