@@ -27,6 +27,7 @@ import {
   syncHistoryFromLangSmith
 } from '../lib/chatHistory';
 import ChatHistoryDrawer from './ChatHistoryDrawer';
+import ChatLeftRail from './ChatLeftRail';
 
 interface ChatInterfaceProps {
   onBackToLanding?: () => void;
@@ -61,6 +62,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
   const [sessions, setSessions] = useState<ChatSession[]>(() => loadChatSessions());
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [autoFocusSearch, setAutoFocusSearch] = useState(false);
   const isSessionLoadingRef = useRef(false);
 
   const [sessionId, setSessionId] = useState<string>(() => {
@@ -246,6 +248,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     setPendingQueue([]);
     setIsHistoryOpen(false);
   }, [token]);
+
+  // Global Keyboard Shortcuts: Ctrl+J for New Chat, Ctrl+H for Chat History
+  useEffect(() => {
+    const handleGlobalShortcuts = (e: KeyboardEvent) => {
+      // Don't intercept shortcuts when typing inside form inputs / textareas
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.getAttribute('contenteditable') === 'true');
+      if (isInput) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        handleNewChat();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        setAutoFocusSearch(false);
+        setIsHistoryOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalShortcuts);
+    return () => window.removeEventListener('keydown', handleGlobalShortcuts);
+  }, [handleNewChat]);
 
   useEffect(() => {
     localStorage.setItem('moka_chat_muted', String(isMuted));
@@ -992,10 +1015,24 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       </div>
 
 
-      {/* Slide-out Left-side Chat History Drawer */}
+      {/* Slim Gemini-inspired Left Action Rail */}
+      <ChatLeftRail
+        onNewChat={handleNewChat}
+        onToggleHistory={() => {
+          setAutoFocusSearch(false);
+          setIsHistoryOpen(prev => !prev);
+        }}
+        isHistoryOpen={isHistoryOpen}
+        historyCount={sessions.length}
+      />
+
+      {/* Slide-out Left-side Chat History Drawer (Flyout next to left rail) */}
       <ChatHistoryDrawer
         isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
+        onClose={() => {
+          setIsHistoryOpen(false);
+          setAutoFocusSearch(false);
+        }}
         sessions={sessions}
         activeSessionId={sessionId}
         onSelectSession={handleSelectSession}
@@ -1006,6 +1043,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         onSyncLangSmith={handleSyncLangSmith}
         isSyncingLangSmith={isSyncingLangSmith}
         syncNotice={syncNotice}
+        autoFocusSearch={autoFocusSearch}
       />
 
       {/* Sticky Top Navigation Header */}
@@ -1013,7 +1051,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         data-identity-state={headerState}
         className="fixed top-0 left-0 w-full h-20 md:h-24 bg-[#03060a]/85 border-b border-white/[0.06] backdrop-blur-2xl z-30 flex items-center justify-between px-6 md:px-10 overflow-visible"
       >
-        {/* Left Side: Particle Logo Area & History Toggle */}
+        {/* Left Side: Particle Logo Area */}
         <div className="flex items-center gap-3 sm:gap-4 z-20">
           <div
             onClick={onBackToLanding}
@@ -1022,43 +1060,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             role="button"
             tabIndex={0}
           />
-
-          {/* History Button (Between MOKA logo and Center Nav Dock) */}
-          <button
-            id="chat-history-toggle-btn"
-            onClick={() => setIsHistoryOpen(prev => !prev)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium tracking-wide transition-all duration-300 cursor-pointer backdrop-blur-md group ${
-              isHistoryOpen
-                ? 'bg-[var(--brand-primary)]/15 border-[var(--brand-primary)] text-[var(--brand-primary)] shadow-[0_0_15px_var(--brand-glow)]'
-                : 'bg-white/[0.04] border-white/[0.08] text-slate-300 hover:text-white hover:border-white/20 hover:bg-white/[0.08]'
-            }`}
-            title="Chat History"
-            aria-label="Toggle chat history"
-            aria-expanded={isHistoryOpen}
-          >
-            <svg
-              className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${
-                isHistoryOpen ? 'text-[var(--brand-primary)]' : 'text-slate-400 group-hover:text-white'
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-            <span className="hidden sm:inline font-sans">History</span>
-            {sessions.length > 0 && (
-              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full border ${
-                isHistoryOpen
-                  ? 'bg-[var(--brand-primary)]/20 border-[var(--brand-primary)]/40 text-[var(--brand-primary)]'
-                  : 'bg-white/[0.06] border-white/[0.1] text-slate-400'
-              }`}>
-                {sessions.length}
-              </span>
-            )}
-          </button>
         </div>
 
         {/* Center: ThreeUI AnimatedTopDock - Mathematically centered in viewport */}
@@ -1094,12 +1095,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       {/* Full-viewport canvas for fluid particle eyes and MOKA logo text */}
       <canvas
         ref={canvasRef}
-        className="fixed inset-0 w-full h-full block pointer-events-none z-45"
+        className="fixed inset-0 w-full h-full block pointer-events-none z-35"
       />
 
       {/* Scrollable Conversation Stream Wrapper (Active State) */}
       {isConversationStarted && (
-        <div className="w-full flex-1 overflow-y-auto z-10 transition-all duration-700">
+        <div className="w-full flex-1 overflow-y-auto z-10 transition-all duration-700 pl-14 sm:pl-16">
           <div className="px-6 pt-28 pb-32 max-w-2xl mx-auto w-full flex flex-col gap-4">
             {messages.map((msg) => (
               <div

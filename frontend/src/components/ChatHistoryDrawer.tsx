@@ -17,6 +17,7 @@ interface ChatHistoryDrawerProps {
   onSyncLangSmith?: () => Promise<void>;
   isSyncingLangSmith?: boolean;
   syncNotice?: string | null;
+  autoFocusSearch?: boolean;
 }
 
 export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
@@ -32,12 +33,23 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
   onSyncLangSmith,
   isSyncingLangSmith,
   syncNotice,
+  autoFocusSearch,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitleText, setEditTitleText] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const editInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Auto-focus search input if triggered from search button
+  useEffect(() => {
+    if (isOpen && autoFocusSearch) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 150);
+    }
+  }, [isOpen, autoFocusSearch]);
 
   // Close on Escape key press
   useEffect(() => {
@@ -139,11 +151,11 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
         aria-hidden="true"
       />
 
-      {/* Slide-out Drawer Panel */}
+      {/* Flyout Drawer Panel: Positioned smoothly beside the left rail */}
       <aside
         id="chat-history-sidebar"
-        className={`fixed top-0 left-0 h-full w-[330px] sm:w-[380px] max-w-[85vw] z-50 flex flex-col bg-[#03060c]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 bottom-0 left-14 sm:left-16 h-full w-[320px] sm:w-[360px] max-w-[calc(100vw-3.5rem)] sm:max-w-[calc(100vw-4rem)] z-50 flex flex-col bg-[#03060c]/98 border-r border-white/[0.08] backdrop-blur-2xl shadow-[0_0_50px_rgba(0,0,0,0.85)] transition-transform duration-300 ease-out ${
+          isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+4rem)]'
         }`}
         aria-label="Chat history sidebar"
         aria-hidden={!isOpen}
@@ -241,6 +253,7 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
               </svg>
               <input
+                ref={searchInputRef}
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
