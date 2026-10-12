@@ -192,6 +192,25 @@ export async function syncHistoryFromLangSmith(token?: string): Promise<{ synced
   return { syncedCount: 0, sessions: loadChatSessions() };
 }
 
+const TAB_ACTIVE_SESSION_KEY = 'moka_tab_active_session_id';
+
+/**
+ * Checks if the current page load is an actual browser page reload (F5 / Refresh).
+ */
+export function isBrowserReload(): boolean {
+  try {
+    const navEntries = performance.getEntriesByType('navigation');
+    if (navEntries && navEntries.length > 0) {
+      return (navEntries[0] as PerformanceNavigationTiming).type === 'reload';
+    }
+    // Fallback for older browsers
+    // @ts-ignore
+    return window.performance?.navigation?.type === 1;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Gets the active session ID from localStorage.
  */
@@ -204,11 +223,55 @@ export function getActiveSessionId(): string | null {
 }
 
 /**
+ * Determines whether the chat interface should restore an ongoing conversation or start fresh.
+ * - On first visit or navigation from landing: returns null (initiates a fresh new chat).
+ * - On browser reload of the chat page (F5): returns the active session ID to keep the conversation intact.
+ */
+export function getSessionToRestoreOnMount(): string | null {
+  try {
+    if (!isBrowserReload()) {
+      return null;
+    }
+    const tabActiveId = sessionStorage.getItem(TAB_ACTIVE_SESSION_KEY);
+    if (tabActiveId) {
+      return tabActiveId;
+    }
+    return getActiveSessionId();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Saves the active session ID for both the current browser tab and persistent storage.
+ */
+export function setTabActiveSessionId(id: string): void {
+  try {
+    sessionStorage.setItem(TAB_ACTIVE_SESSION_KEY, id);
+    localStorage.setItem(ACTIVE_SESSION_KEY, id);
+  } catch (err) {
+    console.error('Failed to set tab active session ID:', err);
+  }
+}
+
+/**
+ * Clears the active chat session from the current tab (e.g. when returning to landing page).
+ */
+export function clearTabActiveSession(): void {
+  try {
+    sessionStorage.removeItem(TAB_ACTIVE_SESSION_KEY);
+  } catch {
+    // Ignore storage quota
+  }
+}
+
+/**
  * Saves the active session ID to localStorage.
  */
 export function setActiveSessionId(id: string): void {
   try {
     localStorage.setItem(ACTIVE_SESSION_KEY, id);
+    sessionStorage.setItem(TAB_ACTIVE_SESSION_KEY, id);
   } catch (err) {
     console.error('Failed to set active session ID in localStorage:', err);
   }

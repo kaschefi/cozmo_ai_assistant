@@ -151,11 +151,11 @@ export const ChatHistoryDrawer: React.FC<ChatHistoryDrawerProps> = ({
         aria-hidden="true"
       />
 
-      {/* Flyout Drawer Panel: Clean Frosted Glass Beside Left Rail */}
+      {/* Flyout Drawer Panel: Clean Frosted Glass */}
       <aside
         id="chat-history-sidebar"
-        className={`fixed top-0 bottom-0 left-14 sm:left-16 h-full w-[320px] sm:w-[350px] max-w-[calc(100vw-3.5rem)] sm:max-w-[calc(100vw-4rem)] z-50 flex flex-col bg-[#03060a]/92 border-r border-white/[0.08] backdrop-blur-2xl shadow-[24px_0_50px_rgba(0,0,0,0.7)] transition-transform duration-300 ease-out select-none ${
-          isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+4rem)]'
+        className={`fixed top-0 bottom-0 left-0 h-full w-[320px] sm:w-[350px] max-w-[85vw] sm:max-w-[400px] z-50 flex flex-col bg-[#03060a]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-[24px_0_50px_rgba(0,0,0,0.7)] transition-transform duration-300 ease-out select-none ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Chat history sidebar"
         aria-hidden={!isOpen}

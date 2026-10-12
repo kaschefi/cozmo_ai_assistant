@@ -3,6 +3,7 @@ import MokaLanding from './components/MokaLanding';
 import ChatInterface from './components/ChatInterface';
 import CozmoDashboard from './components/CozmoDashboard';
 import { useLocation } from './hooks/useLocation';
+import { clearTabActiveSession } from './lib/chatHistory';
 
 /**
  * Main App component.
@@ -15,16 +16,27 @@ export const App: React.FC = () => {
     return (
       <CozmoDashboard
         onBackToChat={() => navigate('/chat')}
-        onBackToLanding={() => navigate('/')}
+        onBackToLanding={() => {
+          clearTabActiveSession();
+          navigate('/');
+        }}
       />
     );
   }
 
   return path === '/chat' || path === '/chat/' ? (
-    <ChatInterface onBackToLanding={() => navigate('/')} />
+    <ChatInterface
+      onBackToLanding={() => {
+        clearTabActiveSession();
+        navigate('/');
+      }}
+    />
   ) : (
     <MokaLanding 
-      onStartChat={() => navigate('/chat')} 
+      onStartChat={() => {
+        clearTabActiveSession();
+        navigate('/chat');
+      }} 
       onNavigateToCozmo={() => navigate('/cozmo')}
     />
   );

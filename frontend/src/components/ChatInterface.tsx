@@ -14,7 +14,6 @@ import {
   type ChatSession,
   loadChatSessions,
   saveChatSessions,
-  getActiveSessionId,
   setActiveSessionId,
   generateSessionId,
   generateSessionTitle,
@@ -23,7 +22,9 @@ import {
   renameChatSessionInApi,
   deleteChatSessionInApi,
   clearAllChatSessionsInApi,
-  syncHistoryFromLangSmith
+  syncHistoryFromLangSmith,
+  getSessionToRestoreOnMount,
+  setTabActiveSessionId
 } from '../lib/chatHistory';
 import ChatHistoryDrawer from './ChatHistoryDrawer';
 import ChatLeftRail from './ChatLeftRail';
@@ -67,21 +68,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const isSessionLoadingRef = useRef(false);
 
   const [sessionId, setSessionId] = useState<string>(() => {
-    const savedActiveId = getActiveSessionId();
+    const restoreId = getSessionToRestoreOnMount();
     const initialSessions = loadChatSessions();
-    if (savedActiveId && initialSessions.some(s => s.id === savedActiveId)) {
-      return savedActiveId;
+    if (restoreId && initialSessions.some(s => s.id === restoreId)) {
+      setTabActiveSessionId(restoreId);
+      return restoreId;
     }
+    // First time visiting chat page: open a clean, fresh new chat session
     const newId = generateSessionId();
-    setActiveSessionId(newId);
+    setTabActiveSessionId(newId);
     return newId;
   });
 
   const [messages, setMessages] = useState<Message[]>(() => {
-    const savedActiveId = getActiveSessionId();
+    const restoreId = getSessionToRestoreOnMount();
     const initialSessions = loadChatSessions();
-    if (savedActiveId) {
-      const activeSession = initialSessions.find(s => s.id === savedActiveId);
+    if (restoreId) {
+      const activeSession = initialSessions.find(s => s.id === restoreId);
       if (activeSession && activeSession.messages.length > 0) {
         return activeSession.messages;
       }
@@ -90,10 +93,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   });
 
   const [isConversationStarted, setIsConversationStarted] = useState(() => {
-    const savedActiveId = getActiveSessionId();
+    const restoreId = getSessionToRestoreOnMount();
     const initialSessions = loadChatSessions();
-    if (savedActiveId) {
-      const activeSession = initialSessions.find(s => s.id === savedActiveId);
+    if (restoreId) {
+      const activeSession = initialSessions.find(s => s.id === restoreId);
       return !!(activeSession && activeSession.messages.length > 0);
     }
     return false;
@@ -202,6 +205,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     isSessionLoadingRef.current = true;
     setSessionId(selectedSession.id);
     setActiveSessionId(selectedSession.id);
+    setTabActiveSessionId(selectedSession.id);
     setMessages(selectedSession.messages);
     setIsConversationStarted(selectedSession.messages.length > 0);
     setPendingQueue([]);
@@ -215,6 +219,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     const newId = generateSessionId();
     setSessionId(newId);
     setActiveSessionId(newId);
+    setTabActiveSessionId(newId);
     setMessages([]);
     setIsConversationStarted(false);
     setPendingQueue([]);
@@ -237,6 +242,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       const newId = generateSessionId();
       setSessionId(newId);
       setActiveSessionId(newId);
+      setTabActiveSessionId(newId);
       setMessages([]);
       setIsConversationStarted(false);
       setPendingQueue([]);
@@ -259,6 +265,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     const newId = generateSessionId();
     setSessionId(newId);
     setActiveSessionId(newId);
+    setTabActiveSessionId(newId);
     setMessages([]);
     setIsConversationStarted(false);
     setPendingQueue([]);

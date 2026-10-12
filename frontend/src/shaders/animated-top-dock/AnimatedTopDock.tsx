@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createTopDockController } from "./topDockController";
+import { clearTabActiveSession } from "../../lib/chatHistory";
 
 export type AnimatedTopDockProps = {
   proximity?: number;
@@ -85,12 +86,16 @@ export function AnimatedTopDock({ className = "", defaultActive = "home", ...pro
   const handleClick = (id: string) => {
     setActive(id);
     if (id === "home") {
+      clearTabActiveSession();
       if (window.location.pathname !== "/" && window.location.pathname !== "") {
         window.history.pushState({}, "", "/");
         window.dispatchEvent(new Event("popstate"));
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (id === "chat") {
+      if (window.location.pathname !== "/chat" && window.location.pathname !== "/chat/") {
+        clearTabActiveSession();
+      }
       window.history.pushState({}, "", "/chat");
       window.dispatchEvent(new Event("popstate"));
     } else if (id === "cozmo") {

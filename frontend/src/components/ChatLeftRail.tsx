@@ -35,11 +35,15 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
     <aside
       id="chat-left-rail"
       aria-label="Chat quick tools"
-      className="fixed top-20 md:top-24 bottom-0 left-0 w-14 sm:w-16 z-50 flex flex-col items-start py-4 pl-2 sm:pl-3 bg-transparent border-none pointer-events-none transition-all duration-300 overflow-visible"
+      className={`fixed top-20 md:top-24 bottom-0 left-0 w-14 sm:w-16 z-30 flex flex-col items-start py-4 pl-2 sm:pl-3 bg-transparent border-none pointer-events-none transition-all duration-300 ease-out overflow-visible ${
+        isHistoryOpen ? 'opacity-0 -translate-x-12 pointer-events-none' : 'opacity-100 translate-x-0'
+      }`}
     >
       <nav
         ref={rootRef}
-        className="animated-vertical-dock__nav pointer-events-auto overflow-visible"
+        className={`animated-vertical-dock__nav overflow-visible transition-all duration-200 ${
+          isHistoryOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
+        }`}
         aria-label="Vertical navigation dock"
         data-dock-state="idle"
       >
