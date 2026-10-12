@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useMouseTracking } from '../hooks/useMouseTracking';
+import { useMouseTracking } from '../../../shared/hooks/useMouseTracking';
 
 /**
  * LandingWrapper component provides a full-viewport background with a dark gradient.

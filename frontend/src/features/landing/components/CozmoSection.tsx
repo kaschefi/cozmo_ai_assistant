@@ -1,5 +1,5 @@
 import React from 'react';
-import CozmoModelPreview from './CozmoModelPreview';
+import { CozmoModelPreview } from '../../cozmo';
 
 interface CozmoSectionProps {
   onNavigateToCozmo?: () => void;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { MessageTelemetry } from '../lib/chatHistory';
+import type { MessageTelemetry } from '../services/chatHistory';
 
 interface CompletedTelemetryBadgeProps {
   telemetry: MessageTelemetry;

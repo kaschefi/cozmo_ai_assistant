@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BorderBeam } from 'border-beam';
 import { Liquid } from 'liquid-gooey';
-import { AnimatedTopDock } from '../shaders/animated-top-dock/AnimatedTopDock';
-import ThemeSelector from './ui/ThemeSelector';
-import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
-import GoldVeinsBackground from './ui/GoldVeinsBackground';
-import ParticleDriftBackground from './ui/ParticleDriftBackground';
-import { useTheme } from '../context/ThemeContext';
-import '../shaders/threeui.css';
+import { AnimatedTopDock } from '../../../shared/components/layout/AnimatedTopDock';
+import { ThemeSelector } from '../../../shared/components/layout/ThemeSelector';
+import {
+  ConstellationFieldBackground,
+  GoldVeinsBackground,
+  ParticleDriftBackground
+} from '../../../shared/components/backgrounds';
+import { useTheme } from '../../../shared/context/ThemeContext';
+import '../../../shared/shaders/threeui.css';
 
 import {
   type Message,
@@ -25,7 +27,7 @@ import {
   syncHistoryFromLangSmith,
   getSessionToRestoreOnMount,
   setTabActiveSessionId
-} from '../lib/chatHistory';
+} from '../services/chatHistory';
 import ChatHistoryDrawer from './ChatHistoryDrawer';
 import ChatLeftRail from './ChatLeftRail';
 import { CognitiveTelemetryCard, type TelemetryData } from './CognitiveTelemetryCard';

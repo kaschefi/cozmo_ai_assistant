@@ -1,5 +1,5 @@
 import React from 'react';
-import { AnimatedTopDock } from '../../shaders/animated-top-dock/AnimatedTopDock';
+import { AnimatedTopDock } from './AnimatedTopDock';
 import ThemeSelector from './ThemeSelector';
 import '../../shaders/threeui.css';
 

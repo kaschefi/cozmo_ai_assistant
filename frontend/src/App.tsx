@@ -1,9 +1,8 @@
 import React from 'react';
-import MokaLanding from './components/MokaLanding';
-import ChatInterface from './components/ChatInterface';
-import CozmoDashboard from './components/CozmoDashboard';
-import { useLocation } from './hooks/useLocation';
-import { clearTabActiveSession } from './lib/chatHistory';
+import { MokaLanding } from './features/landing';
+import { ChatInterface, clearTabActiveSession } from './features/chat';
+import { CozmoDashboard } from './features/cozmo';
+import { useLocation } from './shared/hooks';
 
 /**
  * Main App component.

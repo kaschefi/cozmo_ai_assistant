@@ -32,3 +32,7 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Architecture
+
+This project is organized using a **Feature-Oriented (Vertical Slice)** directory structure. For detailed documentation on domain boundaries and rules for shared vs. feature-local code, see [`ARCHITECTURE.md`](./ARCHITECTURE.md).

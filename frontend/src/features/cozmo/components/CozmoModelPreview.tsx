@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { useTheme } from '../../context/ThemeContext';
+import { useTheme } from '../../../shared/context/ThemeContext';
 
 interface CozmoModelPreviewProps {
   className?: string;

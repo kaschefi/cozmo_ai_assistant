@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SemanticGridMap, { type VisualAnchorData, type ObstacleData, type RobotPose, type BlockData } from './SemanticGridMap';
 import Cozmo3DWorldMap from './Cozmo3DWorldMap';
-import Header from './ui/Header';
-import { useTheme } from '../context/ThemeContext';
-import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
-import GoldVeinsBackground from './ui/GoldVeinsBackground';
-import ParticleDriftBackground from './ui/ParticleDriftBackground';
+import Header from '../../../shared/components/layout/Header';
+import { useTheme } from '../../../shared/context/ThemeContext';
+import {
+  ConstellationFieldBackground,
+  GoldVeinsBackground,
+  ParticleDriftBackground
+} from '../../../shared/components/backgrounds';
 
 interface TelemetryData {
   camera_source?: 'cozmo' | 'webcam';
@@ -49,7 +51,7 @@ interface TelemetryData {
   path: number[][];
 }
 
-interface CozmoDashboardProps {
+export interface CozmoDashboardProps {
   onBackToChat?: () => void;
   onBackToLanding?: () => void;
 }

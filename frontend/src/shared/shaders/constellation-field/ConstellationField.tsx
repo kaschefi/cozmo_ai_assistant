@@ -1,5 +1,5 @@
-import type { ConstellationFieldProps } from '../../components/ui/ConstellationFieldBackground';
-import ConstellationFieldBackground from '../../components/ui/ConstellationFieldBackground';
+import type { ConstellationFieldProps } from '../../components/backgrounds/ConstellationFieldBackground';
+import ConstellationFieldBackground from '../../components/backgrounds/ConstellationFieldBackground';
 
 export { ConstellationFieldBackground, type ConstellationFieldProps };
 

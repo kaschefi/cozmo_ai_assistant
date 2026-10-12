@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { createVerticalDockController } from './verticalDockController';
+import { createVerticalDockController } from '../../../shared/components/layout/verticalDockController';
 
 interface ChatLeftRailProps {
   onNewChat: () => void;

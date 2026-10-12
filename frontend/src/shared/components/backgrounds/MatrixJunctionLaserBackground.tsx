@@ -10,7 +10,7 @@ import React, { useEffect, useRef } from 'react';
  * - Full Gold & Obsidian palette for the Royal theme.
  */
 
-export interface MatrixJunctionProps {
+export interface MatrixJunctionLaserProps {
   variant?: 'cross' | 'ring' | 'frame' | 'x';
   speed?: number;
   beamWidth?: number;
@@ -20,6 +20,7 @@ export interface MatrixJunctionProps {
   noiseScale?: number;
   className?: string;
 }
+export type MatrixJunctionProps = MatrixJunctionLaserProps;
 
 const VERTEX_SHADER = `#version 300 es
 precision highp float;

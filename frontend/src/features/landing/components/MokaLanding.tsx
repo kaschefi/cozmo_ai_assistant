@@ -1,14 +1,16 @@
 import React from 'react';
-import Header from './ui/Header';
-import ProjectIntro from './ui/ProjectIntro';
-import FeatureMarquee from './ui/FeatureMarquee';
-import TalkSection from './ui/TalkSection';
-import ParticleCanvas from './ui/ParticleCanvas';
-import GoldVeinsBackground from './ui/GoldVeinsBackground';
-import ParticleDriftBackground from './ui/ParticleDriftBackground';
-import ConstellationFieldBackground from './ui/ConstellationFieldBackground';
-import CozmoSection from './ui/CozmoSection';
-import { useTheme } from '../context/ThemeContext';
+import Header from '../../../shared/components/layout/Header';
+import ProjectIntro from './ProjectIntro';
+import FeatureMarquee from './FeatureMarquee';
+import TalkSection from './TalkSection';
+import {
+  ParticleCanvas,
+  GoldVeinsBackground,
+  ParticleDriftBackground,
+  ConstellationFieldBackground
+} from '../../../shared/components/backgrounds';
+import CozmoSection from './CozmoSection';
+import { useTheme } from '../../../shared/context/ThemeContext';
 
 /**
  * MokaLanding component representing the main ecosystem dashboard.

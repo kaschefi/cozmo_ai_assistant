@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createTopDockController } from "./topDockController";
-import { clearTabActiveSession } from "../../lib/chatHistory";
+import { clearTabActiveSession } from "../../../features/chat/services/chatHistory";
 
 export type AnimatedTopDockProps = {
   proximity?: number;
