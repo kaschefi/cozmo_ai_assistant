@@ -1,6 +1,6 @@
 # MoKa AI Assistant
 
-An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a state-of-the-art two-layer intelligence pipeline: **Layer 1** fast semantic reflexes (50ms latency) for instant physical and laptop commands, and **Layer 2** a dynamic **LangGraph-powered AI brain** that uses local LLMs (`qwen2.5:3b` via Ollama) and a **Vector RAG Tool Retrieval Index** for complex natural conversation, Google Calendar management, and advanced search agents (Weather, Tavily MCP, Web Search). All features are exposed via an interactive console launcher, voice control, or a **FastAPI** REST bridge.
+An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a state-of-the-art two-layer intelligence pipeline: **Layer 1** fast semantic reflexes (~50ms latency) for instant physical and laptop commands, and **Layer 2** a dynamic **LangGraph-powered AI brain** (`backend/core/routing/layer2`) backed by PostgreSQL persistent memory, FAISS dynamic tool RAG, and sub-35ms neural route selection via the resident **LAYA Typed Decision Model** for natural conversation, Google Calendar management, code execution, and autonomous task agents. All features are exposed via an interactive console launcher, voice control, or a **FastAPI** REST bridge.
 
 ---
 
@@ -31,41 +31,54 @@ An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a
 ## Architecture
 
 ```
-                       User Input (Terminal / Voice)
-                                     │
-                                     ▼
-                ┌──────────────────────────────────────────┐
-                │         Layer 1 Semantic Router          │  ← Fast Embeddings (~50ms)
-                │      (reflex_registry + FastEmbed)       │    Bypasses LLM entirely.
-                └────────────────────┬─────────────────────┘
-                                     │ No reflex match
-                                     ▼
-                ┌──────────────────────────────────────────┐
-                │        Layer 2: LangGraph Brain          │
-                │                                          │
-                │  ┌────────────────────────────────────┐  │
-                │  │    Tool Retrieval Node (FAISS)     │  │  ← Dynamic Tool RAG Selection
-                │  └─────────────────┬──────────────────┘  │
-                │                    │ top 2 matched tools
-                │                    ▼
-                │  ┌────────────────────────────────────┐  │
-                │  │       Router Supervisor (LLM)      │  │  ← Structured classifier
-                │  └─────────────────┬──────────────────┘  │
-                │                    │ next_route (key)
-                │                    ▼
-                │  ┌────────────────────────────────────┐  │
-                │  │     Unified Tool Executor Node     │  │  ← Single generic node
-                │  │          (TOOL_REGISTRY)           │  │    Scales to 100+ tools!
-                │  └────────┬────────┬────────┬─────────┘  │
-                └───────────┼────────┼────────┼────────────┘
-                            │        │        │ dynamic lookup
-                            ▼        ▼        ▼
-                      Calendar    Weather  Web Search / Casual Chat
-                       (n8n)     (ReAct)   (Tavily MCP / Ollama)
+                                  User Input (Terminal / Voice / Web)
+                                                   │
+                                                   ▼
+                       ┌────────────────────────────────────────────────────────┐
+                       │                Layer 1 Semantic Router                 │  ← Fast Embeddings (~50ms)
+                       │         (core/routing/layer1 + FastEmbed)              │    Bypasses LLM entirely.
+                       └───────────────────────────┬────────────────────────────┘
+                                                   │ No reflex match
+                                                   ▼
+                       ┌────────────────────────────────────────────────────────┐
+                       │        Layer 2: LangGraph Brain (Cognitive Pipeline)   │
+                       │               (backend/core/routing/layer2)            │
+                       │                                                        │
+                       │  ┌──────────────────────────────────────────────────┐  │
+                       │  │ 1. Memory Retrieval Node (Postgres Vector Core)  │  │  ← Injects user profile & facts
+                       │  └────────────────────────┬─────────────────────────┘  │
+                       │                           ▼                            │
+                       │  ┌──────────────────────────────────────────────────┐  │
+                       │  │ 2. Tool Retrieval Node (FAISS + FastEmbed RAG)   │  │  ← Top 3 candidate tool schemas
+                       │  └────────────────────────┬─────────────────────────┘  │
+                       │                           ▼                            │
+                       │  ┌──────────────────────────────────────────────────┐  │
+                       │  │ 3. Route Query Node (LAYA Typed Decision Model)  │  │  ← Single-pass classifier (~33ms)
+                       │  └────────────────────────┬─────────────────────────┘  │
+                       │                           │ next_route (key)           │
+                       │             ┌─────────────┴─────────────┐              │
+                       │      Tool matched                  No tool / "none"    │
+                       │             ▼                           ▼              │
+                       │  ┌────────────────────┐   ┌─────────────────────────┐  │
+                       │  │ 4a. Tool Executor  │   │ 4b. Chat Companion Node │  │  ← Unified TOOL_REGISTRY vs.
+                       │  │  (execute_tool)    │   │       (chat_node)       │  │    Contextual Chat with Memory
+                       │  └──────────┬─────────┘   └─────────────┬───────────┘  │
+                       │             └─────────────┬─────────────┘              │
+                       │                           ▼                            │
+                       │  ┌──────────────────────────────────────────────────┐  │
+                       │  │ 5. Rolling Summarizer (PostgresSaver Pruning)    │  │  ← Condenses history (>6 msgs)
+                       │  └────────────────────────┬─────────────────────────┘  │
+                       │                           ▼                            │
+                       │  ┌──────────────────────────────────────────────────┐  │
+                       │  │ 6. Memory Extraction Node (Async Background)     │  │  ← Saves biographical traits
+                       │  └────────────────────────┬─────────────────────────┘  │
+                       └───────────────────────────┼────────────────────────────┘
+                                                   ▼
+                                                  END
 ```
 
 ### 1. Layer 1 Semantic Router (Fast Reflexes)
-Embedding-based semantic lookup. Utterances are mapped to a local registry of python operations (`core/registry.py`) enabling instantaneous response for:
+Embedding-based semantic lookup. Utterances are mapped to a local registry of python operations (`core/routing/layer1/registry.py`) enabling instantaneous response for:
 *   Physical actions: Autonomous charger docking.
 *   System operations: Date, time, and laptop configurations (Gaming/Coding/Study setups).
 
@@ -81,11 +94,34 @@ Operating directly inside PyCozmo's low-level packet thread context (~33Hz), `Re
         2.  **Impact Deceleration**: Measures true forward X-axis deceleration ($a_x - g \sin\theta \le -3500\text{ mm/s}^2$) to catch sharp physical collisions.
         3.  **Pose & OpenCV Visual Motion Stasis**: Combines a 0.8s pose sliding window ($< 10\text{mm}$ moved) with a 1.0s sliding OpenCV frame difference (`cv2.absdiff` on downscaled, blurred camera frames with mean diff $< 3.5$). If the camera scene remains static while wheels are commanded forward, visual stasis/collision is detected, safety trips, motors halt, and Cozmo backs away (1.0s) from the obstacle.
 
-### 3. Layer 2 LangGraph Brain (Dynamic Tool RAG & Unified Registry)
-For complex inputs, the system triggers a stateful graph configured to scale efficiently to 100+ tools:
-1.  **Tool Retrieval Node**: Uses `FAISS` to run a similarity search on the user's query against registered tool schemas, fetching only the top 2 candidates.
-2.  **Route Query**: Constructs a system prompt with only the retrieved candidate tools and uses a local LLM (`qwen2.5:3b`) to yield a structured `RouteDecision`.
-3.  **Unified Tool Executor**: Rather than compiling individual LangGraph nodes and conditional edges for every tool (which causes high boilerplate code and bad scalability), the graph routes to a single generic `execute_tool_node`. This node dynamically resolves the route key against a Python `TOOL_REGISTRY` mapping to run the tool's execution handler, falling back to a conversational `chat_node` if no tool matches.
+### 3. Layer 2 LangGraph Brain (`backend/core/routing/layer2`)
+For complex, multi-turn, and knowledge-driven requests, the system transitions to a modular stateful LangGraph pipeline (`router.py`) orchestrated with dynamic tool retrieval, ultrafast neural routing via **LAYA**, and end-to-end memory integration:
+
+1.  **Memory Retrieval Node (`memory_retrieval_node`)**:
+    *   Queries the native PostgreSQL Long-Term Memory Core (`long_term_memory`) using dense vector similarity (`BAAI/bge-small-en-v1.5` embeddings via `FastEmbed`).
+    *   Retrieves the top-3 relevant user biographical facts, or returns full biographical profiles on meta-queries (*"what facts do you know about me"*, *"tell me about myself"*), injecting them directly into state (`retrieved_memories`).
+2.  **Tool Retrieval Node (`tool_vector_db.py` / `tool_retrieval_node`)**:
+    *   Maintains an in-memory vector database (`ToolVectorRegistry`) powered by **FAISS** `IndexFlatIP` and `FastEmbed`.
+    *   Dynamically embeds and indexes registered tool schemas, querying the user's latest statement to retrieve only the **top-3 most relevant candidate tools**. This eliminates prompt bloat and prevents tool confusion on small local models.
+3.  **Neural Route Query via LAYA (`route_query`)**:
+    *   Instead of relying on slow, unconstrained LLM token generation, route selection is performed by the resident **LAYA Typed Decision Model** (`convaiinnovations/laya-typed-decisions`).
+    *   Formulates a structured typed-choice decision question comparing the retrieved candidate tools against clear criteria. LAYA evaluates the options in a single forward pass (**~33ms latency**), selecting the winning tool route key or cleanly returning `"none"`.
+4.  **Dynamic Decision Routing (`decide_next_step`)**:
+    *   Evaluates the route decision via conditional edge branching:
+        *   **Unified Tool Executor (`execute_tool_node`)**: Resolves the selected route key against a centralized Python `TOOL_REGISTRY` (`worker_nodes.py`), scaling to 100+ tools with zero graph recompilation. Dispatches to:
+            *   **Calendar Agent (`calendar_node`)**: Multi-step LangGraph ReAct agent managing Google Calendar schedules and appointments.
+            *   **Web Search Node (`web_search_node`)**: Real-time web retrieval via n8n integration.
+            *   **Weather Node (`weather_node`)**: High-speed regex city extraction, `wttr.in` lookup, live Cozmo OLED face rendering (weather condition & temperature display loop), and spoken summary.
+            *   **Code Executor Sub-Agent (`code_executor_node`)**: Deterministic local Python sandbox execution for mathematical calculations and string operations via `ornith:9b`.
+            *   **To-Do List Agent (`todolist_node`)**: Task and checklist tracking agent.
+            *   **Movement & System Fallbacks**: Physical motor commands (`move_forward`, `turn_left`, `dock_with_charger`, `arc_sweep`) and workstation presets (`setup_gaming`, `setup_study`, `setup_coding`, `tell_time`, `get_date`).
+        *   **Chat Companion Node (`chat_node`)**: Formulates natural, conversational responses using local (`qwen2.5:3b` via Ollama) or cloud models (Azure `Phi-4-mini`), guided by conversational hygiene rules, running session summaries, and injected biographical facts.
+5.  **Rolling Summarization Node (`summarize_conversation_node`)**:
+    *   Triggers when a conversation session exceeds 6 messages.
+    *   Condenses older exchanges into a running summary string in state while emitting `RemoveMessage` instructions to prune active messages from PostgreSQL session state (`PostgresSaver`), maintaining small context windows and fast inference.
+6.  **Asynchronous Memory Extraction Node (`memory_extraction_node`)**:
+    *   Runs on a non-blocking background thread (`threading.Thread(daemon=False)`) at the conclusion of every response.
+    *   A zero-temperature LLM scans recent dialogue turns, strictly filters transient data (weather, times, dates), and extracts permanent user biographical facts (name, occupation, location, preferences) formatted as `Fact | Category_Key`. Facts are persisted into PostgreSQL using $O(1)$ category resolution or cosine deduplication.
 
 ### 4. Layer 2 Memory Architecture (Short & Long-Term)
 The assistant features a sophisticated, persistent two-tiered memory architecture designed to run efficiently on local systems without heavy cloud or complex database dependencies:
@@ -161,12 +197,24 @@ cozmo_ai_assistant/
     │   │   ├── connection.py       # Singleton Cozmo hardware connection manager
     │   │   └── safety.py           # Real-time ReflexSafetyGuard (Anti-fall & Anti-dump/stall protection)
     │   │
-    │   ├── routing/                # AI Intelligence, Layer 1 & 2 routers, reflex registries, and tool RAG
+    │   ├── routing/                # AI Intelligence: Union Brain, Layer 1 & Layer 2 routing pipelines
     │   │   ├── __init__.py
-    │   │   ├── registry.py         # Decorator class for low-latency Layer 1 reflex registration
-    │   │   ├── router.py           # LangGraph state machine flow, supervisor, and node workers
-    │   │   ├── semantic_layer.py   # Layer 1 semantic matching router & package-wide action loader
-    │   │   └── tool_vector_db.py   # FAISS vector store bridge for dynamic tool registration & retrieval
+    │   │   ├── brain.py            # Unified Brain coordinator & SSE telemetry streaming engine
+    │   │   ├── encoder.py          # Shared vector embedding utilities
+    │   │   ├── llm_factory.py      # Dynamic LLM provider factory (Ollama local / Azure cloud / Groq)
+    │   │   ├── laya_router_service.py # Resident LAYA Typed Decision Model microservice (~33ms)
+    │   │   │
+    │   │   ├── layer1/             # Layer 1 Deterministic Semantic Reflexes (~50ms)
+    │   │   │   ├── __init__.py
+    │   │   │   ├── registry.py     # Decorator class for low-latency reflex registration
+    │   │   │   └── semantic_layer.py # Semantic matching router & package-wide action loader
+    │   │   │
+    │   │   └── layer2/             # Layer 2 Cognitive StateGraph & Dynamic Tool Architecture
+    │   │       ├── __init__.py
+    │   │       ├── router.py       # LangGraph StateGraph builder, PostgresSaver session checkpointer
+    │   │       ├── graph_nodes.py  # Flow nodes: Memory retrieval, Tool RAG, LAYA route_query, Summarizer, Fact extraction
+    │   │       ├── worker_nodes.py # Unified TOOL_REGISTRY worker handlers (Calendar, Weather, Search, Code, ToDo, Robot fallbacks, Chat)
+    │   │       └── tool_vector_db.py # FAISS vector index bridge for dynamic tool registration & retrieval
     │   │
     │   └── modes/                  # Interface modes and runtime application shells
     │       ├── __init__.py
@@ -184,8 +232,12 @@ cozmo_ai_assistant/
     │   │
     │   └── digital/                # Digital APIs & Agent integrations
     │       ├── __init__.py
-    │       ├── code_executor.py    # Local Python code sandbox execution sub-agent using ornith:9b
-    │       ├── langchain_agents.py # Weather ReAct agent utilizing wttr.in tool & prompt engineering
+    │       ├── langchain/          # LangChain cognitive tools
+    │       │   ├── code_executor.py # Local Python code sandbox execution sub-agent using ornith:9b
+    │       │   └── weather_agent.py # Weather agent utilizing wttr.in tool & prompt formatting
+    │       ├── langgraph/          # LangGraph multi-step sub-agents
+    │       │   ├── calendar_agent.py # Google Calendar management agent
+    │       │   └── todolist_agent.py # To-Do list tracking agent
     │       ├── MCPs.py             # Tavily search powered by standard Model Context Protocol client via npx
     │       ├── n8n_agents.py       # n8n webhook connectors for Google Calendar and web searching
     │       ├── setups.py           # OS-level workstation launchers (Gaming, Study, Coding routines)

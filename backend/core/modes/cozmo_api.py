@@ -16,7 +16,7 @@ import math
 import asyncio
 import json
 from typing import Optional, Dict, Any, List, Tuple
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Body
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Body, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 import numpy as np
@@ -127,7 +127,8 @@ class CozmoCommandRequest(BaseModel):
 
 @cozmo_router.get("/status")
 async def get_cozmo_status():
-    """Returns general connection & battery status of the robot."""
+    """Returns general connection & battery status of the robot and voice listener."""
+    from core.modes.voice_bridge import voice_bridge
     cli = cozmo_manager.get_robot()
     is_conn = bool(cli and cozmo_manager.is_connected)
     v_bat = getattr(cli, "battery_voltage", 4.10) if is_conn else 0.0
@@ -136,6 +137,9 @@ async def get_cozmo_status():
         "status": "success",
         "is_connected": is_conn,
         "is_connecting": cozmo_manager.is_connecting,
+        "last_error": getattr(cozmo_manager, "last_error", None) if not is_conn else None,
+        "voice_listener_active": voice_bridge.is_active,
+        "voice_listener_state": voice_bridge.state,
         "battery_voltage": round(float(v_bat), 2),
         "head_pitch_deg": cozmo_web_state.head_pitch_deg,
         "lift_height_mm": cozmo_web_state.lift_height_mm,
@@ -153,18 +157,79 @@ async def get_cozmo_status():
 
 
 @cozmo_router.api_route("/connect", methods=["GET", "POST"])
-async def connect_cozmo():
-    """Triggers background PyCozmo Wi-Fi connection handshake."""
+async def connect_cozmo(request: Request = None):
+    """Triggers background PyCozmo Wi-Fi connection handshake and voice listener."""
+    from core.modes.voice_bridge import voice_bridge
+    cozmo_manager.last_error = None
     cozmo_manager.robot_mode = True
     cozmo_manager.start()
-    return {"status": "connecting", "message": "Initiating Cozmo connection handshake..."}
+
+    session_id = "web_session"
+    if request:
+        try:
+            body = await request.json()
+            if isinstance(body, dict) and "session_id" in body and body["session_id"]:
+                session_id = body["session_id"]
+        except Exception:
+            pass
+        if session_id == "web_session" and request.query_params.get("session_id"):
+            session_id = request.query_params.get("session_id")
+
+    # Start voice listener on PC microphone
+    asyncio.create_task(voice_bridge.start(session_id))
+
+    # Broadcast initial state to subscribers
+    asyncio.create_task(voice_bridge.broadcast({
+        "type": "cozmo_voice_status",
+        "is_connected": cozmo_manager.is_connected,
+        "is_connecting": True,
+        "is_listening": True,
+        "state": "CONNECTING",
+        "error": None,
+        "session_id": session_id
+    }))
+
+    # Background monitor for PyCozmo Wi-Fi handshake
+    async def _monitor_connection():
+        cli = await asyncio.to_thread(cozmo_manager.wait_for_connection, timeout=15.0)
+        is_conn = bool(cli and cozmo_manager.is_connected)
+        err_msg = getattr(cozmo_manager, "last_error", None) or "Connection timed out: Cozmo robot not found on Wi-Fi."
+        
+        if not is_conn:
+            # If robot connection fails, halt voice listener so laptop audio is preserved
+            await voice_bridge.stop()
+            
+        await voice_bridge.broadcast({
+            "type": "cozmo_voice_status",
+            "is_connected": is_conn,
+            "is_connecting": False,
+            "is_listening": is_conn and voice_bridge.is_active,
+            "state": "CONNECTED" if is_conn else "FAILED",
+            "error": None if is_conn else err_msg,
+            "session_id": session_id
+        })
+    asyncio.create_task(_monitor_connection())
+
+    return {
+        "status": "connecting",
+        "message": "Initiating Cozmo connection handshake & spinning up voice listener..."
+    }
 
 
 @cozmo_router.api_route("/disconnect", methods=["GET", "POST"])
 async def disconnect_cozmo():
-    """Disconnects from PyCozmo robot."""
+    """Disconnects from PyCozmo robot and stops voice listener."""
+    from core.modes.voice_bridge import voice_bridge
+    await voice_bridge.stop()
     cozmo_manager.disconnect()
-    return {"status": "disconnected", "message": "Cozmo robot disconnected."}
+    await voice_bridge.broadcast({
+        "type": "cozmo_voice_status",
+        "is_connected": False,
+        "is_connecting": False,
+        "is_listening": False,
+        "state": "IDLE"
+    })
+    return {"status": "disconnected", "message": "Cozmo robot disconnected & voice listener stopped."}
 
 
 def update_simulated_motion(speed: float, steer: float, dt: float = 0.05):
@@ -1298,3 +1363,37 @@ async def cozmo_telemetry_websocket(websocket: WebSocket):
     finally:
         rx_task.cancel()
         tx_task.cancel()
+
+
+@cozmo_ws_router.websocket("/voice")
+async def cozmo_voice_websocket(websocket: WebSocket):
+    """
+    Real-time bidirectional WebSocket bridge for Chat page voice listener events,
+    Cozmo connection states, and spoken transcripts.
+    """
+    await websocket.accept()
+    from core.modes.voice_bridge import voice_bridge
+    session_id = websocket.query_params.get("session_id", "web_session")
+    await voice_bridge.register_subscriber(websocket, session_id=session_id)
+    try:
+        while True:
+            text = await websocket.receive_text()
+            try:
+                data = json.loads(text)
+                action = data.get("action", "")
+                if action == "set_session":
+                    voice_bridge.set_session_id(data.get("session_id", "web_session"))
+                elif action == "connect":
+                    cozmo_manager.robot_mode = True
+                    cozmo_manager.start()
+                    await voice_bridge.start(data.get("session_id", "web_session"))
+                elif action == "disconnect":
+                    await voice_bridge.stop()
+                    cozmo_manager.disconnect()
+            except Exception:
+                pass
+    except (WebSocketDisconnect, asyncio.CancelledError):
+        pass
+    finally:
+        voice_bridge.unregister_subscriber(websocket)
+

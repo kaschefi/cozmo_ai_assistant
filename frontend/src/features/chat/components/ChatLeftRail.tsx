@@ -1,11 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createVerticalDockController } from '../../../shared/components/layout/verticalDockController';
+import robotIcon from '../../../assets/robot.png';
 
 interface ChatLeftRailProps {
   onNewChat: () => void;
   onToggleHistory: () => void;
   isHistoryOpen: boolean;
   historyCount: number;
+  isCozmoConnected?: boolean;
+  isCozmoConnecting?: boolean;
+  cozmoError?: string | null;
+  onToggleCozmo?: () => void;
 }
 
 export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
@@ -13,6 +18,10 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
   onToggleHistory,
   isHistoryOpen,
   historyCount,
+  isCozmoConnected = false,
+  isCozmoConnecting = false,
+  cozmoError = null,
+  onToggleCozmo,
 }) => {
   const rootRef = useRef<HTMLElement>(null);
   const [justClickedNewChat, setJustClickedNewChat] = useState(false);
@@ -90,6 +99,89 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
           </span>
           <span className="animated-vertical-dock__label" data-dock-label>
             <span>HISTORY</span>
+          </span>
+        </button>
+
+        {/* Item 3: Cozmo Robot & Voice Listener */}
+        <button
+          id="rail-cozmo-toggle-btn"
+          className={`animated-vertical-dock__item !px-1.5 transition-all duration-300 ${
+            isCozmoConnected
+              ? '!border-emerald-500/60 !text-emerald-400 !bg-[#111114] shadow-[0_0_18px_rgba(16,185,129,0.25)]'
+              : isCozmoConnecting
+              ? '!border-amber-500/50 !text-amber-400 !bg-[#111114] animate-pulse'
+              : cozmoError
+              ? '!border-rose-500/70 !text-rose-400 !bg-[#1b0d13] shadow-[0_0_18px_rgba(244,63,94,0.35)] hover:!border-rose-400'
+              : ''
+          }`}
+          data-dock-item
+          type="button"
+          aria-pressed={isCozmoConnected}
+          onClick={onToggleCozmo}
+          title={
+            isCozmoConnected
+              ? 'Cozmo Connected (Speaker & "Hey Buddy" active) - Click to disconnect'
+              : isCozmoConnecting
+              ? 'Connecting to Cozmo...'
+              : cozmoError
+              ? `${cozmoError} - Click to retry`
+              : 'Connect to Cozmo (Robot speaker & "Hey Buddy" voice listener)'
+          }
+          aria-label={
+            isCozmoConnected
+              ? 'Disconnect Cozmo'
+              : isCozmoConnecting
+              ? 'Connecting to Cozmo'
+              : cozmoError
+              ? `Cozmo connection failed: ${cozmoError}. Click to retry.`
+              : 'Connect to Cozmo'
+          }
+        >
+          <span className="animated-vertical-dock__icon !w-[26px] !h-[26px] relative flex items-center justify-center shrink-0" aria-hidden="true">
+            {isCozmoConnecting ? (
+              <svg className="w-[23px] h-[23px] animate-spin text-amber-400" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" />
+                <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            ) : (
+              <span
+                className={`w-[23px] h-[23px] transition-all duration-300 ${
+                  isCozmoConnected
+                    ? 'bg-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.9)] scale-105'
+                    : cozmoError
+                    ? 'bg-rose-400 drop-shadow-[0_0_8px_rgba(244,63,94,0.9)] scale-105'
+                    : 'bg-slate-300 hover:bg-white hover:scale-110 drop-shadow-[0_0_4px_rgba(255,255,255,0.25)]'
+                }`}
+                style={{
+                  maskImage: `url(${robotIcon})`,
+                  WebkitMaskImage: `url(${robotIcon})`,
+                  maskSize: 'contain',
+                  WebkitMaskSize: 'contain',
+                  maskRepeat: 'no-repeat',
+                  WebkitMaskRepeat: 'no-repeat',
+                  maskPosition: 'center',
+                  WebkitMaskPosition: 'center',
+                }}
+              />
+            )}
+
+            {/* Glowing state badge */}
+            {isCozmoConnected && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-emerald-950 shadow-[0_0_10px_rgba(52,211,153,1)]" />
+            )}
+            {isCozmoConnecting && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+            )}
+            {!isCozmoConnecting && !isCozmoConnected && cozmoError && (
+              <span className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-rose-500 ring-2 ring-rose-950 shadow-[0_0_10px_rgba(244,63,94,1)] flex items-center justify-center text-[9px] font-bold text-white leading-none">
+                !
+              </span>
+            )}
+          </span>
+          <span className="animated-vertical-dock__label" data-dock-label>
+            <span className={cozmoError && !isCozmoConnected && !isCozmoConnecting ? 'text-rose-400 font-semibold tracking-wider' : ''}>
+              {isCozmoConnected ? 'COZMO ON' : isCozmoConnecting ? 'CONNECTING...' : cozmoError ? 'RETRY COZMO' : 'COZMO'}
+            </span>
           </span>
         </button>
       </nav>

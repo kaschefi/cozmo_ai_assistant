@@ -12,6 +12,7 @@ class CozmoManager:
     is_connecting = False
     robot_mode = False
     latest_image = None
+    last_error = None
 
     def __new__(cls):
         if cls._instance is None:
@@ -21,6 +22,7 @@ class CozmoManager:
             cls._instance._is_connected = False
             cls._instance.is_connecting = False
             cls._instance.latest_image = None
+            cls._instance.last_error = None
         return cls._instance
 
     @property
@@ -47,8 +49,10 @@ class CozmoManager:
             return
 
         self.is_connecting = True
+        self.last_error = None
 
         def connect():
+            cli = None
             try:
                 cli = pycozmo.Client()
                 cli.start()
@@ -58,6 +62,7 @@ class CozmoManager:
                 self.cli = cli
                 self.is_connected = True
                 self.is_connecting = False
+                self.last_error = None
                 print("[OK] PyCozmo connected successfully!")
 
                 # Initialize safety reflex guard
@@ -92,6 +97,7 @@ class CozmoManager:
                 self.is_connected = False
                 self.is_connecting = False
                 self.cli = None
+                self.last_error = "Connection Timeout: Cozmo robot not found. Verify robot is ON and PC is connected to Cozmo_XXXXXX Wi-Fi."
                 print("[PyCozmo Error] Connection Timeout!")
                 print("   Please verify:")
                 print("   1. Cozmo is turned ON (head lights lit up).")
@@ -100,7 +106,18 @@ class CozmoManager:
                 self.is_connected = False
                 self.is_connecting = False
                 self.cli = None
+                self.last_error = f"Failed to connect to Cozmo: {e}"
                 print(f"[PyCozmo Error] Failed to connect to Cozmo: {e}")
+            finally:
+                if not self.is_connected and cli:
+                    try:
+                        cli.disconnect()
+                    except Exception:
+                        pass
+                    try:
+                        cli.stop()
+                    except Exception:
+                        pass
 
         threading.Thread(target=connect, daemon=True).start()
 
@@ -110,15 +127,18 @@ class CozmoManager:
         Returns the PyCozmo client instance if connected, or None if timed out.
         """
         start_t = time.time()
-        attempt = 1
         while time.time() - start_t < timeout:
             if self.is_connected and self.cli:
                 return self.cli
             if not self.is_connecting and not self.is_connected:
                 # Thread finished with an error
                 return None
-            time.sleep(0.5)
-            attempt += 1
+            time.sleep(0.3)
+
+        # Timed out waiting
+        self.is_connecting = False
+        if not self.is_connected and not self.last_error:
+            self.last_error = "Connection timed out. Robot not found on Wi-Fi."
         return self.cli if self.is_connected else None
 
     def get_robot(self):
@@ -146,9 +166,6 @@ class CozmoManager:
         if guard and hasattr(guard, "set_undocking_mode"):
             guard.set_undocking_mode(active)
 
-
-
-
     def disconnect(self):
         """Safely disconnect and stop the PyCozmo client."""
         if self.cli:
@@ -166,6 +183,7 @@ class CozmoManager:
         self.robot_mode = False
         self.safety_guard = None
         self.latest_image = None
+        self.last_error = None
         print("[PyCozmo] Disconnected successfully.")
 
 

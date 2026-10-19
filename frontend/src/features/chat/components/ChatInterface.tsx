@@ -131,6 +131,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     return (localStorage.getItem('moka_model_mode') as 'local' | 'cloud') || 'local';
   });
 
+  // Cozmo Connection & Physical Voice Listener State
+  const [isCozmoConnected, setIsCozmoConnected] = useState(false);
+  const [isCozmoConnecting, setIsCozmoConnecting] = useState(false);
+  const [cozmoError, setCozmoError] = useState<string | null>(null);
+  const cozmoConnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
   // Synchronize current messages to active session in sessions, localStorage & backend DB
   useEffect(() => {
     if (messages.length === 0 || isSessionLoadingRef.current) return;
@@ -344,6 +351,246 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       }
     }
   };
+
+  // Cozmo Initial Status Probe on mount
+  useEffect(() => {
+    let isMounted = true;
+    const probeCozmoStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/cozmo/status`);
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          const connected = Boolean(data.is_connected);
+          const connecting = Boolean(data.is_connecting);
+          setIsCozmoConnected(connected);
+          setIsCozmoConnecting(connecting);
+          if (connected) {
+            setCozmoError(null);
+          } else if (data.last_error) {
+            setCozmoError(data.last_error);
+          }
+        }
+      } catch {
+        // Cozmo backend starting up or idle
+      }
+    };
+    probeCozmoStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Active status polling fallback while Cozmo is connecting
+  useEffect(() => {
+    if (!isCozmoConnecting) return;
+    let isCancelled = false;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/cozmo/status`);
+        if (res.ok && !isCancelled) {
+          const data = await res.json();
+          if (!data.is_connecting) {
+            setIsCozmoConnecting(false);
+            const connected = Boolean(data.is_connected);
+            setIsCozmoConnected(connected);
+            if (connected) {
+              setCozmoError(null);
+              setIsMuted(false);
+            } else {
+              const errMsg = data.last_error || 'Connection failed: Cozmo robot not found. Verify robot is ON and connected to Cozmo_XXXXXX Wi-Fi.';
+              setCozmoError(errMsg);
+            }
+          }
+        }
+      } catch {
+        // Network fluctuation during Wi-Fi switch
+      }
+    }, 1500);
+
+    return () => {
+      isCancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [isCozmoConnecting]);
+
+  // Cozmo Voice & Telemetry WebSocket Lifecycle
+  useEffect(() => {
+    let isCancelled = false;
+    let reconnectTimeout: ReturnType<typeof setTimeout>;
+
+    const connectVoiceWs = () => {
+      if (isCancelled) return;
+      const wsUrl = `${API_BASE_URL.replace(/^http/, 'ws')}/ws/cozmo/voice?session_id=${encodeURIComponent(sessionId)}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'cozmo_voice_status') {
+            const connected = Boolean(data.is_connected);
+            const connecting = Boolean(data.is_connecting);
+            setIsCozmoConnected(connected);
+            setIsCozmoConnecting(connecting);
+
+            if (connected) {
+              // Unmute when Cozmo is connected so audio outputs from Cozmo's speaker
+              setIsMuted(false);
+              setCozmoError(null);
+              if (cozmoConnectTimeoutRef.current) {
+                clearTimeout(cozmoConnectTimeoutRef.current);
+                cozmoConnectTimeoutRef.current = null;
+              }
+            } else if (!connecting) {
+              if (cozmoConnectTimeoutRef.current) {
+                clearTimeout(cozmoConnectTimeoutRef.current);
+                cozmoConnectTimeoutRef.current = null;
+              }
+              if (data.state === 'WIFI_TIMEOUT' || data.state === 'FAILED' || data.error) {
+                setCozmoError(
+                  data.error || 'Connection failed: Cozmo robot not found. Verify robot is ON and connected to Cozmo_XXXXXX Wi-Fi.'
+                );
+              }
+            }
+          } else if (data.type === 'user_voice_message') {
+            const voiceText = data.text;
+            if (voiceText) {
+              const userMsg: Message = {
+                id: `v_user_${Date.now()}`,
+                text: voiceText,
+                sender: 'user',
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                telemetry: { provider: modelMode }
+              };
+              setMessages(prev => [...prev, userMsg]);
+              setIsConversationStarted(true);
+              setIsMokaThinking(true);
+              setIsMokaTyping(false);
+            }
+          } else if (data.type === 'agent_voice_response') {
+            const replyText = data.text;
+            if (replyText) {
+              const aiMsg: Message = {
+                id: `v_ai_${Date.now()}`,
+                text: replyText,
+                sender: 'moka',
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                telemetry: { provider: modelMode }
+              };
+              setMessages(prev => [...prev, aiMsg]);
+              setIsMokaThinking(false);
+              setIsMokaTyping(false);
+            }
+          } else if (data.type === 'listener_state') {
+            if (data.state === 'PROCESSING') {
+              setIsMokaThinking(true);
+            } else if (data.state === 'SPEAKING' || data.state === 'EXPECTANT_WINDOW') {
+              setIsMokaThinking(false);
+            }
+          }
+        } catch (err) {
+          console.warn('[CozmoVoiceWS] Error processing message:', err);
+        }
+      };
+
+      ws.onclose = () => {
+        if (!isCancelled) {
+          reconnectTimeout = setTimeout(connectVoiceWs, 3000);
+        }
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    };
+
+    connectVoiceWs();
+
+    return () => {
+      isCancelled = true;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, [sessionId, modelMode]);
+
+  // Sync session changes over WebSocket to attach voice transcripts to current conversation
+  useEffect(() => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        action: 'set_session',
+        session_id: sessionId
+      }));
+    }
+  }, [sessionId]);
+
+  // Toggle Cozmo Connection & Physical Voice Listener
+  const handleToggleCozmo = useCallback(async () => {
+    if (isCozmoConnecting) return;
+
+    if (isCozmoConnected) {
+      // Disconnect Cozmo
+      setIsCozmoConnecting(false);
+      setIsCozmoConnected(false);
+      setCozmoError(null);
+      if (cozmoConnectTimeoutRef.current) {
+        clearTimeout(cozmoConnectTimeoutRef.current);
+        cozmoConnectTimeoutRef.current = null;
+      }
+      try {
+        await fetch(`${API_BASE_URL}/api/cozmo/disconnect`, { method: 'POST' });
+      } catch (err) {
+        console.warn("Failed to disconnect Cozmo:", err);
+      }
+    } else {
+      // Connect to Cozmo
+      setIsCozmoConnecting(true);
+      setCozmoError(null);
+      setIsMuted(false); // Switch speech output to Cozmo speaker
+
+      // Start safety client-side timeout timer (16s fallback)
+      if (cozmoConnectTimeoutRef.current) {
+        clearTimeout(cozmoConnectTimeoutRef.current);
+      }
+      cozmoConnectTimeoutRef.current = setTimeout(() => {
+        setIsCozmoConnecting(prev => {
+          if (prev) {
+            setCozmoError('Connection timed out. Robot did not respond. Verify Cozmo is ON and connected to Cozmo_XXXXXX Wi-Fi.');
+            return false;
+          }
+          return prev;
+        });
+      }, 16000);
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/cozmo/connect`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId })
+        });
+        if (!res.ok) {
+          if (cozmoConnectTimeoutRef.current) {
+            clearTimeout(cozmoConnectTimeoutRef.current);
+            cozmoConnectTimeoutRef.current = null;
+          }
+          setIsCozmoConnecting(false);
+          setCozmoError('Failed to initiate Cozmo connection.');
+        }
+      } catch (err) {
+        console.error("Failed to connect Cozmo:", err);
+        if (cozmoConnectTimeoutRef.current) {
+          clearTimeout(cozmoConnectTimeoutRef.current);
+          cozmoConnectTimeoutRef.current = null;
+        }
+        setIsCozmoConnecting(false);
+        setCozmoError('Cannot reach local server. Ensure backend is running.');
+      }
+    }
+  }, [isCozmoConnected, isCozmoConnecting, sessionId]);
+
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -952,8 +1199,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         body: JSON.stringify({
           message: text,
           session_id: sessionId,
-          mute: isMuted,
-          muted: isMuted,
+          mute: isCozmoConnected ? false : isMuted,
+          muted: isCozmoConnected ? false : isMuted,
           provider: modelMode
         })
       });
@@ -1098,7 +1345,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         await triggerMockMokaResponse(text);
       }
     }
-  }, [token, sessionId, isMuted, modelMode, triggerMockMokaResponse]);
+  }, [token, sessionId, isMuted, isCozmoConnected, modelMode, triggerMockMokaResponse]);
 
   // Submit handler
   const handleSendMessage = async (textToSend?: string) => {
@@ -1201,7 +1448,69 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         }}
         isHistoryOpen={isHistoryOpen}
         historyCount={sessions.length}
+        isCozmoConnected={isCozmoConnected}
+        isCozmoConnecting={isCozmoConnecting}
+        cozmoError={cozmoError}
+        onToggleCozmo={handleToggleCozmo}
       />
+
+      {/* Cozmo Connection Error Floating Banner Toast */}
+      {cozmoError && !isCozmoConnecting && !isCozmoConnected && (
+        <div
+          className="fixed top-24 left-16 sm:left-20 z-40 max-w-sm sm:max-w-md w-[calc(100vw-5rem)] sm:w-auto animate-in fade-in slide-in-from-left-4 duration-300"
+          role="alert"
+        >
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[#140a0e]/95 border border-rose-500/40 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.6),0_0_20px_rgba(244,63,94,0.18)] text-slate-200">
+            <div className="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-400 mt-0.5">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0 pr-1">
+              <div className="text-xs font-semibold uppercase tracking-wider text-rose-400 font-mono mb-0.5">
+                Cozmo Connection Failed
+              </div>
+              <p className="text-xs text-slate-300 leading-relaxed break-words">
+                {cozmoError}
+              </p>
+              <div className="flex items-center gap-2 mt-2.5">
+                <button
+                  type="button"
+                  onClick={handleToggleCozmo}
+                  className="text-[11px] font-medium px-2.5 py-1 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 4v6h6M23 20v-6h-6" />
+                    <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+                  </svg>
+                  Retry Connection
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCozmoError(null)}
+                  className="text-[11px] font-medium px-2 py-1 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCozmoError(null)}
+              className="text-slate-500 hover:text-slate-300 transition-colors p-1 -mr-1 -mt-1 cursor-pointer"
+              title="Close notification"
+              aria-label="Close notification"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Slide-out Left-side Chat History Drawer (Flyout next to left rail) */}
       <ChatHistoryDrawer
@@ -1499,8 +1808,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                   ? 'bg-[#202020] border-white/10 text-white hover:bg-[#2c2c2c]'
                   : 'theme-icon-box text-[var(--brand-primary)]'
                   }`}
-                title={isMuted ? "Unmute speech output" : "Mute speech output"}
-                aria-label={isMuted ? "Unmute speech output" : "Mute speech output"}
+                title={isMuted ? "Unmute speech output" : (isCozmoConnected ? "Mute Cozmo speaker" : "Mute laptop speech output")}
+                aria-label={isMuted ? "Unmute speech output" : (isCozmoConnected ? "Mute Cozmo speaker" : "Mute laptop speech output")}
               >
                 {isMuted ? (
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

@@ -316,7 +316,19 @@ class VoiceSpeaker:
         cli = cozmo_manager.get_robot() if cozmo_manager.robot_mode else None
 
         if cli:
-            # Physical Robot Speech: Generate 22050Hz WAV and play on Cozmo speaker
+            # Physical Robot Speech: Explicitly silence any PC audio stream so only Cozmo speaks
+            if self._stream and AUDIO_AVAILABLE:
+                try:
+                    self._stream.abort()
+                except Exception:
+                    pass
+            while not self._audio_queue.empty():
+                try:
+                    self._audio_queue.get_nowait()
+                except queue.Empty:
+                    break
+            self._remainder = np.array([], dtype=np.float32)
+
             loop = asyncio.get_running_loop()
             await loop.run_in_executor(
                 None, self._generate_robot_audio_blocking, sanitized_text, voice, speed
