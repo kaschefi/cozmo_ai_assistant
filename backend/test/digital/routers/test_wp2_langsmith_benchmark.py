@@ -37,7 +37,7 @@ from langsmith import Client
 from langsmith.evaluation import evaluate
 from langchain_core.messages import HumanMessage
 
-from test.digital.routers.tools_config import TOOLS_15, build_laya_questions
+from test.digital.routers.tools import TOOLS_15, build_laya_questions
 from test.digital.routers.benchmark_dataset import BENCHMARK_TEST_CASES
 
 DATASET_NAME = "MoKa_Router_Benchmark_WP2"
@@ -80,12 +80,14 @@ def ensure_wp2_dataset_exists(client: Client, force_refresh: bool = False) -> st
 # -----------------------------------------------------------------------------
 # 2. Modular Predictors and Experiment Runner
 # -----------------------------------------------------------------------------
-from test.digital.routers.two_layer_laya import two_layer_laya_predictor
-from test.digital.routers.single_layer_laya import single_layer_laya_predictor
-from test.digital.routers.two_layer_laya_topk import two_layer_laya_topk_predictor
-from test.digital.routers.single_layer_laya_topk import single_layer_laya_topk_predictor
-from test.digital.routers.two_layer_llm import two_layer_llm_predictor
-from test.digital.routers.baseline_router import baseline_router_predictor
+from test.digital.routers.models import (
+    two_layer_laya_predictor,
+    single_layer_laya_predictor,
+    two_layer_laya_topk_predictor,
+    single_layer_laya_topk_predictor,
+    two_layer_llm_predictor,
+    baseline_router_predictor,
+)
 from test.digital.routers.harness import evaluate_router_on_wp2
 
 

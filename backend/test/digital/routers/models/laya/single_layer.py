@@ -1,4 +1,4 @@
-# backend/test/digital/routers/single_layer_laya.py
+# backend/test/digital/routers/models/laya/single_layer.py
 """
 Router 3: Single-Layer Monolithic LAYA Router Evaluation (WP2 Experiment).
 
@@ -15,13 +15,13 @@ import os
 import sys
 import time
 
-# Ensure backend directory is in path
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+# Ensure backend directory is in path (5 levels up from models/laya/)
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../"))
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
 import laya
-from test.digital.routers.tools_config import TOOLS_15, build_laya_questions
+from test.digital.routers.tools import TOOLS_15, build_laya_questions
 from test.digital.routers.harness import evaluate_router_on_wp2
 
 # Model singleton for fast evaluation

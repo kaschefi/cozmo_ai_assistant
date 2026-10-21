@@ -1,4 +1,4 @@
-# backend/test/digital/routers/single_layer_laya_topk.py
+# backend/test/digital/routers/models/laya/single_layer_topk.py
 """
 Router 5: Single-Layer LAYA Router with Top-K Tool Retrieval Evaluation (WP2 Experiment).
 
@@ -20,15 +20,15 @@ import sys
 import time
 from typing import Dict, Any
 
-# Ensure backend directory is in path
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+# Ensure backend directory is in path (5 levels up from models/laya/)
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../"))
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
 import laya
 from core.routing.layer1.semantic_layer import initialize_router
 from core.routing.layer2.tool_vector_db import tool_rag_registry
-from test.digital.routers.tools_config import TOOLS_15, build_laya_questions
+from test.digital.routers.tools import TOOLS_15, build_laya_questions
 from test.digital.routers.harness import evaluate_router_on_wp2
 
 # Singletons for fast repeated evaluation

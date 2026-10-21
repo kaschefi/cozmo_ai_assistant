@@ -2,12 +2,12 @@
 """
 Comparative Evaluation Runner across WP2 Router Architectures.
 
-1. Baseline Monolithic LLM (baseline_router.py)
-2. Production Two-Layer LLM (two_layer_llm.py)
-3. Single-Layer LAYA Monolithic (single_layer_laya.py)
-4. Two-Layer LAYA (two_layer_laya.py)
-5. Single-Layer LAYA Top-K (single_layer_laya_topk.py)
-6. Two-Layer LAYA Top-K (two_layer_laya_topk.py)
+1. Baseline Monolithic LLM (models/llm/baseline.py)
+2. Production Two-Layer LLM (models/llm/two_layer.py)
+3. Single-Layer LAYA Monolithic (models/laya/single_layer.py)
+4. Two-Layer LAYA (models/laya/two_layer.py)
+5. Single-Layer LAYA Top-K (models/laya/single_layer_topk.py)
+6. Two-Layer LAYA Top-K (models/laya/two_layer_topk.py)
 
 Each implementation is independently runnable and self-contained.
 This script can execute all or display the summary comparison table.
@@ -21,12 +21,14 @@ backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
-from test.digital.routers.baseline_router import baseline_router_predictor
-from test.digital.routers.two_layer_llm import two_layer_llm_predictor
-from test.digital.routers.single_layer_laya import single_layer_laya_predictor
-from test.digital.routers.two_layer_laya import two_layer_laya_predictor
-from test.digital.routers.single_layer_laya_topk import single_layer_laya_topk_predictor
-from test.digital.routers.two_layer_laya_topk import two_layer_laya_topk_predictor
+from test.digital.routers.models import (
+    baseline_router_predictor,
+    two_layer_llm_predictor,
+    single_layer_laya_predictor,
+    two_layer_laya_predictor,
+    single_layer_laya_topk_predictor,
+    two_layer_laya_topk_predictor,
+)
 from test.digital.routers.harness import evaluate_router_on_wp2
 
 

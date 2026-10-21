@@ -1,4 +1,4 @@
-# backend/test/digital/routers/two_layer_llm.py
+# backend/test/digital/routers/models/llm/two_layer.py
 """
 Router 2: Two-Layer Architecture with LLM Router Evaluation (WP2 Experiment).
 
@@ -15,8 +15,8 @@ import os
 import sys
 import time
 
-# Ensure backend directory is in path
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+# Ensure backend directory is in path (5 levels up from models/llm/)
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../../"))
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
