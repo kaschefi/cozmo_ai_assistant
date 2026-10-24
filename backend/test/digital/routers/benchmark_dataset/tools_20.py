@@ -1,9 +1,9 @@
-# backend/test/digital/routers/benchmark_dataset.py
+# backend/test/digital/routers/benchmark_dataset/tools_20.py
 """
-Benchmark Test Dataset for Router Evaluation.
+Benchmark Test Dataset for 20 Tools Router Evaluation.
 
-Contains 48 carefully curated evaluation utterances (3 diverse examples per route)
-across the 15 system tools and conversational fallback channel.
+Contains 63 carefully curated evaluation utterances (3 diverse examples per route)
+across the 20 system tools and conversational fallback channel.
 """
 
 from typing import List, Dict
@@ -295,7 +295,102 @@ BENCHMARK_TEST_CASES: List[Dict[str, str]] = [
     },
 
     # -------------------------------------------------------------------------
-    # 16. none (Conversational Channel)
+    # 16. arc_sweep (Physical)
+    # -------------------------------------------------------------------------
+    {
+        "request": "perform a visual scan of the surrounding area",
+        "expected_route": "arc_sweep",
+        "category": "physical"
+    },
+    {
+        "request": "pan your camera across the room and look around",
+        "expected_route": "arc_sweep",
+        "category": "physical"
+    },
+    {
+        "request": "execute a sweeping survey arc with your head and tracks",
+        "expected_route": "arc_sweep",
+        "category": "physical"
+    },
+
+    # -------------------------------------------------------------------------
+    # 17. code_executor_node (Cognitive Agent)
+    # -------------------------------------------------------------------------
+    {
+        "request": "calculate 485 multiplied by 927",
+        "expected_route": "code_executor_node",
+        "category": "cognitive_agent"
+    },
+    {
+        "request": "how many days are there between March 15 and October 31?",
+        "expected_route": "code_executor_node",
+        "category": "cognitive_agent"
+    },
+    {
+        "request": "spell the word cybernetics backwards for me",
+        "expected_route": "code_executor_node",
+        "category": "cognitive_agent"
+    },
+
+    # -------------------------------------------------------------------------
+    # 18. todolist_node (Cognitive Agent)
+    # -------------------------------------------------------------------------
+    {
+        "request": "add buy coffee beans to my todo list",
+        "expected_route": "todolist_node",
+        "category": "cognitive_agent"
+    },
+    {
+        "request": "mark finish thesis draft as completed on my checklist",
+        "expected_route": "todolist_node",
+        "category": "cognitive_agent"
+    },
+    {
+        "request": "what pending tasks do I still have left to do today?",
+        "expected_route": "todolist_node",
+        "category": "cognitive_agent"
+    },
+
+    # -------------------------------------------------------------------------
+    # 19. spotify_play_playlist (Media)
+    # -------------------------------------------------------------------------
+    {
+        "request": "put on my lofi hip hop playlist on Spotify",
+        "expected_route": "spotify_play_playlist",
+        "category": "media"
+    },
+    {
+        "request": "play some chill instrumental study music",
+        "expected_route": "spotify_play_playlist",
+        "category": "media"
+    },
+    {
+        "request": "start playing my discover weekly playlist",
+        "expected_route": "spotify_play_playlist",
+        "category": "media"
+    },
+
+    # -------------------------------------------------------------------------
+    # 20. youtube_play_video (Media)
+    # -------------------------------------------------------------------------
+    {
+        "request": "play the latest Veritasium video on YouTube",
+        "expected_route": "youtube_play_video",
+        "category": "media"
+    },
+    {
+        "request": "pull up a video tutorial about Three.js on my screen",
+        "expected_route": "youtube_play_video",
+        "category": "media"
+    },
+    {
+        "request": "find and watch the trailer for Interstellar on YouTube",
+        "expected_route": "youtube_play_video",
+        "category": "media"
+    },
+
+    # -------------------------------------------------------------------------
+    # 21. none (Conversational Channel)
     # -------------------------------------------------------------------------
     {
         "request": "do you have any thoughts on quantum computing?",

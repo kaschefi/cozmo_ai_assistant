@@ -1,7 +1,8 @@
 # backend/test/digital/routers/tools/cognitive.py
 """
 Namespace: cognitive.*
-Cognitive sub-agents: Web Search, Google Calendar, Weather, Code Executor Sandbox, Todoist Tasks.
+Cognitive sub-agents: Web Search, Google Calendar, Weather, Code Executor Sandbox, Todoist Tasks,
+Gmail, Maps & Directions, Language Translation, Text Summarization, and Personal Contacts.
 """
 
 from typing import Dict, List
@@ -42,7 +43,10 @@ CODE_EXECUTOR_DIMENSIONS: Dict[str, str] = {
     ),
 }
 
-COGNITIVE_TOOLS: Dict[str, str] = {
+# -----------------------------------------------------------------------------
+# Core Cognitive Tools (Active in baseline MoKa)
+# -----------------------------------------------------------------------------
+COGNITIVE_BASE_TOOLS: Dict[str, str] = {
     "calendar_node": (
         "Manages Google Calendar operations, schedules, and appointments. "
         "Use when user wants to view, check, create, schedule, sync, reschedule, move, change, or delete meetings, "
@@ -71,6 +75,38 @@ COGNITIVE_TOOLS: Dict[str, str] = {
     ),
 }
 
+# -----------------------------------------------------------------------------
+# Extended Cognitive Tools (Scaling to 100 tools)
+# -----------------------------------------------------------------------------
+COGNITIVE_EXTRA_TOOLS: Dict[str, str] = {
+    "gmail_node": (
+        "Manages Gmail email operations. "
+        "Use when user wants to read, check, search, summarize, draft, send, or reply to emails and inbox messages."
+    ),
+    "maps_directions_node": (
+        "Provides driving, walking, and transit directions, travel time, and distance between locations. "
+        "Use when user asks how to get somewhere, how long a trip takes, or route to an address."
+    ),
+    "translation_node": (
+        "Translates words, sentences, and phrases between languages. "
+        "Use when user asks how to say something in another language, translate this text, or what a foreign phrase means."
+    ),
+    "summarizer_node": (
+        "Summarizes long text, articles, web page URLs, and documents into short key points. "
+        "Use when user asks to summarize, shorten, give the gist, TL;DR, or extract key points from content."
+    ),
+    "contacts_node": (
+        "Looks up saved contacts, phone numbers, email addresses, and birthdays of people. "
+        "Use when user asks for someone's number, email address, or contact details."
+    ),
+}
+
+# Unified 10 cognitive tools dictionary
+COGNITIVE_TOOLS: Dict[str, str] = {
+    **COGNITIVE_BASE_TOOLS,
+    **COGNITIVE_EXTRA_TOOLS,
+}
+
 # Layer 1 Tool RAG specifications for cognitive tools (including 5 separate documents for code_executor_node)
 COGNITIVE_RAG_SPECS: List[Dict[str, str]] = [
     {"name": "calendar_node", "description": COGNITIVE_TOOLS["calendar_node"], "namespace": COGNITIVE_NAMESPACE},
@@ -83,4 +119,16 @@ COGNITIVE_RAG_SPECS: List[Dict[str, str]] = [
     {"name": "code_executor_node", "description": CODE_EXECUTOR_DIMENSIONS["list_array_processing"], "namespace": COGNITIVE_NAMESPACE},
     {"name": "code_executor_node", "description": CODE_EXECUTOR_DIMENSIONS["string_parsing_conversions"], "namespace": COGNITIVE_NAMESPACE},
     {"name": "code_executor_node", "description": CODE_EXECUTOR_DIMENSIONS["string_character_reversal"], "namespace": COGNITIVE_NAMESPACE},
+    # 5 extended cognitive tools
+    {"name": "gmail_node", "description": COGNITIVE_TOOLS["gmail_node"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "maps_directions_node", "description": COGNITIVE_TOOLS["maps_directions_node"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "translation_node", "description": COGNITIVE_TOOLS["translation_node"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "summarizer_node", "description": COGNITIVE_TOOLS["summarizer_node"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "contacts_node", "description": COGNITIVE_TOOLS["contacts_node"], "namespace": COGNITIVE_NAMESPACE},
+]
+
+# Backward-compatibility alias
+COGNITIVE_EXTRA_RAG_SPECS: List[Dict[str, str]] = [
+    {"name": name, "description": desc, "namespace": COGNITIVE_NAMESPACE}
+    for name, desc in COGNITIVE_EXTRA_TOOLS.items()
 ]
