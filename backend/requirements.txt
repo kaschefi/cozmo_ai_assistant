@@ -37,3 +37,7 @@ tqdm==4.67.3
 SpeechRecognition==3.15.2 
 edge-tts==7.2.8 
 gTTS==2.5.4
+laya>=0.3.20
+transformers>=4.40.0
+websockets>=12.0
+

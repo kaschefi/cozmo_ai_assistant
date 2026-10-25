@@ -8,6 +8,7 @@ import {
   GoldVeinsBackground,
   ParticleDriftBackground
 } from '../../../shared/components/backgrounds';
+import { getApiBaseUrl, getWsBaseUrl } from '../../../shared/utils';
 
 interface TelemetryData {
   camera_source?: 'cozmo' | 'webcam';
@@ -103,16 +104,16 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
   const wsRef = useRef<WebSocket | null>(null);
   const userForcedDisconnectRef = useRef<boolean>(false);
 
-  const apiHost = window.location.hostname || 'localhost';
-  const apiPort = '8000';
-  const streamUrl = `http://${apiHost}:${apiPort}/api/cozmo/video_feed?source=${cameraSource}&v=${streamKey}`;
-  const wsUrl = `ws://${apiHost}:${apiPort}/ws/cozmo/telemetry`;
+  const apiBaseUrl = getApiBaseUrl();
+  const wsBaseUrl = getWsBaseUrl();
+  const streamUrl = `${apiBaseUrl}/api/cozmo/video_feed?source=${cameraSource}&v=${streamKey}`;
+  const wsUrl = `${wsBaseUrl}/ws/cozmo/telemetry`;
 
   // Sync initial status (camera source & connection state) on mount
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/status`);
+        const res = await fetch(`${apiBaseUrl}/api/cozmo/status`);
         if (res.ok) {
           const data = await res.json();
           if (typeof data.webcam_enabled === 'boolean') {
@@ -142,7 +143,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       }
     };
     fetchStatus();
-  }, [apiHost, apiPort]);
+  }, [apiBaseUrl]);
 
   // Establish WebSocket Connection
   useEffect(() => {
@@ -207,7 +208,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     setIsConnecting(true);
     setStatusMessage('Initiating Cozmo Wi-Fi handshake... (Make sure PC is connected to Cozmo_XXXXXX)');
     try {
-      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/connect`, {
+      const res = await fetch(`${apiBaseUrl}/api/cozmo/connect`, {
         method: 'POST',
       });
       const data = await res.json();
@@ -219,7 +220,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
       setStatusMessage('Error contacting backend to connect to Cozmo.');
       setIsConnecting(false);
     }
-  }, [apiHost, apiPort]);
+  }, [apiBaseUrl]);
 
   // Trigger Cozmo Disconnect
   const handleDisconnectCozmo = useCallback(async () => {
@@ -239,14 +240,14 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
     // 2. Notify backend through all channels (POST /disconnect and POST /command)
     try {
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/disconnect`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/disconnect`, {
         method: 'POST',
       });
     } catch (e) {
       // ignore
     }
     try {
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/command`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'disconnect' }),
@@ -254,7 +255,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       // ignore
     }
-  }, [apiHost, apiPort]);
+  }, [apiBaseUrl]);
 
   // Active polling while connection handshake is in progress
   useEffect(() => {
@@ -264,7 +265,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     const interval = setInterval(async () => {
       attempts += 1;
       try {
-        const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/status`);
+        const res = await fetch(`${apiBaseUrl}/api/cozmo/status`);
         if (res.ok) {
           const data = await res.json();
           if (data.is_connected) {
@@ -292,7 +293,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isConnecting, apiHost, apiPort]);
+  }, [isConnecting, apiBaseUrl]);
 
   // Send Command to Backend API / WebSocket
   const sendCommand = useCallback(async (action: string, params: Record<string, any> = {}) => {
@@ -310,7 +311,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
     // 2. HTTP POST Fallback / Management endpoints
     try {
-      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/command`, {
+      const res = await fetch(`${apiBaseUrl}/api/cozmo/command`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, ...params }),
@@ -320,7 +321,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       console.error('Command failed:', e);
     }
-  }, [apiHost, apiPort]);
+  }, [apiBaseUrl]);
 
   // Camera Source Switcher Handler
   const handleSetCameraSource = useCallback(async (newSource: 'cozmo' | 'webcam') => {
@@ -471,7 +472,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
 
   const handleDeleteAnchor = async (label: string) => {
     try {
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/anchors/${encodeURIComponent(label)}`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/anchors/${encodeURIComponent(label)}`, {
         method: 'DELETE',
       });
     } catch (e) {
@@ -483,7 +484,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
   const handlePlanPath = useCallback(async () => {
     try {
       setStatusMessage('Calculating Two-Way A* Docking Path (5cm clearance)...');
-      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/plan_dock_path`, {
+      const res = await fetch(`${apiBaseUrl}/api/cozmo/plan_dock_path`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clearance_mm: 50.0 }),
@@ -497,12 +498,12 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       console.error('Plan path request failed:', e);
     }
-  }, [apiHost, apiPort]);
+  }, [apiBaseUrl]);
 
   const handleSimulateDock = useCallback(async () => {
     try {
       setStatusMessage('Locking charger & planning Two-Way A* docking path (5cm clearance)...');
-      const res = await fetch(`http://${apiHost}:${apiPort}/api/cozmo/simulation/dock`, {
+      const res = await fetch(`${apiBaseUrl}/api/cozmo/simulation/dock`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clearance_mm: 50.0 }),
@@ -520,12 +521,12 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       console.error('Docking request failed:', e);
     }
-  }, [apiHost, apiPort, telemetry.robot.is_connected]);
+  }, [apiBaseUrl, telemetry.robot.is_connected]);
 
   const handleSpawnBlock = useCallback(async (x: number, y: number) => {
     try {
       const blockId = `cube_${Date.now() % 10000}`;
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/blocks`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/blocks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -542,11 +543,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       console.error('Spawn block failed:', e);
     }
-  }, [apiHost, apiPort, handlePlanPath]);
+  }, [apiBaseUrl, handlePlanPath]);
 
   const handleDeleteBlock = useCallback(async (blockId: string) => {
     try {
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/blocks/${encodeURIComponent(blockId)}`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/blocks/${encodeURIComponent(blockId)}`, {
         method: 'DELETE',
       });
       setStatusMessage(`Deleted block ${blockId}`);
@@ -554,11 +555,11 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       console.error('Delete block failed:', e);
     }
-  }, [apiHost, apiPort, handlePlanPath]);
+  }, [apiBaseUrl, handlePlanPath]);
 
   const handleResetBlocks = useCallback(async () => {
     try {
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/blocks/reset`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/blocks/reset`, {
         method: 'POST',
       });
       setStatusMessage('Reset blocks to default 3-cube layout.');
@@ -566,18 +567,18 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
     } catch (e) {
       console.error('Reset blocks failed:', e);
     }
-  }, [apiHost, apiPort, handlePlanPath]);
+  }, [apiBaseUrl, handlePlanPath]);
 
   const handleResetSimulation = useCallback(async () => {
     try {
-      await fetch(`http://${apiHost}:${apiPort}/api/cozmo/simulation/reset`, {
+      await fetch(`${apiBaseUrl}/api/cozmo/simulation/reset`, {
         method: 'POST',
       });
       setStatusMessage('Simulation reset. Cozmo pose at origin (0, 0, 0°).');
     } catch (e) {
       console.error('Reset simulation failed:', e);
     }
-  }, [apiHost, apiPort]);
+  }, [apiBaseUrl]);
 
   const batteryColor =
     telemetry.robot.battery_voltage >= 3.8
@@ -1424,7 +1425,7 @@ export const CozmoDashboard: React.FC<CozmoDashboardProps> = ({
                             <button
                               onClick={async () => {
                                 const action = anchor.is_locked ? 'unlock' : 'lock';
-                                await fetch(`http://${apiHost}:${apiPort}/api/cozmo/anchors/${encodeURIComponent(anchor.label)}/${action}`, {
+                                await fetch(`${apiBaseUrl}/api/cozmo/anchors/${encodeURIComponent(anchor.label)}/${action}`, {
                                   method: 'POST'
                                 });
                                 setStatusMessage(`Charger coordinates ${action === 'lock' ? 'locked' : 'unlocked'}.`);

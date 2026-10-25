@@ -32,12 +32,11 @@ import ChatHistoryDrawer from './ChatHistoryDrawer';
 import ChatLeftRail from './ChatLeftRail';
 import { CognitiveTelemetryCard, type TelemetryData } from './CognitiveTelemetryCard';
 import { CompletedTelemetryBadge } from './CompletedTelemetryBadge';
+import { getApiBaseUrl, getWsBaseUrl, getMokaToken, setMokaToken } from '../../../shared/utils';
 
 interface ChatInterfaceProps {
   onBackToLanding?: () => void;
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding }) => {
   const { theme } = useTheme();
@@ -45,16 +44,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const isRoyal = theme === 'royal';
   const isIT = theme === 'it';
 
-  const [token, setToken] = useState<string>('');
+  const [token, setToken] = useState<string>(() => getMokaToken());
 
   useEffect(() => {
     const fetchLocalToken = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/token/local`);
+        const res = await fetch(`${getApiBaseUrl()}/api/token/local`);
         if (res.ok) {
           const data = await res.json();
           if (data.token) {
             setToken(data.token);
+            setMokaToken(data.token);
           }
         }
       } catch (err) {
@@ -319,7 +319,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       if (token) {
         headers['X-Moka-Token'] = token;
       }
-      await fetch(`${API_BASE_URL}/api/model-mode`, {
+      await fetch(`${getApiBaseUrl()}/api/model-mode`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ provider: newMode })
@@ -342,7 +342,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           headers['X-Moka-Token'] = token;
         }
 
-        await fetch(`${API_BASE_URL}/api/mute`, {
+        await fetch(`${getApiBaseUrl()}/api/mute`, {
           method: 'POST',
           headers,
         });
@@ -357,7 +357,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     let isMounted = true;
     const probeCozmoStatus = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cozmo/status`);
+        const res = await fetch(`${getApiBaseUrl()}/api/cozmo/status`);
         if (res.ok && isMounted) {
           const data = await res.json();
           const connected = Boolean(data.is_connected);
@@ -387,7 +387,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cozmo/status`);
+        const res = await fetch(`${getApiBaseUrl()}/api/cozmo/status`);
         if (res.ok && !isCancelled) {
           const data = await res.json();
           if (!data.is_connecting) {
@@ -421,7 +421,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
     const connectVoiceWs = () => {
       if (isCancelled) return;
-      const wsUrl = `${API_BASE_URL.replace(/^http/, 'ws')}/ws/cozmo/voice?session_id=${encodeURIComponent(sessionId)}`;
+      const wsUrl = `${getWsBaseUrl()}/ws/cozmo/voice?session_id=${encodeURIComponent(sessionId)}`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -541,7 +541,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         cozmoConnectTimeoutRef.current = null;
       }
       try {
-        await fetch(`${API_BASE_URL}/api/cozmo/disconnect`, { method: 'POST' });
+        await fetch(`${getApiBaseUrl()}/api/cozmo/disconnect`, { method: 'POST' });
       } catch (err) {
         console.warn("Failed to disconnect Cozmo:", err);
       }
@@ -566,7 +566,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       }, 16000);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/api/cozmo/connect`, {
+        const res = await fetch(`${getApiBaseUrl()}/api/cozmo/connect`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sessionId })
@@ -686,7 +686,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
     const checkConnection = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/health`);
+        const res = await fetch(`${getApiBaseUrl()}/api/health`);
         if (res.ok) {
           setIsConnected(true);
           timeoutId = setTimeout(checkConnection, 5000);
@@ -1193,7 +1193,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         headers['X-Moka-Token'] = token;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+      const response = await fetch(`${getApiBaseUrl()}/api/chat/stream`, {
         method: 'POST',
         headers,
         body: JSON.stringify({

@@ -22,16 +22,18 @@ export interface ChatSession {
   modelMode?: 'local' | 'cloud';
 }
 
+import { getApiBaseUrl, getMokaToken } from '../../../shared/utils';
+
 const STORAGE_KEY = 'moka_chat_sessions';
 const ACTIVE_SESSION_KEY = 'moka_active_session_id';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 function getHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (token) {
-    headers['X-Moka-Token'] = token;
+  const activeToken = token || getMokaToken();
+  if (activeToken) {
+    headers['X-Moka-Token'] = activeToken;
   }
   return headers;
 }
@@ -85,7 +87,7 @@ export function saveChatSessions(sessions: ChatSession[]): void {
  */
 export async function fetchChatHistoryFromApi(token?: string): Promise<ChatSession[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/history`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/history`, {
       headers: getHeaders(token),
     });
     if (!res.ok) {
@@ -112,7 +114,7 @@ export async function fetchChatHistoryFromApi(token?: string): Promise<ChatSessi
  */
 export async function saveChatSessionToApi(session: ChatSession, token?: string): Promise<void> {
   try {
-    await fetch(`${API_BASE_URL}/api/history`, {
+    await fetch(`${getApiBaseUrl()}/api/history`, {
       method: 'POST',
       headers: getHeaders(token),
       body: JSON.stringify(session),
@@ -127,7 +129,7 @@ export async function saveChatSessionToApi(session: ChatSession, token?: string)
  */
 export async function renameChatSessionInApi(sessionId: string, newTitle: string, token?: string): Promise<void> {
   try {
-    await fetch(`${API_BASE_URL}/api/history/${sessionId}`, {
+    await fetch(`${getApiBaseUrl()}/api/history/${sessionId}`, {
       method: 'PATCH',
       headers: getHeaders(token),
       body: JSON.stringify({ title: newTitle }),
@@ -142,7 +144,7 @@ export async function renameChatSessionInApi(sessionId: string, newTitle: string
  */
 export async function deleteChatSessionInApi(sessionId: string, token?: string): Promise<void> {
   try {
-    await fetch(`${API_BASE_URL}/api/history/${sessionId}`, {
+    await fetch(`${getApiBaseUrl()}/api/history/${sessionId}`, {
       method: 'DELETE',
       headers: getHeaders(token),
     });
@@ -156,7 +158,7 @@ export async function deleteChatSessionInApi(sessionId: string, token?: string):
  */
 export async function clearAllChatSessionsInApi(token?: string): Promise<void> {
   try {
-    await fetch(`${API_BASE_URL}/api/history`, {
+    await fetch(`${getApiBaseUrl()}/api/history`, {
       method: 'DELETE',
       headers: getHeaders(token),
     });
@@ -170,7 +172,7 @@ export async function clearAllChatSessionsInApi(token?: string): Promise<void> {
  */
 export async function syncHistoryFromLangSmith(token?: string): Promise<{ syncedCount: number; sessions: ChatSession[] }> {
   try {
-    const res = await fetch(`${API_BASE_URL}/api/history/sync-langsmith`, {
+    const res = await fetch(`${getApiBaseUrl()}/api/history/sync-langsmith`, {
       method: 'POST',
       headers: getHeaders(token),
     });

@@ -138,7 +138,7 @@ In Work Package 2 (WP2), 6 router architectures were evaluated against a 48-case
   - FastEmbed (`BAAI/bge-small-en-v1.5`)
   - LAYA (`convaiinnovations/laya-typed-decisions`, 135M cross-encoder)
   - Ollama (`qwen2.5:3b`, `gemma4:e2b`, `qwen3.5:4b`)
-  - Cloud Fallback: Azure OpenAI (`Phi-4-mini-instruct`)
+  - Cloud Fallback: Azure OpenAI (`gpt4o-nano`)
 * **Speech & Audio:**
   - Silero VAD (250ms threshold, voice activity detection)
   - `faster-whisper` (`small.en`, int8 CPU)

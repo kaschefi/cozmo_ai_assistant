@@ -1,0 +1,66 @@
+services:
+  # 1. PostgreSQL Database Service
+  database:
+    image: postgres:15-alpine
+    container_name: moka-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cozmo_memory}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - moka-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-cozmo_memory}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. FastAPI Backend Service (Internal only, proxied via Nginx)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: moka-backend-prod:latest
+    container_name: moka-backend-prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-cozmo_memory}
+      - LLM_PROVIDER=${LLM_PROVIDER:-AZURE}
+      - MOKA_ADMIN_TOKEN=${MOKA_ADMIN_TOKEN}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://127.0.0.1}
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - ALLOW_LOCAL_DOCKER_BYPASS=${ALLOW_LOCAL_DOCKER_BYPASS:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - moka-network
+    depends_on:
+      database:
+        condition: service_healthy
+
+  # 3. React Frontend + Nginx Reverse Proxy (Public Entrypoint)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: moka-frontend-prod:latest
+    container_name: moka-frontend-prod
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    networks:
+      - moka-network
+    depends_on:
+      - backend
+
+networks:
+  moka-network:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:

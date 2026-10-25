@@ -81,13 +81,19 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware configuration allowing traffic from Vite/React frontend
+# CORS middleware configuration: supports local dev + custom production domains
+default_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+env_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+allowed_origins = list(set(default_origins + env_origins))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173"
-    ],
+    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -95,10 +101,28 @@ app.add_middleware(
 
 api_key_header = APIKeyHeader(name="X-Moka-Token", auto_error=False)
 
+
+def get_client_ip(request: Request) -> str:
+    """Extract real client IP taking reverse proxy headers (X-Forwarded-For) into account."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else ""
+
+
+def is_local_request(client_ip: str) -> bool:
+    if client_ip in ("127.0.0.1", "::1", "localhost"):
+        return True
+    allow_docker_bypass = os.getenv("ALLOW_LOCAL_DOCKER_BYPASS", "false").lower() in ("true", "1")
+    if allow_docker_bypass and (client_ip.startswith("172.") or client_ip.startswith("192.168.") or client_ip == "10.0.2.2"):
+        return True
+    return False
+
+
 async def verify_moka_token(request: Request, token: str = Security(api_key_header)):
     # Localhost automatic bypass
-    client_ip = request.client.host if request.client else None
-    if client_ip in ("127.0.0.1", "::1"):
+    client_ip = get_client_ip(request)
+    if is_local_request(client_ip):
         return token or os.getenv("MOKA_ADMIN_TOKEN") or "local-bypass"
 
     expected_token = os.getenv("MOKA_ADMIN_TOKEN")
@@ -114,13 +138,14 @@ async def verify_moka_token(request: Request, token: str = Security(api_key_head
         )
     return token
 
+
 @app.get("/api/token/local")
 async def get_local_token(request: Request):
     """
-    Returns the configured MoKa Admin Token if visited from localhost (127.0.0.1 or ::1).
+    Returns the configured MoKa Admin Token if visited from localhost (127.0.0.1 or ::1) or local Docker.
     """
-    client_ip = request.client.host if request.client else None
-    if client_ip in ("127.0.0.1", "::1"):
+    client_ip = get_client_ip(request)
+    if is_local_request(client_ip):
         expected_token = os.getenv("MOKA_ADMIN_TOKEN")
         if expected_token:
             return {"token": expected_token}

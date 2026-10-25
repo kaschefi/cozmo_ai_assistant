@@ -142,9 +142,8 @@ class VisualAnchorStore:
     Saves and loads labeled visual embeddings from disk (backend/data/visual_anchors.json).
     """
 
-    DEFAULT_STORE_PATH = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "../../../backend/data/visual_anchors.json")
-    )
+    _BACKEND_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+    DEFAULT_STORE_PATH = os.path.join(_BACKEND_DIR, "data", "visual_anchors.json")
 
     def __init__(self, store_path: Optional[str] = None):
         self.store_path = os.path.abspath(store_path or self.DEFAULT_STORE_PATH)
