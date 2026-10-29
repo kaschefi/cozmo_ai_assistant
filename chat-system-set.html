@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat Page Architecture · Multi-Sheet Engineering Drawing Set</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Arimo:wght@400;600;700&display=swap">
+<style>
+/* Apple-style dimensional drawing sheet set: monochrome, single light theme by design. */
+:root {
+  --paper: #ececec;
+  --sheet: #ffffff;
+  --ink: #111111;
+  --ink2: #444444;
+  --ink3: #7a7a7a;
+  --fill: #f3f3f3;
+  --fill2: #e6e6e6;
+  --f: 'Arimo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color-scheme: light;
+}
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f);
+  margin: 0;
+  padding: 0;
+}
+.wrap {
+  max-width: 1760px;
+  margin: 0 auto;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Tab Navigation Header for Multi-Sheet Set */
+.sheet-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--sheet);
+  border: 1.2px solid var(--ink);
+  border-radius: 14px;
+  padding: 6px 10px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.tabs-group {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+.sheet-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: var(--f);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sheet-tab:hover {
+  background: var(--fill);
+  color: var(--ink);
+}
+.sheet-tab.active {
+  background: var(--ink);
+  color: #ffffff;
+  border-color: var(--ink);
+}
+.sheet-tab .badge {
+  font-size: 9.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0,0,0,0.08);
+}
+.sheet-tab.active .badge {
+  background: rgba(255,255,255,0.25);
+  color: #ffffff;
+}
+.nav-hint {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-right: 8px;
+}
+
+/* Master Title Block */
+.tb {
+  background: var(--sheet);
+  border: 1.2px solid var(--ink);
+  border-radius: 16px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 2.2fr 1fr 1fr 1fr;
+  margin-bottom: 24px;
+}
+.tb > div {
+  border-right: 0.8px solid var(--ink);
+  border-bottom: 0.8px solid var(--ink);
+  padding: 10px 14px;
+  min-width: 0;
+}
+.tb > div:nth-child(4), .tb > div:nth-child(7) { border-right: 0; }
+.tb .big {
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+.tb h1 {
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  font-size: clamp(22px, 3.2vw, 36px);
+  margin: 4px 0 0;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+.lbl {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 9.5px;
+  color: var(--ink2);
+  font-weight: 400;
+}
+.tb .v {
+  font-size: 13px;
+  margin-top: 2px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.tb .big .v {
+  font-size: 11px;
+  color: var(--ink2);
+  line-height: 1.5;
+  text-transform: none;
+}
+.tb .notes {
+  grid-column: 1/-1;
+  border-right: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 6px 24px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  line-height: 1.7;
+}
+.tb .notes ol { margin: 4px 0 0; padding-left: 20px; }
+.tb .nh { font-weight: 700; font-size: 12px; letter-spacing: 0.06em; }
+.tb .nh span { font-weight: 400; font-size: 11px; margin-left: 6px; }
+
+.tb .figs {
+  grid-column: 1/-1;
+  border-right: 0;
+  border-bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px 18px;
+}
+.tb .figs > div { border-left: 0.8px solid var(--ink); padding-left: 14px; }
+.tb .figs > div:first-child { border-left: 0; padding-left: 0; }
+.tb .figs .v { font-size: 16px; letter-spacing: 0.05em; text-transform: none; margin-top: 4px; }
+
+@media (max-width: 768px) {
+  .tb { grid-template-columns: 1fr 1fr; }
+  .tb .big { grid-column: 1/-1; grid-row: auto; }
+}
+
+/* Sheet Display Frames */
+.sheet-pane {
+  display: none;
+}
+.sheet-pane.active {
+  display: block;
+}
+.scroll {
+  overflow-x: auto;
+  background: var(--sheet);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  border-radius: 4px;
+}
+svg {
+  display: block;
+  width: 100%;
+  min-width: 1100px;
+  height: auto;
+}
+.foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink2);
+  padding: 10px 2px 0;
+}
+.foot b { font-weight: 700; color: var(--ink); }
+
+/* SVG Drawing Classes */
+.border { fill: none; stroke: var(--ink); stroke-width: 1.2; }
+.obj { fill: var(--sheet); stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.well { fill: var(--fill); stroke: var(--ink); stroke-width: 1; }
+.hug { fill: var(--fill2); stroke: var(--ink); stroke-width: 1; }
+.slot { fill: none; stroke: var(--ink2); stroke-width: 0.8; stroke-dasharray: 4 3; }
+.thin { fill: none; stroke: var(--ink); stroke-width: 0.8; }
+.ph { fill: none; stroke: var(--ink3); stroke-width: 0.8; stroke-dasharray: 14 3 3 3; }
+.cl { fill: none; stroke: var(--ink3); stroke-width: 0.7; stroke-dasharray: 16 3 2 3; }
+.dl { stroke: var(--ink); stroke-width: 0.7; fill: none; }
+.ext { stroke: var(--ink); stroke-width: 0.55; fill: none; }
+.arrow { fill: var(--ink); }
+.hl { stroke: var(--ink2); stroke-width: 0.7; }
+.hs { stroke: var(--ink); stroke-width: 0.8; }
+.env { fill: none; stroke: var(--ink); stroke-width: 0.8; stroke-dasharray: 10 3 2 3; }
+.dt { font: 400 10.5px var(--f); fill: var(--ink); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; }
+.dts { font: 400 9px var(--f); fill: var(--ink2); letter-spacing: 0.05em; text-transform: uppercase; paint-order: stroke; stroke: var(--sheet); stroke-width: 3px; }
+.sl { font: 400 8.5px var(--f); fill: var(--ink2); letter-spacing: 0.07em; text-transform: uppercase; }
+.nt { font: 400 9.5px var(--f); fill: var(--ink); letter-spacing: 0.04em; text-transform: uppercase; }
+.nth { font: 700 12px var(--f); fill: var(--ink); letter-spacing: 0.06em; }
+.vt { font: 400 11.5px var(--f); fill: var(--ink); letter-spacing: 0.08em; text-transform: uppercase; }
+.nb { fill: var(--sheet); stroke: var(--ink); stroke-width: 0.9; }
+.nbt { font: 400 9px var(--f); fill: var(--ink); }
+.lead { stroke: var(--ink); stroke-width: 0.7; fill: none; }
+.dot { fill: var(--ink); }
+.th { font: 400 9px var(--f); fill: var(--ink); letter-spacing: 0.05em; text-transform: uppercase; }
+.tc { font: 400 8.5px var(--f); fill: var(--ink); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- Multi-Sheet Tab Navigation -->
+  <nav class="sheet-nav">
+    <div class="tabs-group">
+      <button class="sheet-tab active" data-sheet="1">
+        <span>Sheet 1</span> · Page Shell & Viewport <span class="badge">LAYOUT</span>
+      </button>
+      <button class="sheet-tab" data-sheet="2">
+        <span>Sheet 2</span> · Input Dock & Controls <span class="badge">PILL</span>
+      </button>
+      <button class="sheet-tab" data-sheet="3">
+        <span>Sheet 3</span> · Message Stream & Bubbles <span class="badge">STREAM</span>
+      </button>
+      <button class="sheet-tab" data-sheet="4">
+        <span>Sheet 4</span> · Particle Vector Eyes <span class="badge">EYES</span>
+      </button>
+    </div>
+    <div class="nav-hint">Keys: [1] [2] [3] [4] or [←] [→]</div>
+  </nav>
+
+  <!-- Title Block Header -->
+  <header class="tb">
+    <div class="big">
+      <div>
+        <div class="lbl">UI system · engineering drawing set</div>
+        <h1 id="tb-title">Chat Page Architecture</h1>
+      </div>
+      <div id="tb-scope" class="v">
+        System architecture: viewport shell, fixed top navigation header, left quick-access rail, responsive conversation stream, floating interactive input dock, and full-viewport particle vector canvas.
+      </div>
+    </div>
+    <div><div class="lbl">Dwg no.</div><div class="v">UI-CHAT-SET-001</div></div>
+    <div><div class="lbl">Rev</div><div class="v">A · 2026-10-28</div></div>
+    <div><div class="lbl">Sheets</div><div id="tb-sheet-num" class="v">1 of 4</div></div>
+    <div><div class="lbl">Units</div><div class="v">CSS px @ 1× / Logical</div></div>
+    <div><div class="lbl">Scale</div><div id="tb-scale" class="v">0.72:1</div></div>
+    <div><div class="lbl">Source</div><div class="v">frontend/src/features/chat · ChatInterface.tsx</div></div>
+
+    <div class="notes">
+      <div>
+        <span class="nh">NOTES:<span>(UNLESS OTHERWISE SPECIFIED)</span></span>
+        <ol>
+          <li>Do not scale from screen. Read the dimension numbers.</li>
+          <li>All layout dimensions in CSS px at 1× unless noted as logical sampling units.</li>
+          <li>Slots are functional placeholders. Content copy, brand icons, and avatar graphics are out of scope.</li>
+        </ol>
+      </div>
+      <div>
+        <span class="nh" aria-hidden="true">&nbsp;</span>
+        <ol start="4">
+          <li>Every dimension is an architectural variable. Formulas define all derived geometric relationships.</li>
+          <li>HUG = sized by content · FLEX = takes remaining space · FILL = parent container width.</li>
+          <li>Asymmetric bubble fillets: user messages notch top-right (R=0); assistant messages notch top-left (R=0).</li>
+          <li>Monochrome specification: line weights, dashes, and grays distinguish layers.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div id="tb-figs" class="figs">
+      <div><div class="lbl">W1 · stream-max</div><div class="v">672</div></div>
+      <div><div class="lbl">W0 · stream-idle</div><div class="v">576</div></div>
+      <div><div class="lbl">W_rail · rail-w</div><div class="v">56–64</div></div>
+      <div><div class="lbl">H_head · header-h</div><div class="v">80–96</div></div>
+      <div><div class="lbl">H_dock · dock-h</div><div class="v">60</div></div>
+      <div><div class="lbl">R_dock · r-dock</div><div class="v">24</div></div>
+      <div><div class="lbl">R_msg · r-bubble</div><div class="v">16</div></div>
+    </div>
+  </header>
+
+  <!-- Sheet 1: Page Shell & Viewport Architecture -->
+  <div id="pane-1" class="sheet-pane active">
+    <div class="scroll">
+      <svg id="sh1" viewBox="0 0 1700 1060" role="img" aria-label="Sheet 1 of 4: Chat Page Shell Architecture"></svg>
+    </div>
+    <div class="foot">
+      <span>2026-10-28 &nbsp;|&nbsp; UI Component Architecture Set</span>
+      <span><b>Chat Page Shell & Viewport Layout</b> &nbsp;|&nbsp; Sheet 1 of 4</span>
+    </div>
+  </div>
+
+  <!-- Sheet 2: Floating Chat Input Dock & Controls -->
+  <div id="pane-2" class="sheet-pane">
+    <div class="scroll">
+      <svg id="sh2" viewBox="0 0 1700 1060" role="img" aria-label="Sheet 2 of 4: Chat Input Dock & Controls"></svg>
+    </div>
+    <div class="foot">
+      <span>2026-10-28 &nbsp;|&nbsp; UI Component Architecture Set</span>
+      <span><b>Floating Chat Input Dock & Controls</b> &nbsp;|&nbsp; Sheet 2 of 4</span>
+    </div>
+  </div>
+
+  <!-- Sheet 3: Message Stream & Bubble Anatomy -->
+  <div id="pane-3" class="sheet-pane">
+    <div class="scroll">
+      <svg id="sh3" viewBox="0 0 1700 1060" role="img" aria-label="Sheet 3 of 4: Message Stream & Bubble Anatomy"></svg>
+    </div>
+    <div class="foot">
+      <span>2026-10-28 &nbsp;|&nbsp; UI Component Architecture Set</span>
+      <span><b>Message Stream & Bubble Anatomy</b> &nbsp;|&nbsp; Sheet 3 of 4</span>
+    </div>
+  </div>
+
+  <!-- Sheet 4: Particle Vector Eye System -->
+  <div id="pane-4" class="sheet-pane">
+    <div class="scroll">
+      <svg id="sh4" viewBox="0 0 1700 1060" role="img" aria-label="Sheet 4 of 4: Particle Vector Eye Architecture"></svg>
+    </div>
+    <div class="foot">
+      <span>2026-10-28 &nbsp;|&nbsp; UI Component Architecture Set</span>
+      <span><b>Particle Vector Eye System</b> &nbsp;|&nbsp; Sheet 4 of 4</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const NS = 'http://www.w3.org/2000/svg';
+  let sv, A, HAT, uid = 0;
+
+  function mk(t, a, p) {
+    const e = document.createElementNS(NS, t);
+    for (const k in a) if (a[k] != null) e.setAttribute(k, a[k]);
+    (p || sv).appendChild(e);
+    return e;
+  }
+  function tx(x, y, s, c, a, p) {
+    const t = mk('text', Object.assign({ x, y, class: c || 'dt' }, a || {}), p);
+    t.textContent = s;
+    return t;
+  }
+  function begin(id) {
+    sv = document.getElementById(id);
+    sv.innerHTML = '';
+    const n = uid++;
+    const d = mk('defs', {});
+    const m = mk('marker', { id: 'ar' + n, viewBox: '0 0 10 10', refX: 10, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse', markerUnits: 'userSpaceOnUse' }, d);
+    mk('path', { d: 'M0,1.7 L10,5 L0,8.3 z', class: 'arrow' }, m);
+    const pt = mk('pattern', { id: 'hat' + n, width: 5, height: 5, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, d);
+    mk('line', { x1: 0, y1: 0, x2: 0, y2: 5, class: 'hl' }, pt);
+    A = 'url(#ar' + n + ')';
+    HAT = 'url(#hat' + n + ')';
+    rr(20, 20, 1660, 1020, 16, 'border');
+  }
+
+  function dimH(x1, x2, y, e1, e2, l, o) {
+    o = o || {};
+    [[x1, e1], [x2, e2]].forEach(([x, e]) => {
+      if (e == null) return;
+      const s = Math.sign(y - e) || 1;
+      mk('line', { x1: x, y1: e + s * 3, x2: x, y2: y + s * 5, class: 'ext' });
+    });
+    if (x2 - x1 >= 28) {
+      mk('line', { x1, y1: y, x2, y2: y, class: 'dl', 'marker-start': A, 'marker-end': A });
+    } else {
+      mk('line', { x1: x1 - 13, y1: y, x2: x1, y2: y, class: 'dl', 'marker-end': A });
+      mk('line', { x1: x2 + 13, y1: y, x2, y2: y, class: 'dl', 'marker-end': A });
+      mk('line', { x1, y1: y, x2, y2: y, class: 'dl' });
+    }
+    tx((x1 + x2) / 2 + (o.dx || 0), (o.below ? y + 13 : y - 4) + (o.dy || 0), l, o.c || 'dt', { 'text-anchor': 'middle' });
+  }
+
+  function dimV(y1, y2, x, e1, e2, l, o) {
+    o = o || {};
+    [[y1, e1], [y2, e2]].forEach(([y, e]) => {
+      if (e == null) return;
+      const s = Math.sign(x - e) || 1;
+      mk('line', { x1: e + s * 3, y1: y, x2: x + s * 5, y2: y, class: 'ext' });
+    });
+    if (y2 - y1 >= 28) {
+      mk('line', { x1: x, y1, x2: x, y2, class: 'dl', 'marker-start': A, 'marker-end': A });
+    } else {
+      mk('line', { x1: x, y1: y1 - 13, x2: x, y2: y1, class: 'dl', 'marker-end': A });
+      mk('line', { x1: x, y1: y2 + 13, x2: x, y2: y2, class: 'dl', 'marker-end': A });
+      mk('line', { x1: x, y1, x2: x, y2, class: 'dl' });
+    }
+    const c = (y1 + y2) / 2;
+    if (o.side) {
+      const r = o.side === 'r';
+      tx(r ? x + 6 : x - 6, c + 4 + (o.dy || 0), l, o.c || 'dt', { 'text-anchor': r ? 'start' : 'end' });
+    } else {
+      tx(x - 5 + (o.dx || 0), c + (o.dy || 0), l, o.c || 'dt', { 'text-anchor': 'middle', transform: 'rotate(-90 ' + (x - 5 + (o.dx || 0)) + ' ' + (c + (o.dy || 0)) + ')' });
+    }
+  }
+
+  function callout(px, py, ex, ey, l, dir, c) {
+    const s = dir || (ex >= px ? 1 : -1);
+    mk('circle', { cx: px, cy: py, r: 1.8, class: 'dot' });
+    mk('polyline', { points: px + ',' + py + ' ' + ex + ',' + ey + ' ' + (ex + s * 10) + ',' + ey, class: 'lead' });
+    tx(ex + s * 14, ey + 4, l, c || 'dt', { 'text-anchor': s > 0 ? 'start' : 'end' });
+  }
+
+  function rad(cx, cy, r, c, l, L) {
+    const sx = c.includes('l') ? -1 : 1, sy = c.includes('t') ? -1 : 1;
+    const ox = cx - sx * r, oy = cy - sy * r;
+    const px = ox + sx * r * Math.SQRT1_2, py = oy + sy * r * Math.SQRT1_2;
+    callout(px, py, px + sx * L, py + sy * L, l, sx);
+  }
+
+  function nb(x, y, n) {
+    mk('rect', { x: x - 6, y: y - 6, width: 12, height: 12, class: 'nb' });
+    tx(x, y + 3.5, String(n), 'nbt', { 'text-anchor': 'middle' });
+  }
+  function rr(x, y, w, h, r, c, p) { return mk('rect', { x, y, width: w, height: h, rx: r, class: c }, p); }
+  function slotLabel(x, y, w, h, l, al, p) { tx(al === 'l' ? x + 6 : x + w / 2, y + h / 2 + 3.2, l, 'sl', { 'text-anchor': al === 'l' ? 'start' : 'middle' }, p); }
+  function title(x, y, t, s) { tx(x, y, t, 'vt', { 'text-anchor': 'middle' }); if (s) tx(x, y + 14, s, 'dts', { 'text-anchor': 'middle' }); }
+  function detailRef(cx, cy, r, lbl, lx, ly) {
+    mk('circle', { cx, cy, r, class: 'ph' });
+    const a = Math.atan2(ly - cy, lx - cx);
+    mk('line', { x1: cx + r * Math.cos(a), y1: cy + r * Math.sin(a), x2: lx, y2: ly, class: 'lead' });
+    tx(lx + (lx < cx ? -4 : 4), ly + 4, lbl, 'dts', { 'text-anchor': lx < cx ? 'end' : 'start' });
+  }
+  function table(x, y, ttl, rows) {
+    const ws = [72, 94, 76], rh = 17;
+    tx(x, y - 7, ttl, 'vt');
+    [['Code', 'Variable', 'Value']].concat(rows).forEach((r, i) => {
+      let c2 = x;
+      r.forEach((c, j) => {
+        mk('rect', { x: c2, y: y + i * rh, width: ws[j], height: rh, class: 'thin' });
+        const anchor = (j < 2) ? 'start' : 'middle';
+        const txPos = (j < 2) ? c2 + 5 : c2 + ws[j] / 2;
+        tx(txPos, y + i * rh + 11.5, c, i ? 'tc' : 'th', { 'text-anchor': anchor });
+        c2 += ws[j];
+      });
+    });
+    return y + (rows.length + 1) * rh + 24;
+  }
+  function notes(list) {
+    tx(50, 58, 'Notes:', 'nth');
+    tx(112, 58, '(unless otherwise specified)', 'nt');
+    list.forEach(([n, t], i) => {
+      const y = 84 + i * 22;
+      nb(56, y - 4, n);
+      tx(72, y, t, 'nt');
+    });
+  }
+
+  /* ==========================================================================
+     SHEET 1: CHAT PAGE SHELL & VIEWPORT ARCHITECTURE
+     ========================================================================== */
+  function drawSheet1() {
+    begin('sh1');
+    notes([
+      [1, 'Full-screen chat viewport (100vw × 100vh) with fixed 3-layer architecture.'],
+      [2, 'Fixed top header: H_head = 80px (md: 96px), border-bottom 1px, backdrop blur.'],
+      [3, 'Left navigation rail: W_rail = 56px (sm: 64px), fixed below header, z-index 30.'],
+      [4, 'Dual-state conversation stream: W0 = 576px (idle) -> W1 = 672px (active).'],
+      [5, 'Floating input dock: anchored at bottom 24px (active) / 40px (idle), centered.'],
+      [6, 'Fluid particle eyes canvas: fixed inset-0, full-bleed offscreen layer.'],
+      [7, 'Slide-out Chat History flyout drawer: W_drawer = 320px, pushes left-rail.'],
+      [8, 'Safe area insets: pl-14 sm:pl-16 guarantees zero message overlap with left rail.']
+    ]);
+
+    // Plan View: Viewport Page Shell (Scale 0.72:1)
+    const k = 0.72, PX = 620, PY = 100;
+    const X = v => PX + v * k, Y = v => PY + v * k;
+    const VW = 1000, VH = 640;
+
+    // Viewport boundary (1000 x 640 representative 16:10 screen)
+    rr(X(0), Y(0), VW * k, VH * k, 8, 'border');
+
+    // Sticky Top Navigation Header (h = 80px representative)
+    rr(X(0), Y(0), VW * k, 60 * k, 0, 'well');
+    mk('line', { x1: X(0), y1: Y(60), x2: X(VW), y2: Y(60), class: 'thin' });
+    slotLabel(X(16), Y(12), 100 * k, 36 * k, 'Logo slot · home', 'l');
+    rr(X(VW / 2 - 120), Y(12), 240 * k, 36 * k, 18 * k, 'hug');
+    slotLabel(X(VW / 2 - 120), Y(12), 240 * k, 36 * k, 'TopDock · animated', 'm');
+    rr(X(VW - 160), Y(14), 140 * k, 32 * k, 16 * k, 'slot');
+    slotLabel(X(VW - 160), Y(14), 140 * k, 32 * k, 'Core active / theme', 'm');
+
+    // Left Navigation Rail (w = 56px representative)
+    rr(X(0), Y(60), 48 * k, (VH - 60) * k, 0, 'hug');
+    mk('line', { x1: X(48), y1: Y(60), x2: X(48), y2: Y(VH), class: 'thin' });
+    [80, 130, 180].forEach(y => {
+      rr(X(8), Y(y), 32 * k, 32 * k, 10 * k, 'slot');
+    });
+    slotLabel(X(0), Y(100), 48 * k, 0, 'Rail', 'm');
+
+    // Particle Canvas Overlay Guideline (center area)
+    rr(X(VW / 2 - 180), Y(90), 360 * k, 120 * k, 16 * k, 'ph');
+    slotLabel(X(VW / 2 - 180), Y(140), 360 * k, 0, 'Particle Eyes Sampling Area (Z-35)', 'm');
+
+    // Message Stream Column (Centered, w = 672 active)
+    const SW = 480;
+    const SX = VW / 2 - SW / 2 + 20;
+    rr(X(SX), Y(80), SW * k, (VH - 150) * k, 0, 'ph');
+    slotLabel(X(SX), Y(84), SW * k, 0, 'Conversation Stream · max-w-2xl (672px)', 'm');
+
+    // Sample User & Assistant Bubbles
+    rr(X(SX + 140), Y(190), 220 * k, 44 * k, 12 * k, 'hug');
+    slotLabel(X(SX + 140), Y(190), 220 * k, 44 * k, 'User Msg (rounded-tr-0)', 'm');
+
+    rr(X(SX + 20), Y(250), 280 * k, 68 * k, 12 * k, 'well');
+    slotLabel(X(SX + 20), Y(250), 280 * k, 68 * k, 'MoKa Msg (rounded-tl-0)', 'm');
+
+    // Floating Input Dock (bottom center)
+    const DW = 460, DH = 48;
+    const DX = VW / 2 - DW / 2 + 20, DY = VH - 70;
+    rr(X(DX), Y(DY), DW * k, DH * k, 24 * k, 'obj');
+    slotLabel(X(DX), Y(DY), DW * k, DH * k, 'Floating Input Dock · BorderBeam (h=60)', 'm');
+
+    // Plan Dimensions
+    dimH(X(0), X(48), Y(VH + 20), Y(VH), Y(VH), 'W_rail = 56–64', { below: true });
+    dimH(X(SX), X(SX + SW), Y(VH + 46), Y(VH), Y(VH), 'W1 · stream-max = 672', { below: true });
+    dimH(X(DX), X(DX + DW), Y(VH + 20), Y(DY + DH), Y(DY + DH), 'W_dock = 672', { below: true });
+    dimH(X(0), X(VW), Y(-26), Y(0), Y(0), 'W_viewport · 100vw');
+
+    dimV(Y(0), Y(60), X(-46), X(0), X(0), 'H_head = 80–96');
+    dimV(Y(DY), Y(DY + DH), X(-46), X(DX), X(DX), 'H_dock = 60');
+    dimV(Y(DY + DH), Y(VH), X(-46), X(DX), X(0), 'M_bottom = 24');
+    dimV(Y(0), Y(VH), X(-82), X(0), X(0), 'H_viewport · 100vh');
+
+    detailRef(X(DX + DW / 2), Y(DY + DH / 2), 26 * k, 'DETAIL A (SHEET 2)', X(DX + DW / 2 + 60), Y(DY + 60));
+    detailRef(X(SX + 280), Y(280), 26 * k, 'DETAIL B (SHEET 3)', X(SX + SW + 50), Y(250));
+    detailRef(X(VW / 2), Y(150), 30 * k, 'DETAIL C (SHEET 4)', X(VW / 2 + 160), Y(110));
+
+    title(X(VW / 2), Y(VH + 80), 'Plan view · chat viewport architecture', 'Scale 0.72:1 · dual-state stream W0/W1 · fixed rail & floating input dock');
+
+    // Exploded View: Z-Index Layer Stack (Bottom-Left)
+    const sc = 0.42, TX = 270, TY = 640, gap = 44;
+    const ia = 0.94 * sc, ib = 0.17 * sc, ic = -0.34 * sc, id = 0.47 * sc;
+    const P = (x, y, z) => [TX + ia * x + ic * y, TY + ib * x + id * y - z];
+    const uIso = 1 / Math.sqrt(ia * id - ib * ic);
+    const G = z => {
+      const g = mk('g', { transform: 'matrix(' + ia + ',' + ib + ',' + ic + ',' + id + ',' + TX + ',' + (TY - z) + ')' });
+      g.style.setProperty('--u', uIso);
+      return g;
+    };
+
+    let g = G(0);
+    rr(-20, -20, 600, 320, 0, 'thin', g); // L0: Viewport base
+    g = G(gap);
+    rr(100, 20, 400, 160, 20, 'hs', g); // L1: Particle Eyes
+    g = G(gap * 2);
+    rr(0, 0, 40, 280, 0, 'hug', g); // L2: Rail
+    rr(0, 0, 560, 40, 0, 'well', g); // L2: Header
+    g = G(gap * 3);
+    rr(120, 60, 320, 200, 0, 'ph', g); // L3: Message stream
+    g = G(gap * 4);
+    rr(120, 220, 320, 40, 20, 'obj', g); // L4: Floating input dock
+
+    // Guides
+    [[0, 0], [560, 0], [560, 280], [0, 280]].forEach(([x, y]) => {
+      const p1 = P(x, y, gap * 0.8), p2 = P(x, y, gap * 4.2);
+      mk('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], class: 'ph' });
+    });
+
+    const ELX = 110;
+    [
+      [gap * 4, [120, 240], 'L4 · Floating Input Dock', 'Glassmorphic input pill with BorderBeam'],
+      [gap * 3, [120, 160], 'L3 · Conversation Stream', 'Scrollable message history max-w-2xl'],
+      [gap * 2, [0, 40], 'L2 · Header & Left Rail', 'Z-30 fixed top bar (H=80) & rail (W=56)'],
+      [gap, [100, 100], 'L1 · Particle Canvas', 'Fixed inset-0 fluid particle eyes (Z-35)'],
+      [0, [-15, 275], 'L0 · Viewport Shell', '100vw × 100vh base dark theme canvas']
+    ].forEach(([z, [x, y], t, st], idx) => {
+      const p1 = P(x, y, z);
+      const ly = TY - 145 + idx * 38;
+      mk('circle', { cx: p1[0], cy: p1[1], r: 1.8, class: 'dot' });
+      mk('polyline', { points: p1[0] + ',' + p1[1] + ' ' + (ELX + 185) + ',' + ly + ' ' + (ELX + 170) + ',' + ly, class: 'lead' });
+      tx(ELX + 165, ly - 2, t, 'vt', { 'text-anchor': 'end' });
+      tx(ELX + 165, ly + 10, st, 'dts', { 'text-anchor': 'end' });
+    });
+    title(260, TY + 140, 'Exploded view · chat layer stack', 'Axonometric projection · z-spacing not to scale');
+
+    // Right Column: Variable Tables
+    let yy = table(1420, 86, 'Viewport & Layout', [
+      ['W_viewport', 'window-inner-w', '100vw'],
+      ['H_viewport', 'window-inner-h', '100vh'],
+      ['H_head_sm', 'header-height-sm', '80'],
+      ['H_head_md', 'header-height-md', '96'],
+      ['W_rail_sm', 'rail-width-sm', '56'],
+      ['W_rail_md', 'rail-width-md', '64'],
+      ['W_drawer', 'history-drawer-w', '320'],
+      ['Z_header', 'z-index-header', '30']
+    ]);
+    yy = table(1420, yy, 'Stream Geometry', [
+      ['W0', 'stream-idle-w', '576 (max-w-xl)'],
+      ['W1', 'stream-active-w', '672 (max-w-2xl)'],
+      ['P_stream_x', 'stream-pad-x', '24'],
+      ['P_stream_t', 'stream-pad-top', '112 (pt-28)'],
+      ['P_stream_b', 'stream-pad-bottom', '128 (pb-32)'],
+      ['S_msg_gap', 'message-gap-y', '16']
+    ]);
+    yy = table(1420, yy, 'Dock Positioning', [
+      ['W_dock', 'dock-max-width', '672'],
+      ['H_dock', 'dock-container-h', '60'],
+      ['M_dock_act', 'dock-bottom-active', '24 (bottom-6)'],
+      ['M_dock_idl', 'dock-bottom-idle', '40 (bottom-10)'],
+      ['R_dock', 'dock-corner-radius', '24 (rounded-3xl)']
+    ]);
+  }
+
+  /* ==========================================================================
+     SHEET 2: FLOATING CHAT INPUT DOCK & CONTROLS
+     ========================================================================== */
+  function drawSheet2() {
+    begin('sh2');
+    notes([
+      [1, 'Glassmorphic floating input pill: W_dock = 672px, H_dock = 60px, radius R = 24px.'],
+      [2, 'Container inner padding: S_pad = 10px (p-2.5) surrounding all dock controls.'],
+      [3, 'Liquid gooey menu on left: 40×40 anchor with expanding radial menu items.'],
+      [4, 'Audio mute button: 40×40 square, rounded-2xl (R=16), toggles Cozmo/TTS.'],
+      [5, 'Expanding input: flex-1, font 16px, transparent bg, autofocus.'],
+      [6, 'Action send button: 40×40 square, rounded-2xl (R=16), 45° arrow icon.'],
+      [7, 'BorderBeam perimeter: conic gradient border pulse active on focus.'],
+      [8, 'Model toggle mode: cloud vs local switches at liquid anchor.']
+    ]);
+
+    const k = 1.6, PX = 510, PY = 270;
+    const X = v => PX + v * k, Y = v => PY + v * k;
+    const DW = 420, DH = 40;
+
+    // Main Dock Pill (Scale 1.6:1 close-up)
+    rr(X(0), Y(0), DW * k, DH * k, 24 * k, 'obj');
+
+    // Liquid Menu Trigger
+    rr(X(6), Y(5), 30 * k, 30 * k, 15 * k, 'hug');
+    slotLabel(X(6), Y(5), 30 * k, 30 * k, '+', 'm');
+
+    // Mute Button
+    rr(X(42), Y(5), 30 * k, 30 * k, 10 * k, 'well');
+    slotLabel(X(42), Y(5), 30 * k, 30 * k, 'Mute', 'm');
+
+    // Input Text Area Slot
+    rr(X(78), Y(7), 296 * k, 26 * k, 4 * k, 'slot');
+    slotLabel(X(84), Y(7), 296 * k, 26 * k, 'Text slot · Message MoKa... · flex', 'l');
+
+    // Send Button
+    rr(X(380), Y(5), 30 * k, 30 * k, 10 * k, 'obj');
+    slotLabel(X(380), Y(5), 30 * k, 30 * k, '→', 'm');
+
+    // Dimensions for Pill
+    const ty = Y(-30);
+    dimH(X(0), X(6), ty, Y(0), Y(5), 'S1', { dx: -6 });
+    dimH(X(6), X(36), ty, null, Y(5), 'Z1 = 40');
+    dimH(X(36), X(42), ty, null, Y(5), 'S2');
+    dimH(X(42), X(72), ty, null, Y(5), 'Z1 = 40');
+    dimH(X(72), X(78), ty, null, Y(7), 'S2');
+    dimH(X(78), X(374), ty, null, Y(7), 'W_input · flex-1');
+    dimH(X(374), X(380), ty, null, Y(5), 'S2');
+    dimH(X(380), X(410), ty, null, Y(5), 'Z1 = 40');
+    dimH(X(410), X(DW), ty, null, Y(0), 'S1', { dx: 6 });
+
+    dimH(X(0), X(DW), Y(-62), Y(-34), Y(-34), 'W_dock = 672 · fixed max-w');
+    dimV(Y(0), Y(DH), X(-50), X(0), X(0), 'H_dock = 60');
+    dimV(Y(5), Y(35), X(DW) + 30, X(410), X(410), 'H_btn = 40', { side: 'r' });
+
+    rad(X(0), Y(DH), 24 * k, 'bl', 'R_dock = 24', 22);
+    rad(X(42), Y(35), 10 * k, 'br', 'R_btn = 16', 18);
+
+    title(X(DW / 2), Y(DH + 50), 'Plan view · floating input dock assembly', 'Scale 1.6:1 · glassmorphic container · liquid action controls · border-beam ring');
+
+    // Detail A: Liquid Radial Trajectory Fan (Bottom Left)
+    {
+      const DA_X = 260, DA_Y = 660, DA_K = 2.2;
+      rr(DA_X, DA_Y, 200, 160, 0, 'ph');
+      mk('circle', { cx: DA_X + 120, cy: DA_Y + 110, r: 16 * DA_K, class: 'hug' });
+      tx(DA_X + 120, DA_Y + 114, '+', 'dt', { 'text-anchor': 'middle' });
+
+      // Fan items
+      [
+        [-58, 0, 'Local/Cloud'],
+        [-34, -48, 'Document'],
+        [22, -56, 'Image']
+      ].forEach(([ox, oy, lbl]) => {
+        const cx = DA_X + 120 + ox, cy = DA_Y + 110 + oy;
+        mk('line', { x1: DA_X + 120, y1: DA_Y + 110, x2: cx, y2: cy, class: 'lead' });
+        mk('circle', { cx, cy, r: 12 * DA_K, class: 'obj' });
+        tx(cx, cy + 4, '○', 'sl', { 'text-anchor': 'middle' });
+        tx(cx, cy - 14, lbl, 'dts', { 'text-anchor': 'middle' });
+      });
+      title(DA_X + 100, DA_Y + 180, 'Detail A · liquid gooey radial fan', 'Spring bezier(0.16,1,0.3,1)');
+    }
+
+    // Detail B: BorderBeam Focus Ring
+    {
+      const DB_X = 640, DB_Y = 660, DB_K = 2.0;
+      rr(DB_X, DB_Y, 180, 100, 24, 'obj');
+      rr(DB_X + 4, DB_Y + 4, 172, 92, 20, 'slot');
+      dimH(DB_X, DB_X + 4, DB_Y + 120, DB_Y + 100, DB_Y + 100, 'B_beam = 1.5', { below: true });
+      title(DB_X + 90, DB_Y + 150, 'Detail B · border-beam shader', 'Conic gradient stroke');
+    }
+
+    // Detail C: Send Action Button
+    {
+      const DC_X = 980, DC_Y = 660, DC_K = 2.4;
+      rr(DC_X, DC_Y, 40 * DC_K, 40 * DC_K, 16 * DC_K, 'obj');
+      mk('path', { d: 'M' + (DC_X + 16 * DC_K) + ',' + (DC_Y + 28 * DC_K) + ' L' + (DC_X + 26 * DC_K) + ',' + (DC_Y + 18 * DC_K) + ' L' + (DC_X + 18 * DC_K) + ',' + (DC_Y + 18 * DC_K) + ' M' + (DC_X + 26 * DC_K) + ',' + (DC_Y + 18 * DC_K) + ' L' + (DC_X + 26 * DC_K) + ',' + (DC_Y + 26 * DC_K), class: 'dl' });
+      dimH(DC_X, DC_X + 40 * DC_K, DC_Y + 40 * DC_K + 18, DC_Y + 40 * DC_K, DC_Y + 40 * DC_K, 'Z_send = 40', { below: true });
+      rad(DC_X, DC_Y, 16 * DC_K, 'tl', 'R = 16', 16);
+      title(DC_X + 20 * DC_K, DC_Y + 40 * DC_K + 48, 'Detail C · send button', 'Active scale-95 · brand glow');
+    }
+
+    // Right Column Tables
+    let yy = table(1420, 86, 'Dock Container', [
+      ['W_dock', 'container-max-w', '672'],
+      ['H_dock', 'container-height', '60'],
+      ['S_pad_x', 'container-inner-px', '10 (p-2.5)'],
+      ['S_pad_y', 'container-inner-py', '10 (p-2.5)'],
+      ['R_dock', 'container-radius', '24 (rounded-3xl)'],
+      ['B_dock', 'border-width', '1']
+    ]);
+    yy = table(1420, yy, 'Action Controls', [
+      ['Z_btn', 'control-btn-size', '40 × 40'],
+      ['R_btn', 'control-btn-radius', '16 (rounded-2xl)'],
+      ['S_btn_gap', 'control-gap', '12 (gap-3)'],
+      ['I_icon', 'action-icon-size', '16 (w-4 h-4)'],
+      ['T_touch', 'min-touch-target', '40']
+    ]);
+    yy = table(1420, yy, 'Liquid Menu Fan', [
+      ['D_fan_1', 'mode-toggle-offset', 'x = -58, y = 0'],
+      ['D_fan_2', 'doc-upload-offset', 'x = -34, y = -48'],
+      ['D_fan_3', 'img-upload-offset', 'x = +22, y = -56'],
+      ['T_spring', 'bezier-duration', '500ms cubic(0.16,1,0.3,1)']
+    ]);
+  }
+
+  /* ==========================================================================
+     SHEET 3: MESSAGE STREAM & BUBBLE ANATOMY
+     ========================================================================== */
+  function drawSheet3() {
+    begin('sh3');
+    notes([
+      [1, 'Conversation stream container: max-w-2xl (672px), centered, gap-4 (16px vertical).'],
+      [2, 'Asymmetric bubble geometry: user notch top-right (R=0); assistant notch top-left (R=0).'],
+      [3, 'Maximum bubble span: max-w-[85%] = 0.85 × 672px = 571px total horizontal width.'],
+      [4, 'User bubble: theme-card gradient, right-aligned, text-white, padding p-4 (16px).'],
+      [5, 'Assistant bubble: glassmorphism backdrop-blur 32px, left-aligned, text-slate-200.'],
+      [6, 'Telemetry badge: execution latency, model identity, token cost, thinking cards.'],
+      [7, 'Queued on-hold state: dashed border, cancel button, status pulse indicator.'],
+      [8, 'Timestamp & actions: 9px mono font, resend rotate-180° button on user bubbles.']
+    ]);
+
+    const k = 1.1, PX = 560, PY = 120;
+    const X = v => PX + v * k, Y = v => PY + v * k;
+    const CW = 520;
+
+    // Stream bounding guidelines
+    rr(X(0), Y(0), CW * k, 460 * k, 0, 'ph');
+    slotLabel(X(0), Y(8), CW * k, 0, 'Stream column · max-w-2xl (672px)', 'm');
+
+    // 1. User Message Block (Right-aligned)
+    const UW = 320, UH = 56, UX = CW - UW - 20, UY = 30;
+    tx(X(UX + UW - 6), Y(UY - 6), 'YOU', 'sl', { 'text-anchor': 'end' });
+    mk('circle', { cx: X(UX + UW - 32), cy: Y(UY - 10), r: 3, class: 'arrow' });
+    // User notched path (R=16, except top-right is R=0)
+    {
+      const x = X(UX), y = Y(UY), w = UW * k, h = UH * k, r = 16 * k;
+      mk('path', {
+        d: 'M' + (x + r) + ',' + y + ' H' + (x + w) + ' V' + (y + h - r) + ' A' + r + ',' + r + ' 0 0 1 ' + (x + w - r) + ',' + (y + h) + ' H' + (x + r) + ' A' + r + ',' + r + ' 0 0 1 ' + x + ',' + (y + h - r) + ' V' + (y + r) + ' A' + r + ',' + r + ' 0 0 1 ' + (x + r) + ',' + y + ' Z',
+        class: 'hug'
+      });
+    }
+    slotLabel(X(UX), Y(UY), UW * k, UH * k, 'User prompt text · padding 16px · rounded-tr-0', 'm');
+    tx(X(UX + UW - 6), Y(UY + UH + 12), '16:42 · [↻ Resend]', 'dts', { 'text-anchor': 'end' });
+
+    // 2. Assistant Message Block (Left-aligned)
+    const AW = 380, AH = 96, AX = 20, AY = 130;
+    tx(X(AX + 16), Y(AY - 6), 'MOKA', 'sl');
+    mk('circle', { cx: X(AX + 6), cy: Y(AY - 10), r: 3, class: 'arrow' });
+    // Assistant notched path (R=16, except top-left is R=0)
+    {
+      const x = X(AX), y = Y(AY), w = AW * k, h = AH * k, r = 16 * k;
+      mk('path', {
+        d: 'M' + x + ',' + y + ' H' + (x + w - r) + ' A' + r + ',' + r + ' 0 0 1 ' + (x + w) + ',' + (y + r) + ' V' + (y + h - r) + ' A' + r + ',' + r + ' 0 0 1 ' + (x + w - r) + ',' + (y + h) + ' H' + (x + r) + ' A' + r + ',' + r + ' 0 0 1 ' + x + ',' + (y + h - r) + ' Z',
+        class: 'well'
+      });
+    }
+    slotLabel(X(AX + 16), Y(AY + 10), (AW - 32) * k, 20 * k, 'Telemetry badge slot · latency 420ms · 18 tps', 'l');
+    slotLabel(X(AX + 16), Y(AY + 40), (AW - 32) * k, 40 * k, 'Response markdown text slot · leading-relaxed · rounded-tl-0', 'l');
+    tx(X(AX + 10), Y(AY + AH + 14), '16:42:04', 'dts');
+
+    // 3. Queued Message Block (Right-aligned, on hold)
+    const QW = 280, QH = 64, QX = CW - QW - 20, QY = 270;
+    rr(X(QX), Y(QY), QW * k, QH * k, 16 * k, 'slot');
+    slotLabel(X(QX + 12), Y(QY + 8), (QW - 24) * k, 20 * k, 'Queued prompt · on-hold state', 'l');
+    rr(X(QX + 12), Y(QY + 36), 80 * k, 18 * k, 4 * k, 'thin');
+    slotLabel(X(QX + 12), Y(QY + 36), 80 * k, 18 * k, '● Queued', 'm');
+    rr(X(QX + QW - 70), Y(QY + 36), 60 * k, 18 * k, 4 * k, 'hug');
+    slotLabel(X(QX + QW - 70), Y(QY + 36), 60 * k, 18 * k, 'Cancel', 'm');
+
+    // Dimensions
+    dimH(X(UX), X(UX + UW), Y(UY - 24), Y(UY), Y(UY), 'W_user = 320');
+    dimH(X(AX), X(AX + AW), Y(AY + AH + 26), Y(AY + AH), Y(AY + AH), 'W_assistant = 380 · max-w 85%', { below: true });
+    dimH(X(0), X(CW), Y(-26), Y(0), Y(0), 'W_stream = 672 · fixed column');
+
+    dimV(Y(UY), Y(UY + UH), X(UX + UW) + 26, X(UX + UW), X(UX + UW), 'H_user = 56', { side: 'r' });
+    dimV(Y(AY), Y(AY + AH), X(-30), X(AX), X(AX), 'H_moka = 96');
+
+    title(X(CW / 2), Y(360), 'Plan view · asymmetric message bubble stream', 'Scale 1.1:1 · user top-right notch (R=0) · assistant top-left notch (R=0)');
+
+    // Detail A: User Notched Corner Detail
+    {
+      const DA_X = 280, DA_Y = 660, DA_K = 2.4, R = 16;
+      rr(DA_X, DA_Y, 80 * DA_K, 60 * DA_K, 0, 'hug');
+      // Highlight top-right corner R=0
+      mk('line', { x1: DA_X + 60 * DA_K, y1: DA_Y, x2: DA_X + 80 * DA_K, y2: DA_Y, class: 'obj' });
+      mk('line', { x1: DA_X + 80 * DA_K, y1: DA_Y, x2: DA_X + 80 * DA_K, y2: DA_Y + 20 * DA_K, class: 'obj' });
+      callout(DA_X + 80 * DA_K, DA_Y, DA_X + 80 * DA_K - 18, DA_Y - 26, 'R_top_right = 0 (Square Notch)', -1);
+      callout(DA_X, DA_Y + 60 * DA_K, DA_X - 25, DA_Y + 60 * DA_K + 20, 'R_other = 16', -1);
+      title(DA_X + 40 * DA_K, DA_Y + 60 * DA_K + 44, 'Detail A · user bubble geometry', 'Asymmetric notch for user sender');
+    }
+
+    // Detail B: Assistant Notched Corner Detail
+    {
+      const DB_X = 640, DB_Y = 660, DB_K = 2.4, R = 16;
+      rr(DB_X, DB_Y, 80 * DB_K, 60 * DB_K, 0, 'well');
+      // Highlight top-left corner R=0
+      mk('line', { x1: DB_X, y1: DB_Y + 20 * DB_K, x2: DB_X, y2: DB_Y, class: 'obj' });
+      mk('line', { x1: DB_X, y1: DB_Y, x2: DB_X + 20 * DB_K, y2: DB_Y, class: 'obj' });
+      callout(DB_X, DB_Y, DB_X + 18, DB_Y - 26, 'R_top_left = 0 (Square Notch)', 1);
+      callout(DB_X + 80 * DB_K, DB_Y + 60 * DB_K, DB_X + 80 * DB_K + 25, DB_Y + 60 * DB_K + 20, 'R_other = 16', 1);
+      title(DB_X + 40 * DB_K, DB_Y + 60 * DB_K + 44, 'Detail B · assistant bubble geometry', 'Asymmetric notch for MoKa sender');
+    }
+
+    // Detail C: Telemetry Badge Anatomy
+    {
+      const DC_X = 1000, DC_Y = 660, DC_K = 2.0;
+      rr(DC_X, DC_Y, 180, 50, 10, 'obj');
+      mk('circle', { cx: DC_X + 16, cy: DC_Y + 25, r: 6, class: 'hug' });
+      slotLabel(DC_X + 28, DC_Y + 12, 140, 0, 'Core: Active · 420ms', 'l');
+      slotLabel(DC_X + 28, DC_Y + 28, 140, 0, 'Phi-4 (Cloud) · 18 tps', 'l');
+      title(DC_X + 90, DC_Y + 84, 'Detail C · telemetry card badge', 'Latency, tokens, throughput');
+    }
+
+    // Right Column Tables
+    let yy = table(1420, 86, 'Bubble Geometry', [
+      ['W_bubble_max', 'bubble-max-width', '85% (571px)'],
+      ['R_bubble_std', 'standard-corner-r', '16 (rounded-2xl)'],
+      ['R_user_notch', 'user-top-right-r', '0 (rounded-tr-none)'],
+      ['R_moka_notch', 'moka-top-left-r', '0 (rounded-tl-none)'],
+      ['P_bubble', 'bubble-inner-pad', '16 (p-4)']
+    ]);
+    yy = table(1420, yy, 'Typography & Spacing', [
+      ['F_sender_tag', 'sender-label-size', '10 (text-[10px])'],
+      ['F_msg_text', 'message-body-size', '15 (text-sm md:text-base)'],
+      ['F_timestamp', 'timestamp-mono-size', '9 (text-[9px])'],
+      ['L_leading', 'line-height', '1.625 (leading-relaxed)'],
+      ['S_msg_gap', 'vertical-message-gap', '16 (gap-4)']
+    ]);
+    yy = table(1420, yy, 'Telemetry Metrics', [
+      ['H_telemetry', 'telemetry-badge-h', '32'],
+      ['R_telemetry', 'telemetry-badge-r', '8–12'],
+      ['Z_status_dot', 'pulse-indicator-size', '6 (w-1.5 h-1.5)'],
+      ['W_queued_min', 'queued-bubble-min-w', '220']
+    ]);
+  }
+
+  /* ==========================================================================
+     SHEET 4: PARTICLE VECTOR EYE SYSTEM
+     ========================================================================== */
+  function drawSheet4() {
+    begin('sh4');
+    notes([
+      [1, 'Logical canvas defined at 1200×600 aspect (2:1). Uniform scale = min(W/1200, H/600)·0.82.'],
+      [2, 'Dual identical eye apertures: W_eye = 240, H_eye = 240, corner radius R_eye = 40.'],
+      [3, 'Optical centers: left CX=400, right CX=800; vertical axis CY=300; pitch P_eyes=400.'],
+      [4, 'Scanline matrix sampled at step_x = 5, step_y = 8 (anisotropic 5:8 CRT/OLED pattern).'],
+      [5, 'Total particles N_total ≈ 2,810; particle diameter Z_dot = 1.8–2.8.'],
+      [6, 'Idle breathing sine: X=±0.6, Y=±0.4; blink duration 20 frames (0–240 travel).'],
+      [7, 'Chat interface active: inquisitive Cozmo tilt A_tilt = ±3.44° on typing.'],
+      [8, 'Typing gaze locks downward D_look_dn = +34px with ±12px convergence.']
+    ]);
+
+    const CW = 1200, CH = 600, EW = 240, EH = 240, ER = 40;
+    const LX = 280, RX = 680, EY = 180;
+    const k = 0.58, PX = 620, PY = 130;
+    const X = v => PX + v * k, Y = v => PY + v * k;
+
+    // Left Eye Aperture
+    {
+      const x0 = X(LX), y0 = Y(EY), w = EW * k, h = EH * k, q = ER * k;
+      mk('path', {
+        d: 'M' + x0 + ',' + (y0 + q) + ' A' + q + ',' + q + ' 0 0 1 ' + (x0 + q) + ',' + y0 + ' H' + (x0 + w - q) + ' A' + q + ',' + q + ' 0 0 1 ' + (x0 + w) + ',' + (y0 + q) + ' V' + (y0 + h - q) + ' A' + q + ',' + q + ' 0 0 1 ' + (x0 + w - q) + ',' + (y0 + h) + ' H' + (x0 + q) + ' A' + q + ',' + q + ' 0 0 1 ' + x0 + ',' + (y0 + h - q) + ' Z',
+        class: 'obj'
+      });
+    }
+
+    // Optical Crosshairs
+    const LCX = LX + EW / 2, RCX = RX + EW / 2, CCY = EY + EH / 2;
+    mk('line', { x1: X(LCX), y1: Y(EY - 25), x2: X(LCX), y2: Y(EY + EH + 25), class: 'cl' });
+    mk('line', { x1: X(LX - 25), y1: Y(CCY), x2: X(LX + EW + 25), y2: Y(CCY), class: 'cl' });
+
+    // Left Eye Scanlines
+    for (let y = EY + 24; y < EY + EH - 20; y += 24) {
+      mk('line', { x1: X(LX + 14), y1: Y(y), x2: X(LX + EW - 14), y2: Y(y), class: 'thin', opacity: 0.45 });
+    }
+
+    // Right Eye Aperture
+    {
+      const x0 = X(RX), y0 = Y(EY), w = EW * k, h = EH * k, q = ER * k;
+      mk('path', {
+        d: 'M' + x0 + ',' + (y0 + q) + ' A' + q + ',' + q + ' 0 0 1 ' + (x0 + q) + ',' + y0 + ' H' + (x0 + w - q) + ' A' + q + ',' + q + ' 0 0 1 ' + (x0 + w) + ',' + (y0 + q) + ' V' + (y0 + h - q) + ' A' + q + ',' + q + ' 0 0 1 ' + (x0 + w - q) + ',' + (y0 + h) + ' H' + (x0 + q) + ' A' + q + ',' + q + ' 0 0 1 ' + x0 + ',' + (y0 + h - q) + ' Z',
+        class: 'obj'
+      });
+    }
+    mk('line', { x1: X(RCX), y1: Y(EY - 25), x2: X(RCX), y2: Y(EY + EH + 25), class: 'cl' });
+    mk('line', { x1: X(RX - 25), y1: Y(CCY), x2: X(RX + EW + 25), y2: Y(CCY), class: 'cl' });
+    for (let y = EY + 24; y < EY + EH - 20; y += 24) {
+      mk('line', { x1: X(RX + 14), y1: Y(y), x2: X(RX + EW - 14), y2: Y(y), class: 'thin', opacity: 0.45 });
+    }
+
+    // Dimensions
+    const ty = Y(EY - 28);
+    dimH(X(LX), X(LX + EW), ty, Y(EY), Y(EY), 'W_eye = 240');
+    dimV(Y(EY), Y(EY + EH), X(LX - 36), X(LX), X(LX), 'H_eye = 240');
+    rad(X(LX), Y(EY), ER * k, 'tl', 'R_eye = 40', 20);
+
+    dimH(X(LX + EW), X(RX), ty, Y(EY), Y(EY), 'S_inter = 160');
+    dimH(X(RX), X(RX + EW), ty, null, Y(EY), 'W_eye = 240');
+    dimH(X(LCX), X(RCX), Y(EY - 56), Y(EY - 25), Y(EY - 25), 'P_eyes · optical-pitch = 400');
+    dimH(X(LX), X(RX + EW), Y(EY - 84), Y(EY - 25), Y(EY - 25), 'W_total = 640');
+
+    rr(X(0), Y(0), CW * k, CH * k, 0, 'border');
+    dimH(X(0), X(LX), ty, Y(0), Y(EY), 'M_side = 280', { dx: -8 });
+    dimH(X(RX + EW), X(CW), ty, null, Y(0), 'M_side = 280', { dx: 8 });
+    dimV(Y(0), Y(EY), X(-65), X(0), X(LX), 'M_vert = 180');
+    dimV(Y(EY + EH), Y(CH), X(-65), null, X(0), 'M_vert = 180');
+    dimV(Y(0), Y(CH), X(-98), X(-70), X(-70), 'H_canvas = 600');
+    dimH(X(0), X(CW), Y(-112), Y(-30), Y(-30), 'W_canvas · logical-width = 1200');
+
+    mk('line', { x1: X(LX), y1: Y(CCY), x2: X(LX + EW), y2: Y(CCY), class: 'ph' });
+    mk('line', { x1: X(RX), y1: Y(CCY), x2: X(RX + EW), y2: Y(CCY), class: 'ph' });
+    slotLabel(X(LX), Y(CCY - 10), EW * k, 0, 'Blink closed squash line (H=0)');
+    slotLabel(X(RX), Y(CCY - 10), EW * k, 0, 'Blink closed squash line (H=0)');
+    nb(X(LCX), Y(EY + 38), 2);
+    nb(X(RCX), Y(EY + 38), 2);
+    nb(X((LX + EW + RX) / 2), Y(CCY), 3);
+
+    detailRef(X(LX + 20), Y(EY + 60), 26 * k, 'DETAIL A', X(LX - 60), Y(EY + 15));
+    detailRef(X(LX), Y(EY), 20 * k, 'DETAIL B', X(LX - 60), Y(EY + 120));
+    detailRef(X(RCX), Y(CCY), 30 * k, 'DETAIL C', X(RCX + 130), Y(CCY - 30));
+    title(X(CW / 2), Y(CH + 38), 'Plan view · dual particle eye geometry', 'Scale 0.58:1 · pitch P = 400 · bounding span = 640 · uniform sampling step 5×8');
+
+    // Exploded View Stack (Bottom-Left)
+    const sc = 0.40, TX = 270, TY = 620, gap = 44;
+    const ia = 0.94 * sc, ib = 0.17 * sc, ic = -0.34 * sc, id = 0.47 * sc;
+    const P = (x, y, z) => [TX + ia * x + ic * y, TY + ib * x + id * y - z];
+    const uIso = 1 / Math.sqrt(ia * id - ib * ic);
+    const G = z => {
+      const g = mk('g', { transform: 'matrix(' + ia + ',' + ib + ',' + ic + ',' + id + ',' + TX + ',' + (TY - z) + ')' });
+      g.style.setProperty('--u', uIso);
+      return g;
+    };
+
+    let g = G(0);
+    rr(-20, -20, 600, 320, 0, 'thin', g);
+    g = G(gap);
+    rr(80, 40, 160, 160, 16, 'hs', g);
+    rr(320, 40, 160, 160, 16, 'hs', g);
+    g = G(gap * 2);
+    rr(80, 40, 160, 160, 26, 'obj', g);
+    rr(320, 40, 160, 160, 26, 'obj', g);
+    g = G(gap * 3);
+    rr(84, 52, 156, 146, 24, 'well', g);
+    rr(320, 52, 156, 146, 24, 'well', g);
+    g = G(gap * 4);
+    rr(84, 52, 156, 146, 24, 'slot', g);
+    rr(320, 52, 156, 146, 24, 'slot', g);
+
+    [[0, 0], [560, 0], [560, 280], [0, 280]].forEach(([x, y]) => {
+      const p1 = P(x, y, gap * 0.8), p2 = P(x, y, gap * 4.2);
+      mk('line', { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], class: 'ph' });
+    });
+
+    const ELX = 110;
+    [
+      [gap * 4, [84, 200], 'L4 · Particle Dots', '~2,810 vector dots (Z=1.8–2.8)'],
+      [gap * 3, [84, 200], 'L3 · Kinematics', '±3.44° Cozmo tilt & +34px look-down'],
+      [gap * 2, [80, 200], 'L2 · Eye Apertures', 'Dual 240×240 rounded rects (R=40)'],
+      [gap, [80, 200], 'L1 · Scanline Matrix', '5×8 sampling cells'],
+      [0, [-15, 275], 'L0 · Canvas Plane', '1200×600 logical boundary']
+    ].forEach(([z, [x, y], t, st], idx) => {
+      const p1 = P(x, y, z);
+      const ly = TY - 145 + idx * 38;
+      mk('circle', { cx: p1[0], cy: p1[1], r: 1.8, class: 'dot' });
+      mk('polyline', { points: p1[0] + ',' + p1[1] + ' ' + (ELX + 185) + ',' + ly + ' ' + (ELX + 170) + ',' + ly, class: 'lead' });
+      tx(ELX + 165, ly - 2, t, 'vt', { 'text-anchor': 'end' });
+      tx(ELX + 165, ly + 10, st, 'dts', { 'text-anchor': 'end' });
+    });
+    title(260, TY + 140, 'Exploded view · particle eye stack', 'Axonometric projection · z-spacing not to scale');
+
+    // Detail A: 5x8 Scanline Dot Matrix Sampling
+    {
+      const DA_X = 520, DA_Y = 660, DA_K = 3.6;
+      rr(DA_X, DA_Y, 70 * DA_K, 40 * DA_K, 0, 'obj');
+      for (let x = 0; x <= 70; x += 10) {
+        mk('line', { x1: DA_X + x * DA_K, y1: DA_Y, x2: DA_X + x * DA_K, y2: DA_Y + 40 * DA_K, class: 'thin', opacity: 0.4 });
+      }
+      for (let y = 0; y <= 40; y += 16) {
+        mk('line', { x1: DA_X, y1: DA_Y + y * DA_K, x2: DA_X + 70 * DA_K, y2: DA_Y + y * DA_K, class: 'thin', opacity: 0.4 });
+      }
+      for (let y = 8; y < 40; y += 16) {
+        for (let x = 5; x < 70; x += 10) {
+          mk('circle', { cx: DA_X + x * DA_K, cy: DA_Y + y * DA_K, r: 2.3 * DA_K / 1.8, class: 'dot' });
+        }
+      }
+      dimH(DA_X + 10 * DA_K, DA_X + 20 * DA_K, DA_Y + 40 * DA_K + 18, DA_Y + 40 * DA_K, DA_Y + 24 * DA_K, 'STEP_X = 5', { below: true });
+      dimV(DA_Y, DA_Y + 16 * DA_K, DA_X - 14, DA_X, DA_X + 10 * DA_K, 'STEP_Y = 8', { side: 'l' });
+      title(DA_X + 35 * DA_K, DA_Y + 40 * DA_K + 48, 'Detail A · 5×8 scanline sampling', 'Scale 3.6:1');
+    }
+
+    // Detail B: Corner Fillet Geometry
+    {
+      const DB_X = 940, DB_Y = 660, DB_K = 2.0, R = 40;
+      mk('path', {
+        d: 'M' + DB_X + ',' + (DB_Y + 70 * DB_K) + ' L' + DB_X + ',' + (DB_Y + R * DB_K) + ' A' + (R * DB_K) + ',' + (R * DB_K) + ' 0 0 1 ' + (DB_X + R * DB_K) + ',' + DB_Y + ' L' + (DB_X + 70 * DB_K) + ',' + DB_Y,
+        class: 'obj', fill: 'none'
+      });
+      const CCX = DB_X + R * DB_K, CCY = DB_Y + R * DB_K;
+      mk('line', { x1: CCX, y1: CCY, x2: CCX - R * DB_K * 0.707, y2: CCY - R * DB_K * 0.707, class: 'dl', 'marker-end': A });
+      tx(CCX - 24, CCY - 24, 'R_eye = 40', 'dt');
+      title(DB_X + 35 * DB_K, DB_Y + 70 * DB_K + 34, 'Detail B · corner fillet G1', 'Scale 2.0:1');
+    }
+
+    // Detail C: Tilt & Gaze
+    {
+      const DC_X = 1220, DC_Y = 650, DC_K = 0.78;
+      rr(DC_X, DC_Y, 240 * DC_K, 240 * DC_K, 40 * DC_K, 'obj');
+      mk('line', { x1: DC_X + 120 * DC_K, y1: DC_Y - 15, x2: DC_X + 120 * DC_K, y2: DC_Y + 255 * DC_K, class: 'cl' });
+      mk('line', { x1: DC_X + 120 * DC_K, y1: DC_Y + 120 * DC_K, x2: DC_X + 120 * DC_K, y2: DC_Y + 120 * DC_K + 34, class: 'dl', 'marker-end': A });
+      tx(DC_X + 120 * DC_K + 10, DC_Y + 120 * DC_K + 22, '+34 look-down', 'dts');
+      tx(DC_X + 120 * DC_K - 24, DC_Y - 18, 'A_tilt = −3.44°', 'dt');
+      title(DC_X + 120 * DC_K, DC_Y + 240 * DC_K + 44, 'Detail C · typing tilt & gaze', 'Scale 0.78:1');
+    }
+
+    // Right Column Tables
+    let yy = table(1420, 86, 'Eye Geometry', [
+      ['W_canvas', 'logical-canvas-w', '1200'],
+      ['H_canvas', 'logical-canvas-h', '600'],
+      ['W_eye', 'eye-aperture-w', '240'],
+      ['H_eye', 'eye-aperture-h', '240'],
+      ['R_eye', 'corner-radius', '40'],
+      ['S_inter', 'inter-ocular-gap', '160'],
+      ['P_eyes', 'optical-pitch', '400'],
+      ['W_total', 'bounding-span', '640']
+    ]);
+    yy = table(1420, yy, 'Scanline & Sampling', [
+      ['STEP_X', 'scan-h-step', '5'],
+      ['STEP_Y', 'scan-v-height', '8'],
+      ['Z_dot', 'particle-diam', '1.8–2.8'],
+      ['N_eye', 'dots-per-eye', '≈ 1405'],
+      ['N_total', 'total-particles', '≈ 2810']
+    ]);
+    yy = table(1420, yy, 'Kinematics & States', [
+      ['T_blink', 'blink-duration', '20 frames'],
+      ['D_shift_x', 'max-gaze-x', '±20'],
+      ['D_look_dn', 'typing-look-down', '+34'],
+      ['A_tilt', 'inquisitive-tilt', '±3.44°']
+    ]);
+  }
+
+  // Draw all sheets initially
+  drawSheet1();
+  drawSheet2();
+  drawSheet3();
+  drawSheet4();
+
+  // Tab Switching & Title Block Synchronizer
+  const sheetConfigs = {
+    1: {
+      title: 'Chat Page Shell & Viewport Architecture',
+      scope: 'System architecture: 100vw × 100vh viewport shell, fixed top navigation header, left quick-access rail, responsive conversation stream, floating interactive input dock, and full-viewport particle vector canvas.',
+      sheetNum: '1 of 4',
+      scale: '0.72:1',
+      figs: [
+        ['W1 · stream-max', '672'],
+        ['W0 · stream-idle', '576'],
+        ['W_rail · rail-w', '56–64'],
+        ['H_head · header-h', '80–96'],
+        ['H_dock · dock-h', '60'],
+        ['R_dock · r-dock', '24'],
+        ['R_msg · r-bubble', '16']
+      ]
+    },
+    2: {
+      title: 'Floating Chat Input Dock & Controls',
+      scope: 'Assembly architecture: 672×60 glassmorphic floating input pill, liquid gooey expanding radial menu, audio mute button, expanding textarea, send action button, and continuous border-beam focus shader.',
+      sheetNum: '2 of 4',
+      scale: '1.6:1',
+      figs: [
+        ['W_dock · max-w', '672'],
+        ['H_dock · height', '60'],
+        ['R_dock · radius', '24'],
+        ['Z_btn · btn-size', '40 × 40'],
+        ['R_btn · btn-radius', '16'],
+        ['S_pad · padding', '10 (p-2.5)'],
+        ['D_fan_1 · mode-x', '-58']
+      ]
+    },
+    3: {
+      title: 'Message Stream & Bubble Anatomy',
+      scope: 'Stream architecture: dual-sender asymmetric bubble geometry, user right-aligned (notched top-right R=0), assistant left-aligned (notched top-left R=0), cognitive telemetry cards, queued message states, and resend actions.',
+      sheetNum: '3 of 4',
+      scale: '1.1:1',
+      figs: [
+        ['W_stream · max-w', '672'],
+        ['W_bubble · max-w', '85% (571)'],
+        ['R_std · radius', '16'],
+        ['R_user · notch-tr', '0'],
+        ['R_moka · notch-tl', '0'],
+        ['P_bubble · padding', '16 (p-4)'],
+        ['S_gap · msg-gap', '16']
+      ]
+    },
+    4: {
+      title: 'Particle Vector Eye Architecture',
+      scope: 'Kinematics & dot matrix sampling: logical 1200×600 offscreen coordinate space, dual rounded-rect eye geometry, 5×8 anisotropic CRT scanline sampling, inquisitive tilt kinematics (±3.44°), and vertical blink squash envelope.',
+      sheetNum: '4 of 4',
+      scale: '0.58:1',
+      figs: [
+        ['W_eye · eye-w', '240'],
+        ['H_eye · eye-h', '240'],
+        ['R_eye · r-eye', '40'],
+        ['S_inter · inter-gap', '160'],
+        ['P_eyes · pitch', '400'],
+        ['STEP_X / STEP_Y', '5 / 8'],
+        ['A_tilt · Cozmo', '±3.44°']
+      ]
+    }
+  };
+
+  const tabs = document.querySelectorAll('.sheet-tab');
+  const panes = document.querySelectorAll('.sheet-pane');
+  const tbTitle = document.getElementById('tb-title');
+  const tbScope = document.getElementById('tb-scope');
+  const tbSheetNum = document.getElementById('tb-sheet-num');
+  const tbScale = document.getElementById('tb-scale');
+  const tbFigs = document.getElementById('tb-figs');
+
+  function setSheet(sheetId) {
+    const cfg = sheetConfigs[sheetId];
+    if (!cfg) return;
+
+    tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-sheet') === String(sheetId)));
+    panes.forEach(p => p.classList.toggle('active', p.id === 'pane-' + sheetId));
+
+    tbTitle.textContent = cfg.title;
+    tbScope.textContent = cfg.scope;
+    tbSheetNum.textContent = cfg.sheetNum;
+    tbScale.textContent = cfg.scale;
+
+    tbFigs.innerHTML = cfg.figs.map(([lbl, val], idx) => `
+      <div style="${idx === 0 ? 'border-left:0; padding-left:0;' : ''}">
+        <div class="lbl">${lbl}</div>
+        <div class="v">${val}</div>
+      </div>
+    `).join('');
+
+    // Smooth scroll to top of pane
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  window.setSheet = setSheet;
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      setSheet(tab.getAttribute('data-sheet'));
+    });
+  });
+
+  // Keyboard navigation [1], [2], [3], [4], [ArrowLeft], [ArrowRight]
+  let currentSheet = 1;
+  window.addEventListener('keydown', (e) => {
+    if (e.key === '1' || e.key === '2' || e.key === '3' || e.key === '4') {
+      currentSheet = parseInt(e.key, 10);
+      setSheet(currentSheet);
+    } else if (e.key === 'ArrowRight') {
+      currentSheet = currentSheet < 4 ? currentSheet + 1 : 1;
+      setSheet(currentSheet);
+    } else if (e.key === 'ArrowLeft') {
+      currentSheet = currentSheet > 1 ? currentSheet - 1 : 4;
+      setSheet(currentSheet);
+    }
+  });
+})();
+</script>
+</body>
+</html>
