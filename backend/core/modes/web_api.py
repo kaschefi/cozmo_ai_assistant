@@ -160,6 +160,7 @@ async def get_local_token(request: Request):
     )
 
 
+@app.get("/health")
 @app.get("/api/health")
 async def health_endpoint():
     """
@@ -389,8 +390,41 @@ try:
 except Exception as e:
     print(f"[Web API Warning] Could not mount Cozmo endpoints: {e}")
 
+# Mount Frontend Static SPA (Single Page Application for unified production container)
+FRONTEND_DIST = os.getenv("FRONTEND_DIST_DIR", os.path.join(WORKSPACE_DIR, "frontend", "dist"))
+if os.path.isdir(FRONTEND_DIST):
+    from fastapi.staticfiles import StaticFiles
+    from starlette.responses import FileResponse
+
+    assets_dir = os.path.join(FRONTEND_DIST, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    models_dir = os.path.join(FRONTEND_DIST, "models")
+    if os.path.isdir(models_dir):
+        app.mount("/models", StaticFiles(directory=models_dir), name="models")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Do not intercept API or WebSocket routes
+        if full_path.startswith("api/") or full_path.startswith("ws/"):
+            raise HTTPException(status_code=404, detail="Endpoint not found")
+
+        target_file = os.path.join(FRONTEND_DIST, full_path)
+        if full_path and os.path.isfile(target_file):
+            return FileResponse(target_file)
+
+        index_file = os.path.join(FRONTEND_DIST, "index.html")
+        if os.path.isfile(index_file):
+            return FileResponse(index_file)
+
+        return {"status": "ok", "message": "MoKa AI Backend running."}
+
+    print(f"[Web API] Mounted frontend Single Page Application (SPA) from: {FRONTEND_DIST}")
+
 if __name__ == "__main__":
-    print("Launching MoKa Web API server on http://0.0.0.0:8000...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "8000"))
+    print(f"Launching MoKa Web API server on http://0.0.0.0:{port}...")
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 

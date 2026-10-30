@@ -1,0 +1,47 @@
+# Git
+.git
+.gitignore
+.github
+
+# Environment & Secrets (NEVER bake secrets into images)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node & Frontend
+**/node_modules/
+frontend/dist/
+frontend/coverage/
+.npm
+.pnpm-store
+
+# IDEs & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Large local caches
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/cache/
+*.log
+

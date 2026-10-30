@@ -3,12 +3,17 @@ import uuid
 import os
 from dotenv import load_dotenv
 from psycopg import connect
-from core.routing.layer2.tool_vector_db import LangChainFastEmbedBridge
 import numpy as np
 
 load_dotenv()
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/cozmo_db")
+
+
+class FastEmbedBridge:
+    def embed_query(self, text: str):
+        from core.routing.encoder import get_shared_encoder
+        return get_shared_encoder()([text])[0]
 
 
 class LongTermMemoryManager:
@@ -21,7 +26,7 @@ class LongTermMemoryManager:
     }
 
     def __init__(self):
-        self.embedder = LangChainFastEmbedBridge()
+        self.embedder = FastEmbedBridge()
         self._ensure_table_exists()
 
     def _ensure_table_exists(self):
