@@ -35,7 +35,10 @@ def load_actions():
     """
     for package in [actions.physical, actions.digital]:
         for _, module_name, _ in pkgutil.walk_packages(package.__path__, package.__name__ + "."):
-            importlib.import_module(module_name)
+            try:
+                importlib.import_module(module_name)
+            except Exception:
+                pass
 
 def initialize_router():
     global layer_1_router

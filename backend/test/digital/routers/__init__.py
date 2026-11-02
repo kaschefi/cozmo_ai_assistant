@@ -1,15 +1,96 @@
 # backend/test/digital/routers/__init__.py
 """
-Routers benchmarking package for evaluating router architectures (WP2 Experiment):
+Routers benchmarking package for evaluating router architectures across scaling tiers:
 
-LLM Models (test/digital/routers/models/llm/):
-1. Baseline Monolithic LLM (baseline.py)
-2. Production Two-Layer LLM (two_layer.py)
+Tiers:
+- tools_20:  63 test cases across 20 tools + none
+- tools_30:  93 test cases across 30 tools + none
+- tools_50: 153 test cases across 50 tools + none
+- tools_100: 303 test cases across 100 tools + none
 
-LAYA Models (test/digital/routers/models/laya/):
-3. Single-Layer Monolithic LAYA (single_layer.py)
-4. Two-Layer LAYA (two_layer.py)
-5. Single-Layer LAYA with Top-K Tool RAG (single_layer_topk.py)
-6. Two-Layer LAYA with Top-K Tool RAG (two_layer_topk.py)
+Architectures:
+- Two-Layer LAYA (FastEmbed reflexes + LAYA)
+- Single-Layer LAYA (Monolithic LAYA cross-encoder)
+- Two-Layer LAYA Top-K (FastEmbed reflexes + Tool RAG + LAYA)
+- Single-Layer LAYA Top-K (Tool RAG + LAYA)
+- Two-Layer LLM (FastEmbed reflexes + Tool RAG + LLM)
+- Baseline Monolithic LLM
 """
 
+from test.digital.routers.experiments import (
+    run_20_tools_experiment,
+    run_30_tools_experiment,
+    run_50_tools_experiment,
+    run_100_tools_experiment,
+)
+from test.digital.routers.harness import (
+    evaluate_router_on_benchmark,
+    evaluate_router_on_wp2,
+    get_or_create_scaled_dataset,
+    get_or_create_wp2_dataset,
+    get_dataset_name_for_tools,
+)
+from test.digital.routers.models import (
+    single_layer_laya_predictor,
+    get_single_layer_laya_predictor,
+    two_layer_laya_predictor,
+    get_two_layer_laya_predictor,
+    single_layer_laya_topk_predictor,
+    get_single_layer_laya_topk_predictor,
+    two_layer_laya_topk_predictor,
+    get_two_layer_laya_topk_predictor,
+    baseline_router_predictor,
+    two_layer_llm_predictor,
+)
+from test.digital.routers.tools import (
+    TOOLS_15,
+    TOOLS_18,
+    TOOLS_20,
+    TOOLS_30,
+    TOOLS_50,
+    TOOLS_100,
+    get_tools_preset,
+)
+from test.digital.routers.benchmark_dataset import (
+    BENCHMARK_TEST_CASES,
+    BENCHMARK_TEST_CASES_20,
+    BENCHMARK_TEST_CASES_30,
+    BENCHMARK_TEST_CASES_50,
+    BENCHMARK_TEST_CASES_100,
+    get_benchmark_dataset,
+)
+
+__all__ = [
+    "run_20_tools_experiment",
+    "run_30_tools_experiment",
+    "run_50_tools_experiment",
+    "run_100_tools_experiment",
+    "evaluate_router_on_benchmark",
+    "evaluate_router_on_wp2",
+    "get_or_create_scaled_dataset",
+    "get_or_create_wp2_dataset",
+    "get_dataset_name_for_tools",
+    "single_layer_laya_predictor",
+    "get_single_layer_laya_predictor",
+    "two_layer_laya_predictor",
+    "get_two_layer_laya_predictor",
+    "single_layer_laya_topk_predictor",
+    "get_single_layer_laya_topk_predictor",
+    "two_layer_laya_topk_predictor",
+    "get_two_layer_laya_topk_predictor",
+    "baseline_router_predictor",
+    "two_layer_llm_predictor",
+    "TOOLS_15",
+    "TOOLS_18",
+    "TOOLS_20",
+    "TOOLS_30",
+    "TOOLS_50",
+    "TOOLS_100",
+    "get_tools_preset",
+    "BENCHMARK_TEST_CASES",
+    "BENCHMARK_TEST_CASES_20",
+    "BENCHMARK_TEST_CASES_30",
+    "BENCHMARK_TEST_CASES_50",
+    "BENCHMARK_TEST_CASES_100",
+    "get_benchmark_dataset",
+]

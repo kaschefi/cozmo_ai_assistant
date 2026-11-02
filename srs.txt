@@ -1,0 +1,244 @@
+Software Requirements Specification (SRS) 
+Routing-Strukturen für große Tool-Mengen in einem LLM-basierten Desktop-Roboter
+Assistenten: 
+Ein Vergleich von Genauigkeit, Token-Verbrauch und Latenz 
+Author: Mohammad Kashefirad  |  Supervisor: Herr Christoph Vogl  |  Date:25 October 2026  |  Version: 1.0 
+1. Introduction 
+1.1 Purpose 
+This Software Requirements Specification (SRS) defines the functional, data-driven, and non
+functional requirements for the Moka AI Assistant and its systematic Tool-Routing Benchmark 
+Suite. It serves as the primary engineering specification for Chapter 3 of the Bachelor's thesis, 
+establishing a verifiable framework to evaluate multi-tier tool-routing architectures across scaling 
+tool registries (from 20 up to 100 tools). 
+1.2 Scope 
+The system comprises two integrated subsystems structured to run independently of physical 
+robot hardware: 
+1. Desktop AI Assistant (Moka Core): A local-first, multi-modal conversational agent providing voice 
+and web interaction, dual-layered PostgreSQL memory, LangGraph cognitive sub-agents (Google 
+Calendar, Todoist, Python Code Execution, Weather, Web Search), workstation automation, and 
+simulated robotics navigation/vision modules. 
+2. Systematic Tool-Routing Benchmark & Evaluation Framework: An automated testing harness 
+integrated with LangSmith evaluating three interchangeable router architectures—Variant A (Flat 
+Monolithic LLM Baseline), Variant B (Hybrid Two-Stage + Top-k FAISS Tool RAG + LLM), and 
+Variant C (Hybrid Two-Stage + Top-k FAISS Tool RAG + LAYA Decision Model)—measuring Top-1 
+accuracy, hallucination rates, input and output tokens, and latency percentiles (P50, P90, P95) 
+across scaled registries. 
+2. General Description 
+2.1 Product Functions 
+• Multi-Modal Interaction: Captures spoken audio via Silero VAD and faster-whisper (int8 CPU) 
+with conversational barge-in interruption, responding via local neural TTS (kokoro-onnx / edge
+tts) and a responsive FastAPI web UI. 
+• Pluggable Multi-Tier Intent Routing: Routes user requests across physical commands, workstation 
+setups, system tools, or cognitive agents using interchangeable routing pipelines. 
+• Dual-Layer Conversational Memory: Manages thread-level turn history and transactional states 
+via LangGraph's PostgresSaver (psycopg), alongside asynchronous extraction of long-term 
+biographical preferences in a vector store. 
+• Simulated Autonomy & Vision Grounding: Provides hardware-free simulation modes (--dry-run 
+and --source webcam) for DINOv3/REMIND visual memory, Behavior Tree execution, and 
+Bidirectional A* path planning. 
+• Automated Scaling Benchmark: Executes batch evaluations across labeled test queries and 
+dynamically clustered synthetic tools, recording accuracy, prompt tokens, and latency. 
+2.2 Operating Environment & Stack 
+• LLM & Decision Models: Local qwen2.5:3b via Ollama (temperature=0.0) and 
+convaiinnovations/laya-typed-decisions. 
+• Embeddings & Vector Store: FastEmbed (bge-small-en-v1.5) and FAISS-CPU. 
+• Persistence: PostgreSQL with psycopg and langgraph-checkpoint-postgres. 
+• Evaluation Platform: LangSmith (Project WP2 / moka-router-benchmark). 
+3. Specific Requirements (MoSCoW Prioritization) 
+3.1 Must-Have Requirements (Core Thesis & Hardware-Independent) 
+ID 
+Category 
+Specification 
+Verification 
+Web UI & API 
+FR-M01 
+FastAPI backend & browser UI acting as central 
+communication bridge. 
+FR-M02 
+Speech Input 
+Browser UI  
+Audio capture via Silero VAD (250ms threshold, 
+barge-in detection, filler filtering) and local 
+transcription via faster-whisper (int8 CPU). 
+Speech Output 
+Spoken voice in Web UI  
+FR-M03 
+Local neural TTS (kokoro-onnx / edge-tts) 
+producing natural spoken output with immediate 
+queue flush upon user barge-in. 
+FR-M04 
+Router Sandbox 
+Voice output from web UI 
+or robot  
+Pluggable router interface returning standardized 
+schemas, dispatching to deterministic mock 
+handlers (MOCK_ACTION_DISPATCH) for all 
+actions. 
+Execution via 
+test_router_comparison.
+py 
+FR-M05 
+Router A (Flat 
+LLM) 
+Monolithic baseline router passing all N tools in a 
+single prompt to qwen2.5:3b (temp=0.0) for tool 
+selection or 'none' fallback. 
+Automated runs via 
+baseline_router.py in 
+LangSmith 
+FR-M06 Router B (2-L 
+LLM) 
+Two-stage router combining Layer 1 FastEmbed 
+reflexes with Layer 2 FAISS Top-k Tool RAG, 
+prompting qwen2.5:3b solely over Top-k 
+candidates + 'none'. 
+Automated runs via 
+two_layer_llm.py in 
+LangSmith 
+FR-M07 Router C (2-L 
+LAYA) 
+Two-stage router combining Layer 1 FastEmbed 
+reflexes with Layer 2 FAISS Top-k Tool RAG, 
+passing Top-k candidates to laya-typed-decisions. 
+Automated runs via 
+two_layer_laya_topk.py 
+in LangSmith 
+FR-M08 Scaling 
+Benchmark 
+Automated harness testing Variants A, B, and C 
+across 20, 30, 50, and 100 tools, computing Top-1 
+accuracy, tokens, and P50/P90/P95 latencies. 
+Batch execution via 
+compare_routers.py 
+ 
+ 
+3.2 Should-Have Requirements (System Completeness & Depth) 
+ID Category Specification Verification 
+FR-S01 Short-Term 
+Memory 
+Thread-level state persistence across turns via 
+LangGraph's PostgresSaver (psycopg) with 
+automated conversation summarization. 
+Multi-turn context 
+continuity across browser 
+reloads 
+FR-S02 Long-Term 
+Memory 
+Asynchronous background extraction of user 
+traits stored in PostgreSQL vector table, retrieved 
+via cosine similarity across distinct sessions. 
+Personal preference 
+recall across distinct 
+session IDs 
+FR-S03 Cognitive Agents Execution of specialized LangGraph sub-agents: 
+Google Calendar (conflict detection), Todoist, 
+Python Code Executor, Weather, Web Search, and 
+OS setups. 
+Automated test suites 
+test_calendar_agent.py, 
+etc. 
+FR-S04 Local/Cloud 
+Toggle 
+Dynamic provider toggle (provider='local' vs. 
+'cloud') in llm_factory.py between local Ollama 
+(qwen2.5:3b) and cloud Azure OpenAI (gpt4o
+nano). 
+Execution of 
+test_local_cloud_toggle.p
+y or manually testing it in 
+web UI 
+FR-S05 Webcam DINOv3 Vision perception via laptop webcam (--source 
+webcam), computing 384-D patch embeddings, 
+SVD Master PCA heatmaps, and click-to-segment 
+teaching. 
+Live execution of 
+demo_object_labeling_re
+id.py 
+FR-S06 
+Simulated 
+Autonomy 
+Hardware-free dry-run simulation (--dry-run) 
+verifying 5 Hz Behavior Tree, novelty 
+prioritization, SLAM drift correction, and 
+Bidirectional A* path planning. 
+test_phase3_behavior_tr
+ee.py & 
+test_bidirectional_astar.p
+y 
+3.3 Could-Have Requirements (Desirable Extensions) 
+ID 
+Category 
+Specification 
+verification 
+FR-C01 
+LAYA Architecture 
+Variants 
+FR-C02 
+Scaled Benchmark 
+Dataset 
+Evaluate LAYA across 4 configurations (1-Layer vs. 
+2-Layer, with and without Top-K FAISS filtering) to 
+measure the impact of candidate pruning and 
+Layer 1 reflexes on accuracy, latency, and token 
+cost. 
+Automated test run 
+results and comparison 
+matrix logged in 
+LangSmith. 
+Provide a curated dataset of 3 diverse test cases 
+per tool (canonical, paraphrased, confusable), 
+totaling 300+ queries across 100 tools, 
+partitioned into cumulative scaling tiers (N = 20, 
+30, 50, 100). 
+HITL Confirmation 
+Dataset registered in 
+LangSmith; automated 
+validation of route labels 
+and scaling tiers. 
+FR-C03 
+Human-in-the-loop pause (interrupt_before) 
+requiring explicit user confirmation before 
+executing state-mutating actions (e.g., 
+delete_event). 
+FR-C04 
+Document QA 
+(RAG) 
+Test via webUI 
+Ingestion of user-uploaded documents (PDF, TXT, 
+MD) through a semantic ETL pipeline for local 
+contextual question-answering. 
+Test via webUI or 
+automatic test script 
+FR-C05 
+Dynamic MCP 
+Ingestion 
+Runtime discovery and vector indexing of external 
+tools from Model Context Protocol (MCP) servers 
+without application restarts. 
+Integration test verifying that tools from 
+a newly connected MCP server are 
+immediately indexed in FAISS and 
+routable without restarting the backend 
+service 
+4. Machine Learning & Data Requirements 
+• Dataset Split: 150–300 curated queries partitioned into a Development Set (30%) for parameter 
+tuning and a Holdout Test Set (70%) locked for thesis reporting. 
+• Scaled Tool Registries: Expanding ~20 real tools to 30, 50, and 100 tools using thematic clusters 
+with deliberate confusable pairs (cosine similarity > 0.80). 
+• Core Metrics: Top-1 Routing Accuracy, Hallucination Rate (< 2%), Retrieval Recall@k, Prompt 
+Token Consumption, and Routing Latency (P50, P90, P95). 
+• Reproducibility: Ollama temperature locked to 0.0, deterministic random seeds, and automatic 
+warmup runs prior to measurement. 
+5. Non-Functional Requirements (NFRs) 
+• NFR-P01 (Reflex Latency): Layer 1 FastEmbed matching must resolve within P95 < 50ms on local 
+CPU. 
+• NFR-P02 (Path Planning Speed): Bidirectional A* path planning must converge in < 35ms on a 
+10mm grid. 
+• NFR-P03 (Vision Frame Rate): Asynchronous DINOv3 extraction must maintain >= 15 FPS on 
+MJPEG stream. 
+• NFR-S01 (Security): Mutating endpoints must validate X-Moka-Token header against 
+MOKA_ADMIN_TOKEN. 
+• NFR-R01 (Graceful Degradation): System must cleanly run in dry-run mode and webcam input if 
+robot hardware is absent. 
+• NFR-U01 (Voice Brevity): Conversational LLM prompts must enforce spoken brevity (< 2 
+sentences, zero markdown/backticks). 

@@ -7,16 +7,20 @@ LLM-based router model predictors:
 
 from test.digital.routers.models.llm.baseline import (
     baseline_router_predictor,
+    get_baseline_router_predictor,
     test_baseline_router_wp2,
 )
 from test.digital.routers.models.llm.two_layer import (
     two_layer_llm_predictor,
+    get_two_layer_llm_predictor,
     test_two_layer_llm_router_wp2,
 )
 
 __all__ = [
     "baseline_router_predictor",
+    "get_baseline_router_predictor",
     "test_baseline_router_wp2",
     "two_layer_llm_predictor",
+    "get_two_layer_llm_predictor",
     "test_two_layer_llm_router_wp2",
 ]

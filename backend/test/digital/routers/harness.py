@@ -3,15 +3,15 @@
 Abstract LangSmith Evaluation Harness for Router Benchmarking.
 
 Provides a unified, reusable evaluation pipeline that tests any router implementation
-against the fixed 'MoKa_Router_Benchmark_WP2' dataset and automatically submits the
-experiment to LangSmith under project 'WP2'.
+against standardized LangSmith datasets (WP2, 20 tools, 30 tools, 50 tools, 100 tools)
+and automatically submits the experiment to LangSmith.
 """
 
 import os
 import sys
 import time
 import statistics
-from typing import Callable, Dict, Any, List
+from typing import Callable, Dict, Any, List, Optional
 from dotenv import load_dotenv
 
 # Ensure backend directory is in path
@@ -21,16 +21,22 @@ if backend_path not in sys.path:
 
 load_dotenv()
 
-# Global configuration for WP2
-os.environ["LANGCHAIN_PROJECT"] = "WP2"
+# Global configuration defaults
+os.environ.setdefault("LANGCHAIN_PROJECT", "MoKa-Router-Benchmark")
 os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
 os.environ["USE_TF"] = "0"
 
 from langsmith import Client
 from langsmith.evaluation import evaluate
-from test.digital.routers.benchmark_dataset import BENCHMARK_TEST_CASES
+from test.digital.routers.benchmark_dataset import BENCHMARK_TEST_CASES, get_benchmark_dataset
 
-DATASET_NAME = "MoKa_Router_Benchmark_WP2"
+WP2_DATASET_NAME = "MoKa_Router_Benchmark_WP2"
+DATASET_NAME = WP2_DATASET_NAME
+
+
+def get_dataset_name_for_tools(num_tools: int) -> str:
+    """Returns standardized LangSmith dataset name for N tools."""
+    return f"MoKa_Router_Benchmark_{num_tools}_Tools"
 
 
 def get_or_create_wp2_dataset(client: Client, force_refresh: bool = False) -> List[Any]:
@@ -38,16 +44,16 @@ def get_or_create_wp2_dataset(client: Client, force_refresh: bool = False) -> Li
     Ensures the fixed WP2 dataset exists in LangSmith and returns all examples.
     Preserves the existing dataset so all experiments attach to the same dataset.
     """
-    if client.has_dataset(dataset_name=DATASET_NAME):
+    if client.has_dataset(dataset_name=WP2_DATASET_NAME):
         if not force_refresh:
-            examples = list(client.list_examples(dataset_name=DATASET_NAME))
+            examples = list(client.list_examples(dataset_name=WP2_DATASET_NAME))
             if len(examples) == len(BENCHMARK_TEST_CASES):
                 return examples
-        client.delete_dataset(dataset_name=DATASET_NAME)
+        client.delete_dataset(dataset_name=WP2_DATASET_NAME)
 
-    print(f"[Harness] Creating fixed LangSmith dataset '{DATASET_NAME}' ({len(BENCHMARK_TEST_CASES)} examples)...")
+    print(f"[Harness] Creating fixed LangSmith dataset '{WP2_DATASET_NAME}' ({len(BENCHMARK_TEST_CASES)} examples)...")
     dataset = client.create_dataset(
-        dataset_name=DATASET_NAME,
+        dataset_name=WP2_DATASET_NAME,
         description="Fixed WP2 Router Benchmark: 48 curated cases across 15 tools + chat fallback."
     )
 
@@ -61,8 +67,46 @@ def get_or_create_wp2_dataset(client: Client, force_refresh: bool = False) -> Li
             dataset_id=dataset.id
         )
 
-    examples = list(client.list_examples(dataset_name=DATASET_NAME))
-    print(f"[Harness] Dataset '{DATASET_NAME}' successfully registered with {len(examples)} examples.\n")
+    examples = list(client.list_examples(dataset_name=WP2_DATASET_NAME))
+    print(f"[Harness] Dataset '{WP2_DATASET_NAME}' successfully registered with {len(examples)} examples.\n")
+    return examples
+
+
+def get_or_create_scaled_dataset(client: Client, num_tools: int = 20, force_refresh: bool = False) -> List[Any]:
+    """
+    Ensures the standardized benchmark dataset for N tools exists in LangSmith and returns all examples.
+    Supports N = 20 (63 cases), 30 (93 cases), 50 (153 cases), 100 (303 cases).
+    """
+    dataset_name = get_dataset_name_for_tools(num_tools)
+    dataset_cases = get_benchmark_dataset(num_tools)
+
+    if client.has_dataset(dataset_name=dataset_name):
+        if not force_refresh:
+            examples = list(client.list_examples(dataset_name=dataset_name))
+            if len(examples) == len(dataset_cases):
+                print(f"[Harness] Using existing LangSmith dataset '{dataset_name}' ({len(examples)} examples).")
+                return examples
+        print(f"[Harness] Re-syncing LangSmith dataset '{dataset_name}'...")
+        client.delete_dataset(dataset_name=dataset_name)
+
+    print(f"[Harness] Creating LangSmith dataset '{dataset_name}' ({len(dataset_cases)} examples)...")
+    dataset = client.create_dataset(
+        dataset_name=dataset_name,
+        description=f"Standardized MoKa Router Scaling Benchmark ({num_tools} Tools): {len(dataset_cases)} test cases across {num_tools} tools + none."
+    )
+
+    for item in dataset_cases:
+        client.create_example(
+            inputs={"message": item["request"]},
+            outputs={
+                "expected_route": item["expected_route"],
+                "category": item.get("category", "general")
+            },
+            dataset_id=dataset.id
+        )
+
+    examples = list(client.list_examples(dataset_name=dataset_name))
+    print(f"[Harness] Dataset '{dataset_name}' successfully registered with {len(examples)} examples.\n")
     return examples
 
 
@@ -87,31 +131,14 @@ def latency_evaluator(run, example) -> dict:
     }
 
 
-def evaluate_router_on_wp2(
+def _run_evaluation_pipeline(
     experiment_name: str,
     predictor: Callable[[dict], dict],
+    examples: List[Any],
+    dataset_name: str,
     description: str = "",
-    force_refresh: bool = False
 ) -> Dict[str, Any]:
-    """
-    Standardized abstract evaluation runner:
-    1. Loads the fixed WP2 dataset from LangSmith.
-    2. Runs evaluation on the given predictor.
-    3. Computes summary metrics (Accuracy, P50, Mean, P90, Min/Max latency).
-    4. Automatically logs the experiment into LangSmith project 'WP2'.
-    5. Displays formatted results and direct dashboard URLs.
-    """
-    print("=" * 80)
-    print(f"WP2 BENCHMARK: {experiment_name}")
-    if description:
-        print(f"Description: {description}")
-    print(f"Target LangSmith Project: '{os.environ['LANGCHAIN_PROJECT']}'")
-    print(f"Target Dataset:          '{DATASET_NAME}'")
-    print("=" * 80)
-
-    client = Client()
-    examples = get_or_create_wp2_dataset(client, force_refresh=force_refresh)
-
+    """Internal core evaluation execution and metrics aggregation."""
     evaluators = [route_accuracy_evaluator, latency_evaluator]
 
     print(f"\n[Harness] Starting evaluation for '{experiment_name}' across {len(examples)} test cases...")
@@ -123,7 +150,6 @@ def evaluate_router_on_wp2(
         max_concurrency=1,
     )
 
-    # Extract results directly from the evaluated rows for reliable, instantaneous metrics
     rows = list(eval_results)
     total_count = len(rows) if rows else len(examples)
     correct_count = 0
@@ -175,6 +201,7 @@ def evaluate_router_on_wp2(
         print(f"  - {cat:<18}: {stats['correct']}/{stats['total']} ({cat_acc:.1f}%)")
     print("-" * 80)
     print(f"LangSmith Project: '{os.environ['LANGCHAIN_PROJECT']}'")
+    print(f"Dataset Name:      '{dataset_name}'")
     print(f"Experiment URL:    {experiment_url}")
     print("=" * 80 + "\n")
 
@@ -190,3 +217,70 @@ def evaluate_router_on_wp2(
         "experiment_url": experiment_url,
         "eval_results": eval_results,
     }
+
+
+def evaluate_router_on_wp2(
+    experiment_name: str,
+    predictor: Callable[[dict], dict],
+    description: str = "",
+    force_refresh: bool = False
+) -> Dict[str, Any]:
+    """Backward-compatible runner for WP2 15-tool benchmark."""
+    os.environ["LANGCHAIN_PROJECT"] = "WP2"
+    print("=" * 80)
+    print(f"WP2 BENCHMARK: {experiment_name}")
+    if description:
+        print(f"Description: {description}")
+    print(f"Target LangSmith Project: '{os.environ['LANGCHAIN_PROJECT']}'")
+    print(f"Target Dataset:          '{WP2_DATASET_NAME}'")
+    print("=" * 80)
+
+    client = Client()
+    examples = get_or_create_wp2_dataset(client, force_refresh=force_refresh)
+    return _run_evaluation_pipeline(
+        experiment_name=experiment_name,
+        predictor=predictor,
+        examples=examples,
+        dataset_name=WP2_DATASET_NAME,
+        description=description,
+    )
+
+
+def evaluate_router_on_benchmark(
+    experiment_name: str,
+    predictor: Callable[[dict], dict],
+    num_tools: int = 20,
+    description: str = "",
+    force_refresh: bool = False,
+    project_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Standardized abstract evaluation runner for Scaled Tool Benchmarks (N = 20, 30, 50, 100):
+    1. Loads or creates the standardized N-tools dataset from LangSmith.
+    2. Runs evaluation on the given predictor.
+    3. Computes summary metrics (Accuracy, P50, Mean, P90, Min/Max latency).
+    4. Automatically logs the experiment into LangSmith with the specified project and name.
+    5. Displays formatted results and direct dashboard URLs.
+    """
+    target_project = project_name or os.environ.get("LANGCHAIN_PROJECT", "MoKa-Router-Benchmark")
+    os.environ["LANGCHAIN_PROJECT"] = target_project
+    dataset_name = get_dataset_name_for_tools(num_tools)
+
+    print("=" * 80)
+    print(f"BENCHMARK EXPERIMENT: {experiment_name}")
+    if description:
+        print(f"Description: {description}")
+    print(f"Number of Tools:         {num_tools}")
+    print(f"Target LangSmith Project: '{target_project}'")
+    print(f"Target Dataset:          '{dataset_name}'")
+    print("=" * 80)
+
+    client = Client()
+    examples = get_or_create_scaled_dataset(client, num_tools=num_tools, force_refresh=force_refresh)
+    return _run_evaluation_pipeline(
+        experiment_name=experiment_name,
+        predictor=predictor,
+        examples=examples,
+        dataset_name=dataset_name,
+        description=description,
+    )
