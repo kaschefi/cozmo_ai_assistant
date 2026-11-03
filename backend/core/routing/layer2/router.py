@@ -2,8 +2,8 @@
 import os
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, START, END
-from psycopg import connect
 from psycopg.rows import dict_row
+from psycopg_pool import ConnectionPool
 from langgraph.checkpoint.postgres import PostgresSaver
 from langchain_core.messages import HumanMessage
 
@@ -46,19 +46,27 @@ builder.add_edge("memory_extraction_node", END)
 
 DB_URI = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/cozmo_db")
 
-# Crucial for LangGraph compatibility & table schema auto-migrations
+# Crucial for LangGraph compatibility & resilient connection pool for serverless DBs (Neon)
 conn_kwargs = {
     "autocommit": True,
     "row_factory": dict_row,
-    "connect_timeout": 1
 }
 try:
-    conn = connect(DB_URI, **conn_kwargs)
-    checkpointer = PostgresSaver(conn)
+    pool = ConnectionPool(
+        conninfo=DB_URI,
+        min_size=1,
+        max_size=10,
+        kwargs=conn_kwargs,
+        check=ConnectionPool.check_connection,
+        max_idle=300,
+        open=True
+    )
+    checkpointer = PostgresSaver(pool)
     checkpointer.setup()
 
     cozmo_graph = builder.compile(checkpointer=checkpointer)
 except Exception as db_err:
+    print(f"[Router DB Warning]: Failed to init Postgres checkpointer: {db_err}. Falling back to stateless.")
     cozmo_graph = builder.compile()  # Fallback to stateless memory if DB is down
 
 

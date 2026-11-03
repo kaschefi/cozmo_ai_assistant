@@ -118,9 +118,8 @@ def memory_retrieval_node(state: AgentState):
     ]
     if any(trigger in q for trigger in meta_triggers):
         # Pull all saved facts directly (up to recent 15) to bypass vector limitations on meta-queries
-        all_rows = long_term_memory._get_all_memories_for_user(user_id)
-        memories = [m[1] for m in all_rows[-15:]]
-        return {"retrieved_memories": memories}
+        memories = long_term_memory.get_all_memories(user_id=user_id)
+        return {"retrieved_memories": memories[-15:]}
 
     memories = long_term_memory.retrieve_relevant_memories(last_message, user_id=user_id, limit=3)
     return {"retrieved_memories": memories}
@@ -129,82 +128,27 @@ def memory_retrieval_node(state: AgentState):
 def memory_extraction_node(state: AgentState):
     """
     Step 2: Scans the recent conversation history for permanent profile traits.
-    Strictly discards time, weather, and calendar dates.
-    Runs asynchronously in a background thread to avoid blocking user response.
-    Non-daemon thread guarantees Postgres writes complete safely even on immediate exit.
+    Runs Mem0 asynchronously in a background thread to extract facts, update conflicts,
+    and discard ephemeral noise (weather, dates, greetings) without blocking user responses.
     """
     messages = state["messages"]
     if not messages:
         return {}
 
-    # Grab the last 3 messages to preserve dialogue context and spelling corrections
+    # Grab the last 3 messages to preserve dialogue context
     recent_messages = messages[-3:]
-    recent_exchange = ""
+    dialogue_turns = []
     for m in recent_messages:
-        role = "User" if isinstance(m, HumanMessage) else "Assistant"
-        recent_exchange += f"{role}: {m.content}\n"
-        
+        role = "user" if isinstance(m, HumanMessage) else "assistant"
+        dialogue_turns.append({"role": role, "content": m.content})
+
     user_id = "cozmo_owner"
 
-    @traceable(name="Long-Term Memory Fact Extraction", run_type="chain")
+    @traceable(name="Mem0 Long-Term Memory Extraction", run_type="chain")
     def run_extraction_bg():
         try:
-            selective_extraction_prompt = f"""You are a profile memory analyzer. Analyze the recent conversation history to see if the user shared permanent personal information.
-
-            STRICT DATA FILTERS:
-            - IGNORE all temporary details: current weather conditions, the current time/day, and specific calendar appointment slots (e.g., "meeting at 4pm").
-            - EXTRACT only permanent biographical facts:
-              1. Identity/Name (e.g., user name, nicknames).
-              2. Student status, occupation, profession, field of study, or major (e.g., student, software engineer, studying computer science).
-              3. Persistent preferences, interests, or favorites (e.g., favorite sports teams, hobbies, coding languages, software tools, game titles).
-              4. Skills, goals, or roles.
-
-            Recent Conversation History:
-            {recent_exchange}
-
-            INSTRUCTIONS:
-            1. Formulate facts as short, clear, declarative sentences starting with 'The user...'.
-            2. For each extracted fact, assign one of these category keys:
-               - 'user_name' (if the fact is about their name, nicknames, or identity)
-               - 'user_occupation' (if the fact is about being a student, their profession, job, major, or field of study)
-               - 'favorite_sports_team' (if it is their favorite sports team)
-               - 'favorite_programming_language' (if it is their favorite programming language)
-               - 'user_location' (if it's where they live or come from, e.g. Iran)
-               - 'general_preference' (for any other hobbies, interests, books, movies, or general facts)
-            3. Format each fact line EXACTLY as: Fact | Category_Key
-               Example: The user's name is Bob. | user_name
-               Example: The user is studying computer science. | user_occupation
-            4. If no new permanent personal facts, traits, or preferences are revealed, return exactly 'NONE'.
-            5. Output ONLY the raw pipe-separated lines, with no additional conversational text, numbers, or bullet points.
-            6. STRICT GUARDRAIL: Only extract facts that the USER explicitly shares, states, or confirms. Never extract facts or preferences from details that the ASSISTANT suggests, hallucinates, or introduces in conversation (e.g., if the Assistant says 'You probably like movies' but the User doesn't explicitly confirm it, DO NOT extract it).
-            """
-
-            extractor_llm = get_llm("ROUTER_LLM_MODEL", "qwen2.5:3b", temperature=0, provider="OLLAMA")
-            response = extractor_llm.invoke([
-                SystemMessage(content="You are a precise fact filtering pipeline. Output Fact | Category or 'NONE'."),
-                HumanMessage(content=selective_extraction_prompt)
-            ])
-
-            cleaned_result = response.content.strip()
-            if cleaned_result and cleaned_result != "NONE":
-                for fact in cleaned_result.split("\n"):
-                    clean_fact = fact.strip()
-                    # Robust cleaning: strip list indicators like "1. ", "- ", "* "
-                    clean_fact = re.sub(r'^[-*\d.\s]+', '', clean_fact).strip()
-                    
-                    # Parse pipe separation
-                    category = "general_preference"
-                    if "|" in clean_fact:
-                        parts = clean_fact.split("|", 1)
-                        clean_fact = parts[0].strip()
-                        category = parts[1].strip()
-                    
-                    if clean_fact.lower().startswith("the user"):
-                        # Standardize prefix casing to "The user"
-                        clean_fact = re.sub(r'^[Tt]he\s+[Uu]ser', 'The user', clean_fact)
-                        
-                        long_term_memory.save_memory(clean_fact, category=category, user_id=user_id)
-                        sys.stdout.flush()
+            long_term_memory.add_dialogue(dialogue_turns, user_id=user_id)
+            sys.stdout.flush()
         except Exception as e:
             print(f"\n{GRAY} [LONG-TERM MEMORY ERROR]: Failed background extraction: {e}{RESET}\n: ", end="")
             sys.stdout.flush()

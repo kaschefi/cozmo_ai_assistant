@@ -1272,7 +1272,7 @@ async def cozmo_telemetry_websocket(websocket: WebSocket):
                         pose_tracker.reset_pose(0.0, 0.0, 0.0)
                 except Exception:
                     pass
-        except (WebSocketDisconnect, asyncio.CancelledError):
+        except (WebSocketDisconnect, asyncio.CancelledError, RuntimeError):
             pass
 
     async def send_loop():
@@ -1351,7 +1351,7 @@ async def cozmo_telemetry_websocket(websocket: WebSocket):
 
                 await websocket.send_json(payload)
                 await asyncio.sleep(0.05)  # 20 Hz
-        except (WebSocketDisconnect, asyncio.CancelledError):
+        except (WebSocketDisconnect, asyncio.CancelledError, RuntimeError):
             pass
 
     rx_task = asyncio.create_task(receive_loop())
@@ -1392,7 +1392,7 @@ async def cozmo_voice_websocket(websocket: WebSocket):
                     cozmo_manager.disconnect()
             except Exception:
                 pass
-    except (WebSocketDisconnect, asyncio.CancelledError):
+    except (WebSocketDisconnect, asyncio.CancelledError, RuntimeError):
         pass
     finally:
         voice_bridge.unregister_subscriber(websocket)

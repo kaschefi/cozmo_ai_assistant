@@ -40,4 +40,5 @@ gTTS==2.5.4
 laya>=0.3.20
 transformers>=4.40.0
 websockets>=12.0
-
+
+mem0ai[nlp]>=0.1.40
