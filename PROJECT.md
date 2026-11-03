@@ -173,12 +173,13 @@ START ──► memory_retrieval_node ──► tool_retrieval_node ──► ro
 
 #### Dual-Layer Memory Engine:
 1. **Short-Term Conversational Memory:**
-   - Thread-level persistence via `PostgresSaver` in PostgreSQL table `checkpoints`.
+   - Thread-level persistence via `PostgresSaver` with a resilient `psycopg_pool.ConnectionPool` (`check_connection`, `max_idle=300`) surviving serverless idle timeouts (Neon scale-to-zero).
    - Automatic Summarization (`summarize_conversation_node`): When conversation exceeds 6 messages, older turns are progressively condensed into a rolling summary and purged from active checkpoint history, preventing context bloat.
 2. **Long-Term Biographical Memory:**
-   - Asynchronous background thread (`memory_extraction_node`) filters recent user utterances for permanent traits (identity, occupation, persistent preferences).
-   - Strict Guardrails: Discards temporary conditions (weather, clock time, calendar appointments) and hallucinations.
-   - Vector Retrieval (`memory_retrieval_node`): Retrieves top-3 biographical facts via cosine similarity or retrieves all user facts on meta-queries (*"What do you know about me?"*).
+   - Powered by **Mem0** with a high-concurrency vector store on PostgreSQL `pgvector` (`moka_user_memories`).
+   - Intelligent Memory Reconciliation: Few-shot LLM pass evaluates recent turns against existing facts, automatically issuing `UPDATE` (updating facts or identity in-place), `DELETE` (forgetting negated facts), and `ADD` (capturing new traits).
+   - Two-Way Markdown Profile Sync: Live memories are exported to [`backend/data/user_profile.md`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/data/user_profile.md), allowing manual inspection and edits synchronized via `python backend/sync_memory.py`.
+   - Vector Retrieval (`memory_retrieval_node`): Retrieves top-3 biographical facts via semantic similarity or retrieves all user facts on meta-queries (*"What do you know about me?"*).
 
 ---
 

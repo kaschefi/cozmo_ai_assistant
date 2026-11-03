@@ -33,8 +33,8 @@ The purpose of this High-Level Design (HLD) document is to bridge the formal req
 | **FR-M06** | Router B (2-Layer LLM) | Tier 1 FastEmbed reflexes + FAISS Top-$k$ Tool RAG + `qwen2.5:3b` |
 | **FR-M07** | Router C (2-Layer LAYA) | Tier 1 FastEmbed reflexes + FAISS Top-$k$ Tool RAG + `convaiinnovations/laya-typed-decisions` |
 | **FR-M08** | Scaling Benchmark Harness | Automated batch runner (`compare_routers.py`) across $N \in \{20, 30, 50, 100\}$ tools |
-| **FR-S01** | Short-Term Episodic Memory | LangGraph `PostgresSaver` via `psycopg` + rolling summarizer node ($> 6$ messages) |
-| **FR-S02** | Long-Term Biographical Memory| Asynchronous worker (`memory_extraction_node`) + PostgreSQL vector table (`user_profile_memories`) |
+| **FR-S01** | Short-Term Episodic Memory | LangGraph `PostgresSaver` via `psycopg_pool.ConnectionPool` (auto-reconnect, `max_idle=300`) + rolling summarizer node ($> 6$ messages) |
+| **FR-S02** | Long-Term Biographical Memory| Asynchronous worker (`memory_extraction_node`) + **Mem0** with **PostgreSQL `pgvector`** (`moka_user_memories`) + Memory Reconciliation Engine + Markdown sync (`user_profile.md`) |
 | **FR-S03** | Cognitive Sub-Agents | Specialized LangGraph sub-agents (Calendar, Todoist, Python Sandbox, Weather, Search) |
 | **FR-S04** | Local / Cloud Model Toggle | Dynamic runtime switch in `llm_factory.py` (Local Ollama vs. Cloud Azure OpenAI) |
 | **FR-S05** | Webcam DINOv3 Perception | Vision perception fallback (`--source webcam`), 384-D patch embeddings, PCA heatmaps |
@@ -182,7 +182,7 @@ To keep architectural diagrams readable and prevent visual text clipping, granul
 | **5 Hz Behavior Tree** | `autonomous_cozmo/behavior/tree.py` (`py_trees`) | Priority-based autonomous decision tree managing battery safety, wander exploration, and docking. |
 | **Bidirectional A\*** | `autonomous_cozmo/motion/bidirectional_astar.py` | Computes collision-free paths in $< 35\,\text{ms}$ on a 10mm discretized grid. |
 | **PostgreSQL State** | `PostgresSaver` via `psycopg` (table `checkpoints`) | Transactional thread-level checkpointing for multi-turn conversation persistence. |
-| **PostgreSQL Vector** | `schemas/memory_db.py` (table `user_profile_memories`) | Asynchronous semantic extraction of user traits, preferences, and biographical facts. |
+| **PostgreSQL Vector** | `schemas/memory_db.py` (collection `moka_user_memories`) | Production-grade persistent user profiling via Mem0 + pgvector, few-shot memory reconciliation (update/delete), and 2-way markdown sync (`backend/sync_memory.py`). |
 
 ---
 
@@ -207,8 +207,8 @@ The technology stack is selected to fulfill strict local-first, privacy-preservi
 | **Local LLM Runtime** | Ollama | `qwen2.5:3b` (temp=0.0) | High-performance local quantized LLM for baseline routing and companion conversation. |
 | **Cloud LLM Runtime** | Azure OpenAI SDK | `gpt-4o-mini` / `phi-4-mini` | Low-latency cloud fallback providing frontier-grade reasoning when toggled. |
 | **Cognitive Framework** | LangGraph & LangChain | LangGraph 0.2+, LangChain Core | State machine orchestration supporting persistence, checkpointing, and conditional transitions. |
-| **Short-Term Memory** | `langgraph-checkpoint-postgres` | PostgreSQL 15+ (`psycopg`) | Transactional thread-level checkpointing allowing multi-turn pause/resume capabilities. |
-| **Long-Term Memory** | PostgreSQL + Array / Vector | `psycopg` + Cosine Bridge | Persistent user profiling storing extracted biographical traits across distinct sessions. |
+| **Short-Term Memory** | `langgraph-checkpoint-postgres` | PostgreSQL 15+ (`psycopg_pool.ConnectionPool`) | Resilient, pooled thread-level checkpointing supporting serverless idle timeouts (Neon scale-to-zero) and multi-turn pause/resume. |
+| **Long-Term Memory** | PostgreSQL `pgvector` via Mem0 | `mem0ai` + FastEmbed (`BAAI/bge-small-en-v1.5`) | High-concurrency vector store with intelligent contradiction reconciliation (UPDATE/DELETE/ADD) and 2-way markdown sync. |
 | **Vision Perception** | DINOv3 (PyTorch / ONNX) | ViT-Small (384-D patches) | Self-supervised foundational vision backbone generating invariant patch embeddings. |
 | **Motion & Planning** | Custom Python Engine | Bidirectional A* + Potential Fields | High-speed path planning ($< 35\,\text{ms}$) on a 10mm discretized 2D spatial grid. |
 | **Robot Driver & Safety**| PyCozmo | PyCozmo 0.9+ with `ReflexSafetyGuard` | Low-level packet protocol over Wi-Fi UDP with hardware cliff and motor stall fail-safes. |
@@ -365,11 +365,16 @@ graph TD
      * **Workstation Automation:** Desktop setup automation for study, gaming, and development profiles.
 
 #### 4.2.4 Dual-Layer Conversational Memory Subsystem
-* **File Location:** [`backend/schemas/memory_db.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/schemas/memory_db.py), [`chat_history_db.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/schemas/chat_history_db.py), [`router.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/core/routing/layer2/router.py#L47-L64)
+* **File Location:** [`backend/schemas/memory_db.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/schemas/memory_db.py), [`backend/sync_memory.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/sync_memory.py), [`backend/data/user_profile.md`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/data/user_profile.md), [`chat_history_db.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/schemas/chat_history_db.py), [`router.py`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/core/routing/layer2/router.py#L47-L75)
 * **Responsibilities:**
-  1. **Short-Term Episodic Memory:** Implemented via `PostgresSaver(conn)` backed by PostgreSQL (`psycopg`, `autocommit=True`). Checkpoints thread states across conversational turns, enabling browser reload survivability and multi-turn conversational context.
+  1. **Short-Term Episodic Memory:** Implemented via `PostgresSaver(pool)` backed by a resilient `psycopg_pool.ConnectionPool` (`check=ConnectionPool.check_connection`, `max_idle=300`, `autocommit=True`). Checkpoints thread states across conversational turns, automatically handling serverless Neon PostgreSQL scale-to-zero idle disconnections without dropped connections.
   2. **Long-Term Biographical Memory:** Non-blocking background worker (`memory_extraction_node`) that runs asynchronously after every assistant turn. It parses the dialogue for persistent user facts (identity, field of study, preferred programming languages, favorite sports teams), filtering out ephemeral details (weather, time, dates).
-  3. **Profile Hybrid Memory Store:** Powered by **Mem0** with embedded Qdrant (dense vector + BM25 sparse hybrid search) and 384-dimensional FastEmbed embeddings (`BAAI/bge-small-en-v1.5`). Queries are retrieved via hybrid search during `memory_retrieval_node` and injected into the cognitive context, supporting automated conflict resolution and deduplication.
+  3. **Profile Vector Store (Mem0 on `pgvector`):** Powered by **Mem0** using PostgreSQL `pgvector` on Neon (`collection_name="moka_user_memories"`, 384-dimensional FastEmbed embeddings `BAAI/bge-small-en-v1.5`). Native database transactions eliminate Windows file locking issues and support concurrent access across the web API, background threads, and test runners.
+  4. **Intelligent Memory Reconciliation Engine:** Features a deterministic few-shot reconciliation pass (`_reconcile_dialogue`) that compares recent dialogue against existing memories. Automatically detects:
+     - `UPDATE`: In-place updates when an existing fact or identity is corrected (e.g. name changed from Michael to Mohammad).
+     - `DELETE`: Complete deletion when the user asks to forget or negate a fact.
+     - `ADD`: Incremental insertion of brand new permanent traits.
+  5. **Two-Way Markdown Profile Sync:** Live memories are automatically formatted into [`backend/data/user_profile.md`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/data/user_profile.md). Developers and users can inspect, edit, add, or delete facts by hand in markdown, and sync them back to pgvector via `python backend/sync_memory.py`.
 
 #### 4.2.5 Autonomous Robotics, Spatial Vision & Motion Subsystem
 * **File Location:** [`backend/autonomous_cozmo/vision/`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/autonomous_cozmo/vision/), [`motion/`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/autonomous_cozmo/motion/), [`behavior/`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/autonomous_cozmo/behavior/), [`core/hardware/`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/core/hardware/)

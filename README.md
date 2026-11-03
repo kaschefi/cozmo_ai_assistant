@@ -22,8 +22,8 @@ An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a
 | **Face Expressions** | Dynamic rendering of graphics, countdown timers, and weather info directly onto Cozmo's 128×64 OLED face display |
 | **Timer** | Runs asynchronous countdown timers with real-time MM:SS face updates |
 | **FastAPI REST Bridge** | Exposes all physical actions (docking, speak, timer, face expressions) as HTTP endpoints for external triggers |
-| **Short-Term Memory** | PostgreSQL-backed persistent session state tracker (`PostgresSaver`) paired with rolling context summarization and automatic history trimming to keep context windows tiny |
-| **Long-Term Memory** | Permanent biographical store using native PostgreSQL float arrays (`REAL[]`), local `FastEmbed` embeddings, NumPy cosine similarity, dynamic entity resolution categories ($O(1)$ updates), and async background extraction threads |
+| **Short-Term Memory** | PostgreSQL-backed persistent session state tracker (`PostgresSaver` via `psycopg_pool.ConnectionPool` with auto-reconnect) paired with rolling context summarization and automatic history trimming |
+| **Long-Term Memory** | Production-grade persistent profile powered by **Mem0** and PostgreSQL **`pgvector`** (Neon), FastEmbed ONNX embeddings (`BAAI/bge-small-en-v1.5`), intelligent contradiction reconciliation (UPDATE/DELETE/ADD), and two-way Markdown file sync (`backend/data/user_profile.md`) |
 | **Code Executor Agent** | Deterministic local code execution sub-agent that spawns an isolated Python sandbox to run calculations, algorithms, data filtering, and text parsing with absolute accuracy (using `ornith:9b` via local Ollama) |
 
 ---
@@ -127,7 +127,7 @@ For complex, multi-turn, and knowledge-driven requests, the system transitions t
 The assistant features a sophisticated, persistent two-tiered memory architecture designed to run efficiently on local systems without heavy cloud or complex database dependencies:
 
 #### A. Short-Term Memory (Stateful Session Checkpointing)
-*   **PostgreSQL Session Checkpointer**: Driven by LangGraph's `PostgresSaver`, conversational sessions are stored statefully using connection pooling and database thread trackers (`thread_id="cozmo_default_session"`).
+*   **PostgreSQL Session Checkpointer**: Driven by LangGraph's `PostgresSaver` backed by a resilient `psycopg_pool.ConnectionPool` (`check=ConnectionPool.check_connection`, `max_idle=300`). Conversational sessions are stored statefully across restarts, automatically surviving serverless database idle timeouts (Neon scale-to-zero) with zero dropped connections.
 *   **Automatic Database Migrations**: Self-heals and sets up all required system schemas and state tables natively on application initialization (`checkpointer.setup()`), gracefully falling back to local memory if PostgreSQL is offline.
 *   **Rolling Summarization Node**: To prevent local LLM context window bloating and maintain fast inference speeds:
     *   If a session accumulates **more than 6 messages**, the graph triggers `summarize_conversation_node`.
@@ -135,20 +135,21 @@ The assistant features a sophisticated, persistent two-tiered memory architectur
     *   It emits a sequence of `RemoveMessage` commands to prune active messages older than the last 4 exchanges (2 full turns), freeing up significant CPU resources while maintaining context.
 
 #### B. Long-Term Memory (Permanent Semantic Profile Core)
-*   **Native PostgreSQL Vector Storage (`REAL[]`)**: Bypasses OS-level compiled binaries or dependencies on `pgvector` (highly beneficial for Windows support) by utilizing native float array storage mapping (`REAL[]`) to persist high-dimensional fact embeddings.
-*   **Local Fast Embedding Generation**: Generates 384-dimensional dense vectors locally using `LangChainFastEmbedBridge` powered by the optimized `FastEmbed` library (`BAAI/bge-small-en-v1.5`), ensuring instant query/fact processing.
-*   **Entity Resolution & Dynamic Category Overwriting ($O(1)$ updates)**:
-    *   Supports key biological and user attribute categories: `user_name`, `user_occupation`, `favorite_sports_team`, `favorite_programming_language`, and `user_location`.
-    *   When Cozmo extracts a fact in these unique categories, it bypasses complex semantic logic and performs $O(1)$ entity resolution—directly replacing or updating the database row to prevent key duplicates (e.g. no redundant name facts).
-*   **NumPy Cosine Similarity & Deduplication**:
-    *   For general preferences or hobbies, Cozmo evaluates the semantic overlap mathematically via local NumPy array operations:
-        $$\text{Similarity} = \frac{A \cdot B}{\|A\| \|B\|}$$
-    *   A strict similarity threshold of **`0.82`** prevents duplicate biographical facts; if a new fact is semantically similar to an existing fact, the system updates the original rather than adding a new entry.
-*   **Asynchronous Fact Extraction & Noise Filtering**:
+*   **PostgreSQL `pgvector` Store via Mem0**: Powered by **Mem0** with a high-concurrency vector store on Neon PostgreSQL (`collection_name="moka_user_memories"`). Bypasses local file-locking bottlenecks, enabling simultaneous access from the web server, background workers, and evaluation tests.
+*   **100% Local ONNX Embeddings**: Generates 384-dimensional dense vectors locally using `FastEmbed` (`BAAI/bge-small-en-v1.5`), ensuring fast, privacy-preserving embedding generation.
+*   **Intelligent Memory Reconciliation Engine**:
+    *   Rather than blindly appending contradictory facts, Cozmo runs an intelligent few-shot reconciliation pass (`_reconcile_dialogue`) on incoming conversation against existing memories.
+    *   **In-Place Update (`UPDATE`)**: When user identity or preferences change (e.g., *"my name is not Michael, it's Mohammad"*), the engine updates the existing vector and memory text directly.
+    *   **Explicit Forgetting (`DELETE`)**: When the user asks to forget or negate a fact (e.g., *"forget that I study robotics"*), the engine permanently removes the record from `pgvector`.
+    *   **Incremental Additions (`ADD`)**: Captures new biographical traits (field of study, hobbies, tools) without duplicating existing knowledge.
+*   **Two-Way Markdown Profile Sync (`user_profile.md`)**:
+    *   Live profile memories are automatically exported to human-readable Markdown at [`backend/data/user_profile.md`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant/backend/data/user_profile.md).
+    *   Users can directly inspect, edit, delete lines, or add new facts using any text editor or Obsidian.
+    *   Run `python backend/sync_memory.py` to synchronize manual markdown edits directly into `pgvector`.
+*   **Asynchronous Background Extraction**:
     *   Memory extraction executes on a non-blocking background thread (`threading.Thread(daemon=False)`) at the end of each response, keeping physical text-to-speech (TTS) and voice response cycles entirely lag-free.
-    *   Runs a low-temperature (0.0) deterministic LLM extractor (`router_llm`) on the last 3 messages to parse out explicit user biographical facts while strictly filtering out temporary items (weather, calendar times, dates) and assistant suggestions.
-*   **Dual-Mode Retrieval Pipeline**:
-    *   **Vector Semantic Search**: Matches current query embeddings against stored facts to fetch up to 3 highly relevant personal details per turn, feeding them silently to Cozmo's system context.
+*   **Semantic Memory Retrieval**:
+    *   Matches current query embeddings against stored facts to fetch up to 3 highly relevant personal details per turn, feeding them silently to Cozmo's system context. Special meta-queries (*"what do you know about me?"*) automatically retrieve full profile summaries.
 ### 5. Benchmark Evaluation: Two-Tier Architecture vs. Monolithic Baseline
 
 To rigorously evaluate the advantage of MoKa's **Two-Tier Fallback Hierarchy & Dynamic Tool RAG** against the standard industry approach of a single monolithic all-tools prompt, we ran a comprehensive 57-case benchmark evaluated via **LangSmith**:
