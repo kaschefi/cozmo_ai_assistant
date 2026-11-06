@@ -131,7 +131,7 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
         evaluate_router_on_wp2(
             experiment_name="2-L-Laya-TopK",
             predictor=two_layer_laya_topk_predictor,
-            description="Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-K Tool RAG with LAYA (k=3).",
+            description="Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-K Tool RAG with LAYA (k=5).",
             force_refresh=False,
         )
 
@@ -140,7 +140,7 @@ def run_wp2_benchmark(experiment: str = "laya", force_refresh: bool = False):
         evaluate_router_on_wp2(
             experiment_name="1-L-Laya-TopK",
             predictor=single_layer_laya_topk_predictor,
-            description="Single-Layer LAYA router with Top-K FastEmbed Tool RAG retrieval (k=3).",
+            description="Single-Layer LAYA router with Top-K FastEmbed Tool RAG retrieval (k=5).",
             force_refresh=False,
         )
 

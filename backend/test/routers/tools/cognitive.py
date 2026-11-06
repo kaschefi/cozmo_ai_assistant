@@ -10,6 +10,34 @@ from typing import Dict, List
 COGNITIVE_NAMESPACE = "cognitive"
 
 # -----------------------------------------------------------------------------
+# Multiple Semantic Dimensions for web_search_node
+# Prevents vector dilution across orthogonal retrieval domains (news, sports, finance, facts)
+# in the Layer 1 FastEmbed FAISS Tool RAG index.
+# -----------------------------------------------------------------------------
+WEB_SEARCH_DIMENSIONS: Dict[str, str] = {
+    # Dimension 1: Live News & Current World Affairs
+    "news_current_events": (
+        "Searches the live web for breaking news headlines, recent world events, political developments, "
+        "international affairs, technology announcements, scientific discoveries, space missions, and ongoing global occurrences."
+    ),
+    # Dimension 2: Sports Scores, Matches, & Competitions
+    "sports_competitions": (
+        "Looks up sports news, tournament fixtures, live match scores, athletic competitions, championship games, "
+        "team standings, game winners, match results, and professional league statistics."
+    ),
+    # Dimension 3: Financial Markets & Corporate Metrics
+    "finance_markets": (
+        "Retrieves online financial data, stock market ticker prices, corporate valuations, market capitalization, "
+        "earnings reports, economic indicators, cryptocurrency rates, and business finance metrics."
+    ),
+    # Dimension 4: General Factual Knowledge & Research Lookups
+    "factual_knowledge": (
+        "Searches online sources to verify real-world facts, answer encyclopedic questions, look up historical information, "
+        "biographies, geographic details, science concepts, or find references when knowledge is not known locally."
+    ),
+}
+
+# -----------------------------------------------------------------------------
 # Multiple Short Explanations (Dimensions) for code_executor_node
 # Mirroring backend/actions/digital/langchain/code_executor.py:L152-L182.
 # In Layer 1 (FastEmbed / FAISS Tool RAG), each dimension is indexed as an
@@ -57,8 +85,9 @@ COGNITIVE_BASE_TOOLS: Dict[str, str] = {
         "Use for rain, temperature, outside conditions, or weather forecasts."
     ),
     "web_search_node": (
-        "Searches the live web to find online information, breaking news headlines, space exploration, "
-        "sports match winners and scores, company financial market cap, or answering general factual questions."
+        "Performs live web searches to retrieve dynamic or external information from the internet. "
+        "Use when user requests breaking news, live sports match results and scores, stock prices and corporate market cap, "
+        "online articles, or factual verification for general knowledge questions."
     ),
     "code_executor_node": (
         "Executes Python code in an isolated sandbox for exact deterministic computation across 5 dimensions: "
@@ -111,8 +140,12 @@ COGNITIVE_TOOLS: Dict[str, str] = {
 COGNITIVE_RAG_SPECS: List[Dict[str, str]] = [
     {"name": "calendar_node", "description": COGNITIVE_TOOLS["calendar_node"], "namespace": COGNITIVE_NAMESPACE},
     {"name": "weather_node", "description": COGNITIVE_TOOLS["weather_node"], "namespace": COGNITIVE_NAMESPACE},
-    {"name": "web_search_node", "description": COGNITIVE_TOOLS["web_search_node"], "namespace": COGNITIVE_NAMESPACE},
     {"name": "todolist_node", "description": COGNITIVE_TOOLS["todolist_node"], "namespace": COGNITIVE_NAMESPACE},
+    # 4 discrete semantic dimensions for web_search_node (prevents vector dilution across news, sports, finance, facts)
+    {"name": "web_search_node", "description": WEB_SEARCH_DIMENSIONS["news_current_events"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "web_search_node", "description": WEB_SEARCH_DIMENSIONS["sports_competitions"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "web_search_node", "description": WEB_SEARCH_DIMENSIONS["finance_markets"], "namespace": COGNITIVE_NAMESPACE},
+    {"name": "web_search_node", "description": WEB_SEARCH_DIMENSIONS["factual_knowledge"], "namespace": COGNITIVE_NAMESPACE},
     # 5 discrete short dimensions for code_executor_node
     {"name": "code_executor_node", "description": CODE_EXECUTOR_DIMENSIONS["arithmetic_calculation"], "namespace": COGNITIVE_NAMESPACE},
     {"name": "code_executor_node", "description": CODE_EXECUTOR_DIMENSIONS["logic_algorithms"], "namespace": COGNITIVE_NAMESPACE},

@@ -6,10 +6,11 @@ load_dotenv()
 
 _MODEL_CACHE = {}
 
-def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, provider: str = None):
+def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, provider: str = None, num_ctx: int = None):
     """
     Creates and returns the appropriate Chat Model based on LLM_PROVIDER or explicit provider override.
     Supports provider="OLLAMA" / "LOCAL" and provider="AZURE" / "CLOUD".
+    Optionally accepts num_ctx to configure the Ollama context window size (e.g. 8192).
     """
     selected_provider = (provider or os.getenv("LLM_PROVIDER", "OLLAMA")).upper().strip()
     if selected_provider in ["CLOUD", "AZURE"]:
@@ -17,8 +18,8 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, pr
     else:
         resolved_provider = "OLLAMA"
 
-
-    cache_key = (model_env_var, default_model, temperature, resolved_provider)
+    effective_num_ctx = num_ctx or int(os.getenv("OLLAMA_NUM_CTX", "8192"))
+    cache_key = (model_env_var, default_model, temperature, resolved_provider, effective_num_ctx)
     if cache_key in _MODEL_CACHE:
         return _MODEL_CACHE[cache_key]
 
@@ -91,7 +92,8 @@ def get_llm(model_env_var: str, default_model: str, temperature: float = 0.0, pr
         client = ChatOllama(
             model=model,
             temperature=temperature,
-            base_url=base_url
+            base_url=base_url,
+            num_ctx=effective_num_ctx
         )
         _MODEL_CACHE[cache_key] = client
         return client

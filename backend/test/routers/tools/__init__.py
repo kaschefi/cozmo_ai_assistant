@@ -25,6 +25,8 @@ from test.routers.tools.tools_config import (
     CODE_EXECUTOR_DIMENSIONS,
     build_laya_questions,
     register_all_tools_to_rag,
+    create_scoped_tool_rag_registry,
+    get_rag_specs_for_tools,
     get_tools_preset,
     get_tools_subset,
 )

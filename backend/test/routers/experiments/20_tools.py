@@ -10,7 +10,7 @@ Models Tested (from backend/test/routers/models):
 2. 20-Tools-1-L-Laya:       Single-Layer LAYA (Monolithic LAYA cross-encoder over 20 tools)
 3. 20-Tools-2-L-Laya-TopK:  Two-Layer Top-K LAYA (FastEmbed Reflexes + Top-3 Tool RAG + LAYA)
 4. 20-Tools-1-L-Laya-TopK:  Single-Layer Top-K LAYA (Top-3 FastEmbed Tool RAG + LAYA)
-5. 20-Tools-2-L-LLM:        Production Two-Layer LLM (FastEmbed Reflexes + Tool RAG + LLM)
+5. 20-Tools-2-L-LLM:        Production Two-Layer LLM (FastEmbed Reflexes + Top-5 Tool RAG + LLM)
 6. 20-Tools-Baseline-LLM:   Monolithic Single-Shot Baseline LLM across all 20 tools
 """
 
@@ -49,7 +49,8 @@ DATASET_NAME = get_dataset_name_for_tools(NUM_TOOLS)
 def run_20_tools_experiment(
     selected_model: str = "all",
     project_name: str = "MoKa-Router-Benchmark",
-    force_refresh: bool = False
+    force_refresh: bool = False,
+    phase: str = "phase2"
 ) -> List[Dict[str, Any]]:
     """
     Runs the 20 Tools benchmark in LangSmith against MoKa_Router_Benchmark_20_Tools.
@@ -83,8 +84,8 @@ def run_20_tools_experiment(
             "id": "2-L-Laya-TopK",
             "name": f"{NUM_TOOLS}-Tools-2-L-Laya-TopK",
             "group": "laya_topk",
-            "description": f"Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-3 Tool RAG with LAYA ({NUM_TOOLS} tools).",
-            "get_predictor": lambda: get_two_layer_laya_topk_predictor(num_tools=NUM_TOOLS, k=3),
+            "description": f"Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-5 Tool RAG with LAYA ({NUM_TOOLS} tools).",
+            "get_predictor": lambda: get_two_layer_laya_topk_predictor(num_tools=NUM_TOOLS, k=5),
         },
         {
             "id": "1-L-Laya-TopK",
@@ -97,8 +98,8 @@ def run_20_tools_experiment(
             "id": "2-L-LLM",
             "name": f"{NUM_TOOLS}-Tools-2-L-LLM",
             "group": "llm",
-            "description": f"Production Two-Layer Router: FastEmbed Reflexes + Tool RAG + LLM Classifier ({NUM_TOOLS} tools).",
-            "get_predictor": lambda: get_two_layer_llm_predictor(num_tools=NUM_TOOLS),
+            "description": f"Production Two-Layer Router: FastEmbed Reflexes + Top-5 Tool RAG + LLM Classifier ({NUM_TOOLS} tools).",
+            "get_predictor": lambda: get_two_layer_llm_predictor(num_tools=NUM_TOOLS, k=5),
         },
         {
             "id": "Baseline-LLM",
@@ -124,6 +125,7 @@ def run_20_tools_experiment(
                 description=m["description"],
                 force_refresh=force_refresh,
                 project_name=project_name,
+                phase=phase,
             )
             results.append(res)
             # Re-sync dataset only on first run
@@ -173,11 +175,19 @@ if __name__ == "__main__":
         action="store_true",
         help="Re-sync dataset in LangSmith"
     )
+    parser.add_argument(
+        "--phase",
+        "-ph",
+        type=str,
+        default="phase2",
+        help="Target experiment results phase directory (default: 'phase2')"
+    )
     args = parser.parse_args()
 
     run_20_tools_experiment(
         selected_model=args.model,
         project_name=args.project,
         force_refresh=args.force_refresh,
+        phase=args.phase,
     )
 

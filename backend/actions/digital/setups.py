@@ -12,7 +12,7 @@ tool_rag_registry.register_tool_schema(
 )
 tool_rag_registry.register_tool_schema(
     name="setup_study",
-    description="Prepares the workstation for studying, opening Moodle, Gemini, NotebookLM, YouTube, or study materials and notes."
+    description="Prepares the workstation for university study by opening browser tabs for Moodle and NotebookLM. Use when user says they want to study, activate study mode, or prepare for university homework and coursework. Do not use for playing study music (use spotify_play_playlist) or marking items on a checklist (use todolist_node)."
 )
 tool_rag_registry.register_tool_schema(
     name="setup_coding",
@@ -60,6 +60,8 @@ async def setup_gaming(mute: bool = False):
         "set it for study",
         "study mode",
         "time to study",
+        "i want to study",
+        "start studying",
         "prepare my laptop for study",
         "open my study tabs",
         "study work",
@@ -67,6 +69,9 @@ async def setup_gaming(mute: bool = False):
         "open my moodle and study tabs",
         "prepare for studying mode",
         "set my laptop for study",
+        "get my workstation ready for my homework session",
+        "open up Moodle and NotebookLM so I can review notes",
+        "configure my screen for university study mode",
     ],
     score_threshold=0.80
 )

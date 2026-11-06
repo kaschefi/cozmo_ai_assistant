@@ -41,14 +41,15 @@ class ToolVectorRegistry:
         if self._tools_source:
             self.db = FAISS.from_documents(self._tools_source, self.embeddings)
 
-    def search_relevant_tools(self, user_query: str, k: int = 3, distance_threshold: float = 1.22) -> list[dict]:
+    def search_relevant_tools(self, user_query: str, k: int = 5, distance_threshold: float = 1.22) -> list[dict]:
         """Retrieves the top K tools closest to the user's intent, filtered by distance score."""
         if not self.db:
             return []
         
-        # similarity_search_with_score returns a list of (Document, score) tuples
-        # Under BAAI/bge-small-en-v1.5 and FAISS, a lower L2 distance means a closer match
-        results = self.db.similarity_search_with_score(user_query, k=k)
+        # When tools have multiple dimensional sub-documents (e.g. code_executor, web_search),
+        # oversample raw chunks so deduplication by tool_name returns exactly k distinct tool candidates.
+        fetch_k = min(len(self._tools_source), max(k * 3, 15))
+        results = self.db.similarity_search_with_score(user_query, k=fetch_k)
         
         filtered_tools = []
         seen_names = set()
@@ -59,8 +60,11 @@ class ToolVectorRegistry:
                     seen_names.add(name)
                     filtered_tools.append({
                         "name": name,
-                        "description": doc.page_content
+                        "description": doc.page_content,
+                        "score": float(score)
                     })
+                    if len(filtered_tools) >= k:
+                        break
         
         return filtered_tools
 

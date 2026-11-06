@@ -35,10 +35,14 @@ def call_n8n_calendar(user_input: str) -> str:
         print(f"Error connecting to n8n: {e}")
         return "I'm having trouble connecting to my calendar right now. Make sure n8n is running!"
 
-tool_rag_registry.register_tool_schema(
-    name="web_search_node",
-    description="Searches the live web to find online information, breaking news headlines, space exploration, sports match winners and scores, company financial market cap, or answering general factual questions."
-)
+# Register discrete semantic dimensions to avoid vector dilution across domains
+for _dim in [
+    "Searches the live web for breaking news headlines, recent world events, political developments, technology announcements, and space missions.",
+    "Looks up live sports scores, match winners, athletic competitions, tournament games, team standings, and championship results.",
+    "Retrieves online financial data, stock market ticker prices, corporate valuations, company market capitalization, and economic indicators.",
+    "Searches online sources to verify real-world facts, answer encyclopedic questions, historical events, scientific concepts, and general knowledge lookups."
+]:
+    tool_rag_registry.register_tool_schema(name="web_search_node", description=_dim)
 def call_web_search(user_input: str) -> str:
     """
     Sends the user's complex prompt to the n8n webhook.

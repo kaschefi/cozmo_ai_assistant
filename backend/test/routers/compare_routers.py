@@ -55,12 +55,12 @@ ROUTERS = [
     },
     {
         "name": "WP2-Single-Layer-Laya-TopK",
-        "description": "Single-Layer LAYA router with FastEmbed Tool RAG retrieval (top-3 candidates).",
+        "description": "Single-Layer LAYA router with FastEmbed Tool RAG retrieval (top-5 candidates).",
         "predictor": single_layer_laya_topk_predictor,
     },
     {
         "name": "WP2-Two-Layer-Laya-TopK",
-        "description": "Two-Layer architecture with FastEmbed reflexes + Layer 2 Tool RAG with LAYA (top-3 candidates).",
+        "description": "Two-Layer architecture with FastEmbed reflexes + Layer 2 Tool RAG with LAYA (top-5 candidates).",
         "predictor": two_layer_laya_topk_predictor,
     },
 ]

@@ -35,11 +35,11 @@ chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 def tool_retrieval_node(state: AgentState):
     """
     RAG LAYER STEP 1: Programmatically query our tool database vector space
-    to pull only the top 2-3 matching candidates.
+    to pull only the top 5 matching candidates.
     """
     last_message = state["messages"][-1].content
-    # Pull top 2-3 most matching tools to keep the prompt absolutely razor sharp
-    matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=3)
+    # Pull top 5 most matching tools to keep the prompt absolutely razor sharp
+    matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=5)
     return {"active_tools": matched_tools}
 
 

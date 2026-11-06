@@ -237,6 +237,36 @@ def build_laya_questions(tools_dict: Dict[str, str] = TOOLS_18) -> Dict[str, Any
     }
 
 
+def get_rag_specs_for_tools(tools_dict: Dict[str, str]) -> List[Dict[str, str]]:
+    """
+    Returns RAG specifications matching ONLY the tools present in tools_dict.
+    Excludes fallback channels like 'none'.
+    """
+    target_names = {k for k in tools_dict.keys() if k != "none"}
+    specs = [spec for spec in TOOL_RAG_REGISTRY_SPECS if spec["name"] in target_names]
+
+    # If any tool in tools_dict is not in TOOL_RAG_REGISTRY_SPECS, add it from tools_dict
+    registered_names = {s["name"] for s in specs}
+    for name, desc in tools_dict.items():
+        if name != "none" and name not in registered_names:
+            specs.append({"name": name, "description": desc})
+    return specs
+
+
+def create_scoped_tool_rag_registry(tools_dict: Dict[str, str]):
+    """
+    Builds a fresh, independent ToolVectorRegistry containing strictly the tools
+    defined in tools_dict. Does NOT pollute or read the global singleton.
+    """
+    from core.routing.layer2.tool_vector_db import ToolVectorRegistry
+    registry = ToolVectorRegistry()
+    specs = get_rag_specs_for_tools(tools_dict)
+    for spec in specs:
+        registry.register_tool_schema(name=spec["name"], description=spec["description"])
+    registry.build_index()
+    return registry
+
+
 def register_all_tools_to_rag(registry=None, specs: Optional[List[Dict[str, str]]] = None):
     """
     Registers system tools into the Layer 1 FAISS ToolVectorRegistry.

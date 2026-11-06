@@ -25,36 +25,36 @@ if backend_path not in sys.path:
 
 import laya
 from core.routing.layer1.semantic_layer import check_layer_1
-from core.routing.layer2.tool_vector_db import tool_rag_registry
 from test.routers.tools import (
     TOOLS_15,
     build_laya_questions,
     get_tools_preset,
-    register_all_tools_to_rag,
-    TOOL_RAG_REGISTRY_SPECS
+    create_scoped_tool_rag_registry,
 )
 from test.routers.harness import evaluate_router_on_wp2, evaluate_router_on_benchmark
 
 # Singletons for fast repeated evaluation
 _LAYA_AGENT = None
 _TWO_LAYER_TOPK_INITIALIZED = False
+_WP2_LAYA_RAG = None
+_SCOPED_RAG_CACHE: Dict[int, Any] = {}
 _PREDICTOR_CACHE: Dict[tuple, Callable[[dict], dict]] = {}
 
 
 def ensure_two_layer_laya_topk_ready(model_id: str = "convaiinnovations/laya-typed-decisions"):
-    """Initializes Layer 1 semantic reflexes, Layer 2 Tool RAG index, and LAYA decision model."""
-    global _LAYA_AGENT, _TWO_LAYER_TOPK_INITIALIZED
+    """Initializes Layer 1 semantic reflexes, dedicated WP2 Tool RAG index, and LAYA decision model."""
+    global _LAYA_AGENT, _TWO_LAYER_TOPK_INITIALIZED, _WP2_LAYA_RAG
     if not _TWO_LAYER_TOPK_INITIALIZED:
-        print(f"[TwoLayerLayaTopK] Initializing Layer 1 Reflexes and Layer 2 Top-K LAYA ({model_id})...")
+        print(f"[TwoLayerLayaTopK] Initializing Layer 1 Reflexes and WP2 Top-K LAYA ({model_id})...")
         _ = check_layer_1("warmup")
-        register_all_tools_to_rag(specs=TOOL_RAG_REGISTRY_SPECS)
-        tool_rag_registry.build_index()
+        if _WP2_LAYA_RAG is None:
+            _WP2_LAYA_RAG = create_scoped_tool_rag_registry(TOOLS_15)
 
         if _LAYA_AGENT is None:
             _LAYA_AGENT = laya.load(model_id)
 
         # Warmup pass with sample top-k criteria
-        sample_tools = tool_rag_registry.search_relevant_tools("warmup", k=3)
+        sample_tools = _WP2_LAYA_RAG.search_relevant_tools("warmup", k=3)
         sample_dict = {t["name"]: t["description"] for t in sample_tools}
         sample_dict["none"] = TOOLS_15["none"]
         _ = _LAYA_AGENT.predict("warmup", build_laya_questions(sample_dict))
@@ -64,7 +64,7 @@ def ensure_two_layer_laya_topk_ready(model_id: str = "convaiinnovations/laya-typ
     return _LAYA_AGENT
 
 
-def two_layer_laya_topk_predictor(inputs: dict, k: int = 3) -> dict:
+def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 384) -> dict:
     """
     Evaluates a user query through Two-Layer Router with Top-K LAYA (15 tools default).
     """
@@ -83,10 +83,10 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 3) -> dict:
             "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
         }
 
-    # Step 2: Fall back to Layer 2 Tool RAG + LAYA Decision Model
-    matched_tools = tool_rag_registry.search_relevant_tools(query, k=k)
+    # Step 2: Fall back to Layer 2 Tool RAG + LAYA Decision Model (dedicated WP2 index)
+    matched_tools = _WP2_LAYA_RAG.search_relevant_tools(query, k=k, distance_threshold=1.10)
 
-    if not matched_tools:
+    if not matched_tools or (matched_tools and matched_tools[0].get("score", 0.0) > 1.10):
         latency_ms = (time.perf_counter() - start_time) * 1000
         return {
             "route": "none",
@@ -98,11 +98,21 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 3) -> dict:
             "pipeline": f"Two-Layer (Tier 2 Top-{k} Tool RAG + LAYA)"
         }
 
-    candidate_dict = {tool["name"]: tool["description"] for tool in matched_tools}
+    top_score = matched_tools[0].get("score", 0.0)
+    # Adaptive candidate filtering: keep candidates within distance delta of top match
+    # to avoid diluting ModernBERT's cross-encoder softmax with poor distance outliers
+    active_tools = [
+        t for t in matched_tools
+        if t.get("score", 0.0) <= 1.05 and t.get("score", 0.0) <= top_score + 0.25
+    ]
+    if not active_tools:
+        active_tools = [matched_tools[0]]
+
+    candidate_dict = {tool["name"]: tool["description"] for tool in active_tools}
     candidate_dict["none"] = TOOLS_15["none"]
     questions = build_laya_questions(candidate_dict)
 
-    result = agent.predict(query, questions)
+    result = agent.predict(query, questions, head_max_len=head_max_len)
     answers = result.get("answers", result)
     decision = answers.get("tool_selection", {})
 
@@ -116,27 +126,33 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 3) -> dict:
         "confidence": confidence,
         "latency_ms": latency_ms,
         "probabilities": decision.get("probabilities", {}),
-        "top_k_candidates": [tool["name"] for tool in matched_tools],
+        "top_k_candidates": [tool["name"] for tool in active_tools],
         "pipeline": f"Two-Layer (Tier 2 Top-{k} Tool RAG + LAYA)"
     }
 
 
 def get_two_layer_laya_topk_predictor(
     num_tools: int = 20,
-    k: int = 3,
-    model_id: str = "convaiinnovations/laya-typed-decisions"
+    k: int = 5,
+    model_id: str = "convaiinnovations/laya-typed-decisions",
+    head_max_len: int = 384
 ) -> Callable[[dict], dict]:
     """
     Returns a configured predictor callable for N tools (20, 30, 50, 100)
     combining Layer 1 reflexes with Layer 2 Top-K FastEmbed retrieval + LAYA.
     """
     global _PREDICTOR_CACHE
-    cache_key = (num_tools, k)
+    cache_key = (num_tools, k, head_max_len)
     if cache_key in _PREDICTOR_CACHE:
         return _PREDICTOR_CACHE[cache_key]
 
     agent = ensure_two_layer_laya_topk_ready(model_id=model_id)
     tools_dict = get_tools_preset(num_tools)
+
+    if num_tools not in _SCOPED_RAG_CACHE:
+        print(f"[TwoLayerLayaTopK] Building dedicated FAISS Tool RAG index for {num_tools} tools...")
+        _SCOPED_RAG_CACHE[num_tools] = create_scoped_tool_rag_registry(tools_dict)
+    local_rag = _SCOPED_RAG_CACHE[num_tools]
 
     def scaled_predictor(inputs: dict) -> dict:
         query = inputs["message"].strip()
@@ -153,11 +169,10 @@ def get_two_layer_laya_topk_predictor(
                 "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
             }
 
-        # Step 2: Fall back to Layer 2 Tool RAG + LAYA Decision Model
-        matched_tools = tool_rag_registry.search_relevant_tools(query, k=k)
-        matched_tools = [t for t in matched_tools if t["name"] in tools_dict]
+        # Step 2: Fall back to Layer 2 Tool RAG + LAYA Decision Model (dedicated index)
+        matched_tools = local_rag.search_relevant_tools(query, k=k, distance_threshold=1.10)
 
-        if not matched_tools:
+        if not matched_tools or (matched_tools and matched_tools[0].get("score", 0.0) > 1.10):
             latency_ms = (time.perf_counter() - start_time) * 1000
             return {
                 "route": "none",
@@ -169,11 +184,19 @@ def get_two_layer_laya_topk_predictor(
                 "pipeline": f"Two-Layer (Tier 2 Top-{k} Tool RAG + LAYA - {num_tools} Tools)"
             }
 
-        candidate_dict = {tool["name"]: tool["description"] for tool in matched_tools}
+        top_score = matched_tools[0].get("score", 0.0)
+        active_tools = [
+            t for t in matched_tools
+            if t.get("score", 0.0) <= 1.05 and t.get("score", 0.0) <= top_score + 0.25
+        ]
+        if not active_tools:
+            active_tools = [matched_tools[0]]
+
+        candidate_dict = {tool["name"]: tool["description"] for tool in active_tools}
         candidate_dict["none"] = tools_dict["none"]
         questions = build_laya_questions(candidate_dict)
 
-        result = agent.predict(query, questions)
+        result = agent.predict(query, questions, head_max_len=head_max_len)
         answers = result.get("answers", result)
         decision = answers.get("tool_selection", {})
 
@@ -187,7 +210,7 @@ def get_two_layer_laya_topk_predictor(
             "confidence": confidence,
             "latency_ms": latency_ms,
             "probabilities": decision.get("probabilities", {}),
-            "top_k_candidates": [tool["name"] for tool in matched_tools],
+            "top_k_candidates": [tool["name"] for tool in active_tools],
             "pipeline": f"Two-Layer (Tier 2 Top-{k} Tool RAG + LAYA - {num_tools} Tools)"
         }
 
@@ -197,8 +220,11 @@ def get_two_layer_laya_topk_predictor(
 
 class TwoLayerLayaTopKRouter:
     """Class wrapper around two_layer_laya_topk_predictor for backward compatibility."""
-    def __init__(self, num_tools: int = 20, k: int = 3):
-        self._predictor = get_two_layer_laya_topk_predictor(num_tools, k=k)
+    def __init__(self, num_tools: int = 20, k: int = 5, head_max_len: int = 384):
+        self._predictor = get_two_layer_laya_topk_predictor(num_tools, k=k, head_max_len=head_max_len)
+
+    def route(self, query: str) -> dict:
+        return self._predictor({"message": query})
 
     def route(self, query: str) -> dict:
         return self._predictor({"message": query})

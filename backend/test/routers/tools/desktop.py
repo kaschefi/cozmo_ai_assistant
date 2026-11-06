@@ -18,11 +18,11 @@ DESKTOP_BASE_TOOLS: Dict[str, str] = {
         "Launches PC video game applications (Steam, Counter-Strike, Discord) to play video games on the laptop."
     ),
     "setup_study": (
-        "Prepares the study workstation by opening browser tabs for Moodle, Gemini, NotebookLM, and YouTube. "
-        "Use when user wants to study, activate study mode, or open study resources."
+        "Prepares the workstation for university study by opening browser tabs for Moodle and NotebookLM. "
+        "Use when user says they want to study, activate study mode, or prepare for university homework and coursework."
     ),
     "setup_coding": (
-        "Prepares the development workspace by opening GitHub, Gemini, YouTube, and launching PyCharm IDE. "
+        "Prepares the development workspace by opening GitHub and launching PyCharm IDE. "
         "Use when user wants to code, activate coding mode, or prepare for programming."
     ),
     # System Utilities

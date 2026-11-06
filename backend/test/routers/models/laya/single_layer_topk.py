@@ -23,38 +23,35 @@ if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
 import laya
-from core.routing.layer1.semantic_layer import initialize_router
-from core.routing.layer2.tool_vector_db import tool_rag_registry
 from test.routers.tools import (
     TOOLS_15,
     build_laya_questions,
     get_tools_preset,
-    register_all_tools_to_rag,
-    TOOL_RAG_REGISTRY_SPECS
+    create_scoped_tool_rag_registry,
 )
 from test.routers.harness import evaluate_router_on_wp2, evaluate_router_on_benchmark
 
 # Singletons for fast repeated evaluation
 _LAYA_AGENT = None
 _LAYA_TOPK_INITIALIZED = False
+_WP2_LAYA_RAG = None
+_SCOPED_RAG_CACHE: Dict[int, Any] = {}
 _PREDICTOR_CACHE: Dict[tuple, Callable[[dict], dict]] = {}
 
 
 def ensure_single_layer_laya_topk_ready(model_id: str = "convaiinnovations/laya-typed-decisions"):
-    """Ensures Tool RAG vector index is built and LAYA model is loaded and warmed up."""
-    global _LAYA_AGENT, _LAYA_TOPK_INITIALIZED
+    """Ensures dedicated WP2 Tool RAG index is built and LAYA model is loaded and warmed up."""
+    global _LAYA_AGENT, _LAYA_TOPK_INITIALIZED, _WP2_LAYA_RAG
     if not _LAYA_TOPK_INITIALIZED:
-        print(f"[SingleLayerLayaTopK] Initializing Tool RAG registry and LAYA model ({model_id})...")
-        if tool_rag_registry.db is None:
-            initialize_router()
-        register_all_tools_to_rag(specs=TOOL_RAG_REGISTRY_SPECS)
-        tool_rag_registry.build_index()
+        print(f"[SingleLayerLayaTopK] Initializing WP2 Tool RAG registry and LAYA model ({model_id})...")
+        if _WP2_LAYA_RAG is None:
+            _WP2_LAYA_RAG = create_scoped_tool_rag_registry(TOOLS_15)
 
         if _LAYA_AGENT is None:
             _LAYA_AGENT = laya.load(model_id)
 
         # Warmup pass with sample top-k criteria
-        sample_tools = tool_rag_registry.search_relevant_tools("warmup", k=3)
+        sample_tools = _WP2_LAYA_RAG.search_relevant_tools("warmup", k=3)
         sample_dict = {t["name"]: t["description"] for t in sample_tools}
         sample_dict["none"] = TOOLS_15["none"]
         _ = _LAYA_AGENT.predict("warmup", build_laya_questions(sample_dict))
@@ -72,8 +69,8 @@ def single_layer_laya_topk_predictor(inputs: dict, k: int = 3) -> dict:
     query = inputs["message"].strip()
     start_time = time.perf_counter()
 
-    # Step 1: Query Tool Vector DB for top-k relevant tools
-    matched_tools = tool_rag_registry.search_relevant_tools(query, k=k)
+    # Step 1: Query dedicated WP2 Tool Vector DB for top-k relevant tools
+    matched_tools = _WP2_LAYA_RAG.search_relevant_tools(query, k=k)
 
     # Step 2: If no tools passed similarity threshold, bypass LAYA and return "none"
     if not matched_tools:
@@ -128,13 +125,17 @@ def get_single_layer_laya_topk_predictor(
     agent = ensure_single_layer_laya_topk_ready(model_id=model_id)
     tools_dict = get_tools_preset(num_tools)
 
+    if num_tools not in _SCOPED_RAG_CACHE:
+        print(f"[SingleLayerLayaTopK] Building dedicated FAISS Tool RAG index for {num_tools} tools...")
+        _SCOPED_RAG_CACHE[num_tools] = create_scoped_tool_rag_registry(tools_dict)
+    local_rag = _SCOPED_RAG_CACHE[num_tools]
+
     def scaled_predictor(inputs: dict) -> dict:
         query = inputs["message"].strip()
         start_time = time.perf_counter()
 
-        # Step 1: Query Tool Vector DB for top-k relevant tools
-        matched_tools = tool_rag_registry.search_relevant_tools(query, k=k)
-        matched_tools = [t for t in matched_tools if t["name"] in tools_dict]
+        # Step 1: Query dedicated Tool Vector DB containing ONLY this experiment's tools
+        matched_tools = local_rag.search_relevant_tools(query, k=k)
 
         if not matched_tools:
             latency_ms = (time.perf_counter() - start_time) * 1000

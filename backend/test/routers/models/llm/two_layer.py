@@ -5,7 +5,7 @@ Router: Two-Layer Architecture with LLM Router Evaluation.
 Implementation:
 Uses the two-layer intelligence pipeline:
 - Layer 1: Fast deterministic FastEmbed semantic reflexes (~6ms) for physical & desktop commands (0 tokens).
-- Layer 2: FastEmbed FAISS Tool RAG retrieves top-k candidates (default k=3), then invokes the LLM
+- Layer 2: FastEmbed FAISS Tool RAG retrieves top-k candidates (default k=5), then invokes the LLM
   (qwen2.5:3b or configured provider) with ONLY those top-k tools in a compact structured prompt.
   Generates input and output tokens tracked directly in LangSmith.
 """
@@ -24,17 +24,17 @@ if backend_path not in sys.path:
 from core.routing.llm_factory import get_llm
 from core.routing.baseline.baseline_router import BaselineDecision
 from core.routing.layer1.semantic_layer import check_layer_1
-from core.routing.layer2.tool_vector_db import tool_rag_registry
 from test.routers.tools import (
     TOOLS_15,
     get_tools_preset,
-    register_all_tools_to_rag,
-    TOOL_RAG_REGISTRY_SPECS
+    create_scoped_tool_rag_registry,
 )
 from test.routers.harness import evaluate_router_on_wp2, evaluate_router_on_benchmark
 
 _TWO_LAYER_LLM_INITIALIZED = False
-_PREDICTOR_CACHE: Dict[int, Callable[[dict], dict]] = {}
+_WP2_LLM_RAG = None
+_SCOPED_RAG_CACHE: Dict[int, Any] = {}
+_PREDICTOR_CACHE: Dict[tuple, Callable[[dict], dict]] = {}
 
 
 def _build_two_layer_llm_prompt(candidate_tools: List[Dict[str, str]]) -> str:
@@ -57,18 +57,17 @@ CLASSIFICATION RULES:
 
 
 def ensure_two_layer_llm_ready():
-    """Initializes Layer 1 reflexes and Layer 2 FAISS Tool RAG index."""
-    global _TWO_LAYER_LLM_INITIALIZED
+    """Initializes Layer 1 reflexes and dedicated WP2 (15 tools) FAISS Tool RAG index."""
+    global _TWO_LAYER_LLM_INITIALIZED, _WP2_LLM_RAG
     if not _TWO_LAYER_LLM_INITIALIZED:
-        print("[TwoLayerLLM] Initializing FastEmbed reflexes and Tool RAG registry...")
+        print("[TwoLayerLLM] Initializing FastEmbed reflexes and WP2 Tool RAG index...")
         _ = check_layer_1("warmup")
-        register_all_tools_to_rag(specs=TOOL_RAG_REGISTRY_SPECS)
-        tool_rag_registry.build_index()
+        _WP2_LLM_RAG = create_scoped_tool_rag_registry(TOOLS_15)
         _TWO_LAYER_LLM_INITIALIZED = True
         print("[TwoLayerLLM] Two-Layer LLM pipeline ready.\n")
 
 
-def two_layer_llm_predictor(inputs: dict, k: int = 3) -> dict:
+def two_layer_llm_predictor(inputs: dict, k: int = 5) -> dict:
     """
     Evaluates a user query through Production Two-Layer LLM Router (WP2 15 tools default).
     Reflexes handle physical actions (0 tokens); Layer 2 retrieves top-k tools and invokes the LLM.
@@ -88,9 +87,8 @@ def two_layer_llm_predictor(inputs: dict, k: int = 3) -> dict:
             "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
         }
 
-    # Step 2: Retrieve Top-K tools from Tool RAG
-    matched_tools = tool_rag_registry.search_relevant_tools(query, k=k)
-    matched_tools = [t for t in matched_tools if t["name"] in TOOLS_15]
+    # Step 2: Retrieve Top-K tools from dedicated WP2 Tool RAG
+    matched_tools = _WP2_LLM_RAG.search_relevant_tools(query, k=k)
 
     if not matched_tools:
         latency_ms = (time.perf_counter() - start_time) * 1000
@@ -133,7 +131,7 @@ def two_layer_llm_predictor(inputs: dict, k: int = 3) -> dict:
 
 def get_two_layer_llm_predictor(
     num_tools: int = 20,
-    k: int = 3,
+    k: int = 5,
     model_env_var: str = "ROUTER_LLM_MODEL",
     default_model: str = "qwen2.5:3b",
     temperature: float = 0.0
@@ -142,12 +140,18 @@ def get_two_layer_llm_predictor(
     Returns a configured predictor callable for N tools (20, 30, 50, 100)
     combining Layer 1 reflexes (0 tokens) with Layer 2 Top-K Tool RAG + LLM Structured Output.
     """
-    global _PREDICTOR_CACHE
-    if num_tools in _PREDICTOR_CACHE:
-        return _PREDICTOR_CACHE[num_tools]
+    global _PREDICTOR_CACHE, _SCOPED_RAG_CACHE
+    cache_key = (num_tools, k)
+    if cache_key in _PREDICTOR_CACHE:
+        return _PREDICTOR_CACHE[cache_key]
 
-    ensure_two_layer_llm_ready()
+    _ = check_layer_1("warmup")
     tools_dict = get_tools_preset(num_tools)
+
+    if num_tools not in _SCOPED_RAG_CACHE:
+        print(f"[TwoLayerLLM] Building dedicated FAISS Tool RAG index for {num_tools} tools...")
+        _SCOPED_RAG_CACHE[num_tools] = create_scoped_tool_rag_registry(tools_dict)
+    local_rag = _SCOPED_RAG_CACHE[num_tools]
 
     router_llm = get_llm(model_env_var, default_model, temperature=temperature)
     structured_router = router_llm.with_structured_output(BaselineDecision, include_raw=True)
@@ -172,9 +176,8 @@ def get_two_layer_llm_predictor(
                 "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
             }
 
-        # Step 2: Query Tool Vector DB for top-k relevant tools
-        matched_tools = tool_rag_registry.search_relevant_tools(query, k=k)
-        matched_tools = [t for t in matched_tools if t["name"] in tools_dict]
+        # Step 2: Query dedicated Tool Vector DB containing ONLY this experiment's tools
+        matched_tools = local_rag.search_relevant_tools(query, k=k)
 
         if not matched_tools:
             latency_ms = (time.perf_counter() - start_time) * 1000
@@ -230,7 +233,7 @@ def get_two_layer_llm_predictor(
             "pipeline": f"Two-Layer (Tier 2 LLM - {num_tools} Tools)"
         }
 
-    _PREDICTOR_CACHE[num_tools] = scaled_predictor
+    _PREDICTOR_CACHE[cache_key] = scaled_predictor
     return scaled_predictor
 
 

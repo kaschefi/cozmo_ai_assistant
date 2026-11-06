@@ -61,7 +61,7 @@ def _run_local_evaluation_pipeline(
     dataset_name: str,
     num_tools: int,
     description: str = "",
-    phase: str = "phase1",
+    phase: str = "phase2",
     auto_save: bool = True,
     auto_chart: bool = True,
 ) -> Dict[str, Any]:
@@ -133,23 +133,32 @@ def _run_local_evaluation_pipeline(
     min_lat = min(latencies) if latencies else 0.0
     max_lat = max(latencies) if latencies else 0.0
 
+    # Token per call statistics
+    non_zero_tokens = [p["tokens_used"] for p in predictions_log if p.get("tokens_used", 0) > 0]
+    llm_calls_count = len(non_zero_tokens)
+    avg_tokens_per_call = round(sum(non_zero_tokens) / llm_calls_count, 1) if llm_calls_count > 0 else 0.0
+    avg_tokens_per_query = round(total_tokens / total_count, 1) if total_count > 0 else 0.0
+
     print("\n" + "=" * 80)
     print(f"EXPERIMENT RESULTS: {experiment_name}")
     print("=" * 80)
-    print(f"Overall Accuracy:  {correct_count}/{total_count} ({accuracy:.1f}%)")
-    print(f"Median Latency:    {p50_latency:.1f} ms")
-    print(f"Mean Latency:      {mean_latency:.1f} ms")
-    print(f"P90 Latency:       {p90_latency:.1f} ms")
-    print(f"Latency Range:     {min_lat:.1f} ms - {max_lat:.1f} ms")
-    print(f"Total Tokens Used: {total_tokens:,}")
-    print(f"Evaluation Time:   {total_eval_duration:.2f} s")
+    print(f"Overall Accuracy:       {correct_count}/{total_count} ({accuracy:.1f}%)")
+    print(f"Median Latency:         {p50_latency:.1f} ms")
+    print(f"Mean Latency:           {mean_latency:.1f} ms")
+    print(f"P90 Latency:            {p90_latency:.1f} ms")
+    print(f"Latency Range:          {min_lat:.1f} ms - {max_lat:.1f} ms")
+    print(f"Total Tokens Used:      {total_tokens:,}")
+    print(f"LLM Calls:              {llm_calls_count}/{total_count}")
+    print(f"Avg Tokens Per Call:    {avg_tokens_per_call}")
+    print(f"Avg Tokens Per Query:   {avg_tokens_per_query}")
+    print(f"Evaluation Time:        {total_eval_duration:.2f} s")
     print("-" * 80)
     print("Category Accuracy:")
     for cat, stats in sorted(category_breakdown.items()):
         cat_acc = (stats["correct"] / stats["total"] * 100) if stats["total"] else 0
         print(f"  - {cat:<18}: {stats['correct']}/{stats['total']} ({cat_acc:.1f}%)")
     print("-" * 80)
-    print(f"Dataset Name:      '{dataset_name}'")
+    print(f"Dataset Name:           '{dataset_name}'")
     print("=" * 80 + "\n")
 
     result_dict = {
@@ -166,6 +175,9 @@ def _run_local_evaluation_pipeline(
         "min_latency_ms": min_lat,
         "max_latency_ms": max_lat,
         "total_tokens": total_tokens,
+        "llm_calls_count": llm_calls_count,
+        "avg_tokens_per_call": avg_tokens_per_call,
+        "avg_tokens_per_query": avg_tokens_per_query,
         "category_breakdown": category_breakdown,
         "dataset_name": dataset_name,
         "description": description,
@@ -191,7 +203,7 @@ def evaluate_router_on_wp2(
     predictor: Callable[[dict], dict],
     description: str = "",
     force_refresh: bool = False,
-    phase: str = "phase1",
+    phase: str = "phase2",
 ) -> Dict[str, Any]:
     """Backward-compatible runner for WP2 15-tool benchmark."""
     print("=" * 80)
@@ -220,7 +232,7 @@ def evaluate_router_on_benchmark(
     description: str = "",
     force_refresh: bool = False,
     project_name: Optional[str] = None,
-    phase: str = "phase1",
+    phase: str = "phase2",
     auto_save: bool = True,
     auto_chart: bool = True,
 ) -> Dict[str, Any]:

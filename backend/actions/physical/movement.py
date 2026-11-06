@@ -318,6 +318,9 @@ def _register_reflex(name, utterances, score_threshold=0.80, speech=""):
         "sweep arc and observe the room",
         "look around your surroundings",
         "look around the area",
+        "pan your camera across the room and look around",
+        "pan your camera",
+        "pan the camera and look around",
     ],
     score_threshold=0.80
 )

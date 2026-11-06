@@ -62,12 +62,12 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     },
     "setup_study": {
         "category": "digital_setup",
-        "description": "Prepares the study workstation by opening browser tabs for Moodle, Google Gemini, Google NotebookLM, and YouTube. Use when the user wants to study, activate study mode, or open study resources.",
-        "examples": ["set it for study", "study mode", "time to study", "prepare my laptop for study", "open my study tabs", "study work"],
+        "description": "Prepares the workstation for university study by opening browser tabs for Moodle and NotebookLM. Use when the user wants to study, activate study mode, or prepare for university homework and coursework. Do not use for playing study music (use spotify_play_playlist) or marking items on a checklist (use todolist_node).",
+        "examples": ["set it for study", "study mode", "time to study", "i want to study", "prepare my laptop for study", "open my study tabs", "study work"],
     },
     "setup_coding": {
         "category": "digital_setup",
-        "description": "Prepares the development workspace by opening browser tabs for GitHub, Google Gemini, YouTube, and launching PyCharm IDE. Use when the user wants to code, activate coding mode, or prepare for programming.",
+        "description": "Prepares the development workspace by opening browser tabs for GitHub and launching PyCharm IDE. Use when the user wants to code, activate coding mode, or prepare for programming.",
         "examples": ["set it for coding", "set my laptop for coding", "coding mode", "time to code", "prepare for coding", "setups code"],
     },
 
@@ -111,12 +111,13 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     },
     "web_search_node": {
         "category": "cognitive_agent",
-        "description": "Searches the web to answer user questions about sports, match winners, game scores, tournaments, current news headlines, company market cap, stock prices, or real-world factual information.",
+        "description": "Performs live web searches to retrieve dynamic or external information from the internet. Use when user requests breaking news, live sports match results and scores, stock prices and corporate market cap, online articles, or factual verification for general knowledge questions. Do not use for casual chitchat, local device settings, media playback, or robot motor commands.",
         "examples": [
             "who won the Champions League yesterday?",
             "what is the latest stock price of Apple?",
             "what happened in the news today?",
-            "search for recent developments in quantum computing"
+            "search for recent developments in quantum computing",
+            "look up the current market cap of NVIDIA"
         ],
     },
     "code_executor_node": {
