@@ -9,5 +9,8 @@
   },
   "dependencies": {
     "thinking-orbs": "^0.3.1"
+  },
+  "devDependencies": {
+    "puppeteer": "^25.16.0"
   }
 }

@@ -521,21 +521,21 @@ To guarantee responsiveness across local edge hardware, computational tasks are 
 | **Asynchronous Stream Path** | SSE token emission, Cozmo OLED face rendering, 20 Hz telemetry WebSocket broadcast, PyCozmo motor commands. | Managed via `asyncio.create_task()` or background tasks on the FastAPI event loop, preventing socket starvation. |
 | **Non-Blocking Background Path** | Rolling conversation summarization (`summarize_conversation_node`), biographical trait extraction (`memory_extraction_node`), LangSmith trace logging. | Executed in dedicated Python OS threads (`threading.Thread(daemon=False)`) after response delivery. Guarantees database writes finish even if the client disconnects immediately. |
 
-## 6. Pluggable Two-Tier Tool-Routing & LangSmith Benchmark Architecture
+## 6. Pluggable Two-Tier Tool-Routing & Scalable Benchmark Suite
 
 A central contribution of the system (anchoring Chapter 3 of the Bachelor's thesis) is the empirical comparison of scalable tool-routing architectures across growing tool catalogs ($N = 20, 30, 50, 100$).
 
 ### 6.1 Two-Tier Routing Decision Tree & Benchmark Pipeline Diagram (Diagram 4)
 
-The following diagram illustrates the routing decision tree: from query ingestion and Tier 1 semantic reflexes, through FAISS candidate pruning over scaled registries with confusable pairs, to the three interchangeable router variants evaluated via the automated LangSmith harness.
+The following diagram illustrates the routing decision tree: from query ingestion and Tier 1 semantic reflexes, through FAISS candidate pruning over scaled registries with confusable pairs, to the six evaluated router variants in the local benchmarking harness, automated result persistence (`saver.py`), and visualization generator:
 
 ```mermaid
-%%{init: {'theme': 'dark', 'flowchart': {'nodeSpacing': 40, 'rankSpacing': 50, 'padding': 20, 'useMaxWidth': true}}}%%
+%%{init: {'theme': 'dark', 'flowchart': {'nodeSpacing': 35, 'rankSpacing': 45, 'padding': 15, 'useMaxWidth': true}}}%%
 graph TD
     %% Test & Query Sources
     subgraph InputCorpus["1. Query Input Sources"]
         User_Query["User Voice &amp; Web<br/>Production Queries"]
-        Test_Dataset["Benchmark Dataset<br/>300+ Curated Queries"]
+        Test_Dataset["Benchmark Dataset Suite<br/>tools_20, 30, 50, 100"]
     end
 
     %% Tier 1 Reflex Layer
@@ -543,7 +543,7 @@ graph TD
         FastEmbed_Model["FastEmbed Model<br/>bge-small-en-v1.5"]
         Reflex_Index["Reflex Registry<br/>Pre-computed Vectors"]
         Reflex_Gate{"Similarity Gate<br/>Cosine Threshold"}
-        Instant_Exec["Direct Handler<br/>Sub-50ms, 0 Tokens"]
+        Instant_Exec["Direct Reflex Route<br/>Sub-10ms, 0 Tokens"]
     end
 
     %% Tier 2 Tool RAG Pruning
@@ -554,18 +554,28 @@ graph TD
         TopK_Pruning["Candidate Pruner<br/>Select Top-k = 3"]
     end
 
-    %% Routing Variants Under Test
-    subgraph RouterVariants["4. Evaluated Router Architectures"]
-        VariantA["Variant A: Flat LLM<br/>All N Tools in Prompt"]
-        VariantB["Variant B: 2-Layer LLM<br/>Top-3 Tools to Ollama"]
-        VariantC["Variant C: 2-Layer LAYA<br/>Top-3 to Decision Model"]
+    %% Routing Variants Under Test (6 Ablation Models)
+    subgraph RouterVariants["4. Evaluated Router Architectures (Ablation Matrix)"]
+        direction TB
+        subgraph LLM_Family["LLM Family (Qwen2.5:3b)"]
+            Baseline_LLM["Baseline-LLM<br/>Monolithic Full Prompt"]
+            Two_L_LLM["2-L-LLM<br/>Reflexes + RAG + LLM"]
+        end
+        subgraph LAYA_Family["LAYA Family (laya-typed-decisions)"]
+            One_L_Laya["1-L-Laya<br/>Monolithic All-Tools"]
+            Two_L_Laya["2-L-Laya<br/>Reflexes + Monolithic"]
+            One_L_Laya_TopK["1-L-Laya-TopK<br/>RAG + LAYA (Top-3)"]
+            Two_L_Laya_TopK["2-L-Laya-TopK<br/>Reflexes + RAG + LAYA"]
+        end
     end
 
-    %% Execution & Benchmark Dispatch
-    subgraph EvaluationHarness["5. Execution &amp; Benchmark Evaluation"]
-        Mock_Dispatch["Mock Action Dispatch<br/>Standard Schema Check"]
-        LangSmith_Tracer["LangSmith Tracer<br/>Telemetry Collector"]
-        Metrics_Reporter["Metrics Engine<br/>Acc, Tokens, P50-P95"]
+    %% Local Benchmark Execution & Persistence Pipeline
+    subgraph EvalPipeline["5. Local Benchmark, Persistence & Visualization Pipeline"]
+        Harness["Local Benchmark Harness<br/>Offline, Zero API Quotas"]
+        Saver["Structured Result Saver<br/>backend/data/router results/"]
+        JSON_Phase["Phase-Segregated JSONs<br/>phase1/&lt;scale&gt;_tools/"]
+        Bar_Gen["Horizontal Bar Chart Generator<br/>docs/charts/phaseX/bar_chart_N.png"]
+        Line_Gen["Scalability Line Chart Generator<br/>docs/charts/phaseX/models/line_chart_*.png"]
     end
 
     %% Flows
@@ -582,34 +592,45 @@ graph TD
     FAISS_Index --> TopK_Pruning
 
     %% Routing to Variants
-    Test_Dataset -.->|"Benchmark Run"| VariantA
-    TopK_Pruning -->|"Candidate Pruning"| VariantB
-    TopK_Pruning -->|"Candidate Pruning"| VariantC
+    Test_Dataset -.->|"Benchmark Evaluation"| Harness
+    Harness --> Baseline_LLM
+    Harness --> Two_L_LLM
+    Harness --> One_L_Laya
+    Harness --> Two_L_Laya
+    Harness --> One_L_Laya_TopK
+    Harness --> Two_L_Laya_TopK
 
-    VariantA --> Mock_Dispatch
-    VariantB --> Mock_Dispatch
-    VariantC --> Mock_Dispatch
-    Instant_Exec --> Mock_Dispatch
+    TopK_Pruning -->|"Top-3 Tools"| Two_L_LLM
+    TopK_Pruning -->|"Top-3 Tools"| One_L_Laya_TopK
+    TopK_Pruning -->|"Top-3 Tools"| Two_L_Laya_TopK
 
-    Mock_Dispatch --> LangSmith_Tracer
-    LangSmith_Tracer --> Metrics_Reporter
+    Baseline_LLM --> Saver
+    Two_L_LLM --> Saver
+    One_L_Laya --> Saver
+    Two_L_Laya --> Saver
+    One_L_Laya_TopK --> Saver
+    Two_L_Laya_TopK --> Saver
+    Instant_Exec -.-> Saver
+
+    Saver --> JSON_Phase
+    JSON_Phase --> Bar_Gen
+    JSON_Phase --> Line_Gen
 ```
 
 ---
 
 ### 6.2 Architectural Routing Paradigms & Variant Taxonomy
 
-The benchmark harness formally compares three primary router architectures, evaluating the tradeoff between monolithic zero-shot prompts and two-stage candidate-pruned classification:
+The benchmark harness formally compares six router configurations, providing a full ablation study across Layer 1 reflexes, Tool RAG candidate pruning, and model choice (monolithic generative LLM vs. constrained typed cross-encoder):
 
-| Feature / Metric | Variant A: Flat Monolithic LLM Baseline | Variant B: Two-Layer LLM (RAG + Qwen) | Variant C: Two-Layer LAYA (RAG + LAYA) |
-| :--- | :--- | :--- | :--- |
-| **Architectural Type** | Single-Stage Monolithic Prompt | Two-Stage (FastEmbed Reflex + FAISS RAG + LLM) | Two-Stage (FastEmbed Reflex + FAISS RAG + Specialized Classifier) |
-| **Layer 1 Reflex Pre-Filter**| None (All queries reach LLM) | Yes (`bge-small-en-v1.5`, $P_{95} < 50\,\text{ms}$) | Yes (`bge-small-en-v1.5`, $P_{95} < 50\,\text{ms}$) |
-| **Layer 2 Candidate Filtering**| None (All $N$ tools serialized in prompt)| FAISS-CPU Top-$k$ ($k=3$ candidates) | FAISS-CPU Top-$k$ ($k=3$ candidates) |
-| **Decision Engine** | Local Ollama (`qwen2.5:3b`, temp=0.0) | Local Ollama (`qwen2.5:3b`, temp=0.0) | `convaiinnovations/laya-typed-decisions` |
-| **Prompt Token Complexity** | $\mathcal{O}(N)$ (Scales linearly with registry size) | $\mathcal{O}(k)$ (Strictly bounded context, $k=3$) | $\mathcal{O}(k)$ (Strictly bounded context, $k=3$) |
-| **Hallucination Exposure** | High at $N=100$ due to attention dilution | Low (Restricted to Top-3 + 'none') | Extremely Low (Constrained typed choice classification) |
-| **Inference Latency Profile**| High variance; degrades linearly as $N$ grows | Bounded by small constant prompt size | Lowest cognitive latency (lightweight specialized model) |
+| Model Identifier | Architecture Description | Layer 1 Reflexes | Layer 2 Filtering | Decision Engine | Token Profile |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Baseline-LLM** | Monolithic Single-Shot LLM | None (All queries reach LLM) | None (All $N$ tools in prompt) | Local Ollama (`qwen2.5:3b`, temp=0.0) | High ($\mathcal{O}(N)$ prompt tokens) |
+| **2-L-LLM** | Production Two-Layer LLM | FastEmbed (`bge-small-en-v1.5`) | FAISS Top-$k$ ($k=3$) | Local Ollama (`qwen2.5:3b`, temp=0.0) | Low ($\mathcal{O}(k)$ bounded tokens) |
+| **1-L-Laya** | Monolithic Single-Layer LAYA | None | None (All $N$ tools evaluated) | `convaiinnovations/laya-typed-decisions` | **0 tokens** (Local classification) |
+| **2-L-Laya** | Two-Layer Monolithic LAYA | FastEmbed (`bge-small-en-v1.5`) | None (All $N$ tools evaluated) | `convaiinnovations/laya-typed-decisions` | **0 tokens** (Local classification) |
+| **1-L-Laya-TopK**| Single-Layer Top-$K$ LAYA | None | FAISS Top-$k$ ($k=3$) | `convaiinnovations/laya-typed-decisions` | **0 tokens** (Local classification) |
+| **2-L-Laya-TopK**| Two-Layer Top-$K$ LAYA | FastEmbed (`bge-small-en-v1.5`) | FAISS Top-$k$ ($k=3$) | `convaiinnovations/laya-typed-decisions` | **0 tokens** (Local classification) |
 
 ---
 
@@ -632,22 +653,33 @@ To rigorously test boundary discrimination and evaluate hallucination under high
 
 ---
 
-### 6.4 Automated LangSmith Benchmark Harness & Metric Specifications
+### 6.4 Local Benchmark Harness, Result Persistence & Visualizations
 
-The benchmarking suite is orchestrated via `backend/test/digital/routers/compare_routers.py` and `harness.py`, submitting traceable evaluation runs directly to the LangSmith cloud evaluation dashboard:
+The benchmarking suite is orchestrated via `backend/test/routers/experiments/*.py` and `harness.py`, operating independently of external cloud rate limits:
 
-1. **Standardized Evaluation Harness:**
-   * A fixed test corpus comprising 300+ diverse queries partitioned into **Canonical Queries** (exact keyword alignment), **Paraphrased Queries** (conversational rewording), and **Confusable Queries** (boundary test queries designed to trigger confusable tool pairs).
-   * Execution of deterministic random seeds (`seed=42`), zero temperature (`temperature=0.0`), and automatic warmup rounds prior to latency measurement.
-2. **Hardware-Isolated Mock Dispatch (`MOCK_ACTION_DISPATCH`):**
-   * Decouples tool routing evaluation from physical hardware execution. Every tool invocation returns a standardized JSON schema validation result, allowing automated CI/CD and batch benchmarking without robot connection.
-3. **Benchmark Metric Formulations:**
-   * **Top-1 Routing Accuracy ($A_{\text{Top-1}}$):** Percentage of test queries where the router correctly predicted the exact ground-truth tool name:
-     $$A_{\text{Top-1}} = \frac{1}{|Q|} \sum_{q \in Q} \mathbb{I}(\hat{y}_q = y_q^*)$$
-   * **Hallucination Rate ($H$):** Percentage of turns where the router invented a non-existent tool name or selected a tool for general chat queries (target: $H < 2\%$):
-     $$H = \frac{1}{|Q|} \sum_{q \in Q} \mathbb{I}(\hat{y}_q \notin \mathcal{T} \cup \{\text{'none'}\} \lor (\hat{y}_q \neq \text{'none'} \land y_q^* = \text{'none'}))$$
-   * **Token Consumption:** Cumulative prompt tokens ($T_{\text{in}}$) and completion tokens ($T_{\text{out}}$) measured via model provider usage metadata.
-   * **Latency Percentiles ($P_{50}, P_{90}, P_{95}$):** End-to-end wall-clock latency in milliseconds measured from query ingress to routing decision return.
+1. **Local Deterministic Harness (`harness.py`):**
+   * Decoupled from cloud trace ingestion to ensure zero rate-limit blocks and reproducible execution.
+   * Loads standardized test suites directly from `backend/test/routers/benchmark_dataset/` (`tools_20`, `tools_30`, `tools_50`, `tools_100`).
+   * Measures **Top-1 Accuracy**, **P50/Mean/P90/Min/Max Latency**, **Per-Category Accuracy**, and **Cumulative Tokens**.
+2. **Structured Persistence & Phase Tracking (`saver.py`):**
+   * Results are segregated by research iteration phase to support progressive model improvement:
+     `backend/data/router results/<phase>/<scale>_tools/<model_name>.json`
+     (e.g., `backend/data/router results/phase1/20_tools/2_L_LLM.json`).
+   * Each JSON file stores full prediction traces, allowing post-hoc confusion matrix analysis and error auditing.
+3. **Publication Visualizations (`bar_chart.py` & `line_chart.py`):**
+   * **Comparative Horizontal Bar Charts:** Automatically generated in `docs/charts/<phase>/bar_chart_<scale>_tools.png` comparing Accuracy, Latency (P50 and Mean), and Token Count across all models in that scale.
+   * **Scalability Trajectory Line Charts:** Generated on demand in `docs/charts/<phase>/models/line_chart_<model>.png`, plotting accuracy degradation, latency scaling, and token consumption across $N = 20 \to 100$.
+
+#### Phase 1 Empirical Benchmark Baseline (20 Tools)
+
+| Model Configuration | Top-1 Accuracy | Median ($P_{50}$) Latency | Mean Latency | Total Tokens | Architectural Advantage |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **2-L-Laya-TopK** | **87.3%** (55/63) | **5.5 ms** | 217.3 ms | **0** | Highest accuracy, lowest median latency, zero LLM cost |
+| **Baseline-LLM** | **87.3%** (55/63) | 1007.4 ms | 1604.7 ms | 73,496 | High accuracy but severe token overhead & latency |
+| **2-L-LLM** | **85.7%** (54/63) | **5.6 ms** | 500.7 ms | 4,704 | **93.6% token reduction** vs. Baseline with near-identical accuracy |
+| **1-L-Laya-TopK** | **82.5%** (52/63) | 537.5 ms | 503.2 ms | **0** | Fast retrieval + lightweight classification |
+| **2-L-Laya** | **82.5%** (52/63) | **7.5 ms** | 351.3 ms | **0** | Instant reflex execution on physical tasks |
+| **1-L-Laya** | **68.3%** (43/63) | 814.9 ms | 829.7 ms | **0** | Monolithic cross-encoder without RAG pruning |
 
 ## 7. Cyber-Physical Vision, Spatial Memory & Motion Control Loop
 
@@ -835,7 +867,7 @@ The system's non-functional requirements are validated through automated test ha
 | **NFR-S01** | Admin Token Authorization | 100% rejection on invalid token | `backend/test/digital/test_web_api.py` |
 | **NFR-R01** | Graceful Hardware Degradation | 0 fatal crashes on missing robot | `backend/test/physical/test_phase3_behavior_tree.py` (`--dry-run`) |
 | **NFR-U01** | Spoken Conversational Brevity | $< 2$ sentences, zero markdown | Automated prompt validation via LangSmith evaluator |
-| **FR-M08** | Router Benchmark Hallucination Rate | $H < 2\%$ across scaling tiers | `backend/test/digital/routers/compare_routers.py` |
+| **FR-M08** | Router Benchmark Hallucination Rate | $H < 2\%$ across scaling tiers | `backend/test/routers/compare_routers.py` |
 
 ---
 
