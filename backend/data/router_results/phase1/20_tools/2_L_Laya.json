@@ -1,0 +1,679 @@
+{
+  "experiment_name": "20-Tools-2-L-Laya",
+  "model_id": "20-Tools-2-L-Laya",
+  "num_tools": 20,
+  "phase": "phase1",
+  "accuracy": 77.77777777777779,
+  "correct_count": 49,
+  "total_count": 63,
+  "p50_latency_ms": 5.555600000661798,
+  "mean_latency_ms": 345.7612746022364,
+  "p90_latency_ms": 807.1055000036722,
+  "min_latency_ms": 3.9662999915890396,
+  "max_latency_ms": 869.6702000015648,
+  "total_tokens": 0,
+  "llm_calls_count": 0,
+  "avg_tokens_per_call": 0.0,
+  "avg_tokens_per_query": 0.0,
+  "category_breakdown": {
+    "physical": {
+      "correct": 23,
+      "total": 24
+    },
+    "digital_setup": {
+      "correct": 9,
+      "total": 9
+    },
+    "system": {
+      "correct": 6,
+      "total": 6
+    },
+    "cognitive_agent": {
+      "correct": 8,
+      "total": 15
+    },
+    "media": {
+      "correct": 2,
+      "total": 6
+    },
+    "conversational": {
+      "correct": 1,
+      "total": 3
+    }
+  },
+  "dataset_name": "MoKa_Router_Benchmark_20_Tools",
+  "description": "Two-Layer Architecture: FastEmbed Reflexes + Layer 2 LAYA across 20 tools.",
+  "predictions": [
+    {
+      "query": "roll straight ahead a little distance",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 5.907600003411062,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "proceed forward towards the edge",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 4.5002999977441505,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "nudge forward just an inch",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 5.417799999122508,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "scoot backwards away from me",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.273999991710298,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "crawl in reverse for a moment",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.18629999330733,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "step backward by a few centimeters",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.610199990565889,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "spin counterclockwise on the spot",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 5.168299991055392,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "rotate ninety degrees to your left",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 4.334500001277775,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "turn to the left side please",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 4.269400000339374,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "pivot clockwise to the right",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.173499997705221,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "make a ninety degree right turn",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.328399998485111,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "turn towards your right side",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.157599993050098,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "do a complete one-eighty turn",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.826299991691485,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "spin around to face backwards",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.159499992965721,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "turn around and face the other direction",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.2889999895123765,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "freeze right there and cut the motors",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.349099996034056,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "halt all movement immediately",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.488699996727519,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "emergency stop right now",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 3.9662999915890396,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "head back to your charging cradle",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.196699999738485,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "your battery is low so please dock yourself",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.4667999900411814,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "return to home base and charge up",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.412400012370199,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "prepare my laptop so I can play video games",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 4.885900008957833,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "launch Steam and open up Discord for gaming",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 4.477100010262802,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "it is time to hop on Counter-Strike with the squad",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 771.512299994356,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "get my workstation ready for my homework session",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 4.827500000828877,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "open up Moodle and NotebookLM so I can review notes",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 5.3377000003820285,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "configure my screen for university study mode",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 5.136599997058511,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "boot up PyCharm and open my GitHub repositories",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 786.5522999927634,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "launch my programming tools for Python development",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 5.1337000040803105,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "get my coding workspace ready to write software",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 5.323799996403977,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "what is the current time of day?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 5.530700000235811,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "mind telling me what the clock says?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 5.555600000661798,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "can you read out the current time?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 4.709000000730157,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "what date is marked on the calendar for today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 4.926900001009926,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "which calendar day is today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 5.588900006841868,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "could you tell me today's full date?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 5.393800005549565,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "schedule a sync with Sarah on Wednesday at 2pm",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 802.648799988674,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "look up what events are on my calendar this Friday",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 804.0672999923117,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "delete the team standup scheduled for tomorrow morning",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 801.318199999514,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "is it freezing cold outside in Tokyo today?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 781.642500005546,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "what is the forecast and rain chance for Vienna tomorrow?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 798.2927999983076,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "how is the weather looking in New York this weekend?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 810.2504999988014,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "who won the Champions League final match?",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 818.2463999983156,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "what are the latest breaking headlines about space exploration?",
+      "expected": "web_search_node",
+      "predicted": "youtube_play_video",
+      "is_correct": false,
+      "latency_ms": 817.7367000025697,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "look up the current market cap of NVIDIA",
+      "expected": "web_search_node",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 780.2684000052977,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "perform a visual scan of the surrounding area",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 33.71299999707844,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "pan your camera across the room and look around",
+      "expected": "arc_sweep",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 827.2980999900028,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "execute a sweeping survey arc with your head and tracks",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 15.74060000712052,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "calculate 485 multiplied by 927",
+      "expected": "code_executor_node",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 869.6702000015648,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "how many days are there between March 15 and October 31?",
+      "expected": "code_executor_node",
+      "predicted": "get_date",
+      "is_correct": false,
+      "latency_ms": 807.1055000036722,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "spell the word cybernetics backwards for me",
+      "expected": "code_executor_node",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 805.9276999993017,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "add buy coffee beans to my todo list",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 789.9103999952786,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "mark finish thesis draft as completed on my checklist",
+      "expected": "todolist_node",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 795.2298000018345,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "what pending tasks do I still have left to do today?",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 800.8507999911672,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "put on my lofi hip hop playlist on Spotify",
+      "expected": "spotify_play_playlist",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 793.5715000057826,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "play some chill instrumental study music",
+      "expected": "spotify_play_playlist",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 776.63360000588,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "start playing my discover weekly playlist",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 773.2973999954993,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "play the latest Veritasium video on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 773.1502999959048,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "pull up a video tutorial about Three.js on my screen",
+      "expected": "youtube_play_video",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 800.5970000085654,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "find and watch the trailer for Interstellar on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 786.9109000021126,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "do you have any thoughts on quantum computing?",
+      "expected": "none",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 781.4409999991767,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "I really enjoy drinking espresso while listening to jazz",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 814.2086000007112,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    },
+    {
+      "query": "what kind of movies do you find most interesting?",
+      "expected": "none",
+      "predicted": "youtube_play_video",
+      "is_correct": false,
+      "latency_ms": 803.857800012338,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 20 Tools)"
+    }
+  ],
+  "saved_at": "2026-11-06T16:36:53.311114"
+}

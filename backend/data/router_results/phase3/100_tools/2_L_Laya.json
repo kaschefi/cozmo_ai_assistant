@@ -1,0 +1,3103 @@
+{
+  "experiment_name": "100-Tools-2-L-Laya",
+  "model_id": "100-Tools-2-L-Laya",
+  "num_tools": 100,
+  "phase": "phase3",
+  "accuracy": 39.273927392739274,
+  "correct_count": 119,
+  "total_count": 303,
+  "p50_latency_ms": 1194.0287000034004,
+  "mean_latency_ms": 1059.1971178223278,
+  "p90_latency_ms": 1249.3925000017043,
+  "min_latency_ms": 4.339999984949827,
+  "max_latency_ms": 1300.6781000003684,
+  "total_tokens": 0,
+  "llm_calls_count": 0,
+  "avg_tokens_per_call": 0.0,
+  "avg_tokens_per_query": 0.0,
+  "category_breakdown": {
+    "physical": {
+      "correct": 23,
+      "total": 24
+    },
+    "digital_setup": {
+      "correct": 8,
+      "total": 9
+    },
+    "system": {
+      "correct": 6,
+      "total": 6
+    },
+    "cognitive_agent": {
+      "correct": 13,
+      "total": 30
+    },
+    "media": {
+      "correct": 6,
+      "total": 42
+    },
+    "smart_home": {
+      "correct": 14,
+      "total": 36
+    },
+    "desktop": {
+      "correct": 7,
+      "total": 45
+    },
+    "productivity": {
+      "correct": 12,
+      "total": 21
+    },
+    "robot": {
+      "correct": 7,
+      "total": 54
+    },
+    "companion": {
+      "correct": 9,
+      "total": 18
+    },
+    "comms": {
+      "correct": 13,
+      "total": 15
+    },
+    "conversational": {
+      "correct": 1,
+      "total": 3
+    }
+  },
+  "dataset_name": "MoKa_Router_Benchmark_100_Tools",
+  "description": "Two-Layer Architecture: FastEmbed Reflexes + Layer 2 LAYA across 100 tools.",
+  "predictions": [
+    {
+      "query": "roll straight ahead a little distance",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 5.254399991827086,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "proceed forward towards the edge",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 5.18420001026243,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "nudge forward just an inch",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 4.630300012649968,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "scoot backwards away from me",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.449800006113946,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "crawl in reverse for a moment",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.552999977022409,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "step backward by a few centimeters",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.798099980689585,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "spin counterclockwise on the spot",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 10.31939999666065,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "rotate ninety degrees to your left",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 4.661699989810586,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "turn to the left side please",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 5.105399992316961,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "pivot clockwise to the right",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.835500003537163,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "make a ninety degree right turn",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 5.285699997330084,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "turn towards your right side",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.432699992321432,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "do a complete one-eighty turn",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 32.15520002413541,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "spin around to face backwards",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 11.1699000117369,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "turn around and face the other direction",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.603100009262562,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "freeze right there and cut the motors",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.422300000442192,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "halt all movement immediately",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.879899992374703,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "emergency stop right now",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.3738000094890594,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "head back to your charging cradle",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.394699994008988,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "your battery is low so please dock yourself",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.938600002788007,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "return to home base and charge up",
+      "expected": "dock_with_charger",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1213.3787000202574,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "perform a visual scan of the surrounding area",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 4.621600004611537,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "pan your camera across the room and look around",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 5.62120001995936,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "execute a sweeping survey arc with your head and tracks",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 1204.180400003679,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "prepare my laptop so I can play video games",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 4.950400005327538,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "launch Steam and open up Discord for gaming",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 4.586600000038743,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "it is time to hop on Counter-Strike with the squad",
+      "expected": "setup_gaming",
+      "predicted": "join_video_meeting",
+      "is_correct": false,
+      "latency_ms": 1255.5134999856818,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "get my workstation ready for my homework session",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 5.047999991802499,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "open up Moodle and NotebookLM so I can review notes",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 4.921599989756942,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "configure my screen for university study mode",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 5.124199989950284,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "boot up PyCharm and open my GitHub repositories",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 1194.51649999246,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "launch my programming tools for Python development",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 4.480000003241003,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "get my coding workspace ready to write software",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 4.723899997770786,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "what is the current time of day?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 4.608599992934614,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "mind telling me what the clock says?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 6.323700014036149,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "can you read out the current time?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 4.488500009756535,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "what date is marked on the calendar for today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 4.584399983286858,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "which calendar day is today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 4.904000001261011,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "could you tell me today's full date?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 6.097999983467162,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "schedule a sync with Sarah on Wednesday at 2pm",
+      "expected": "calendar_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1196.6358000063337,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look up what events are on my calendar this Friday",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 1222.0197999849916,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "delete the team standup scheduled for tomorrow morning",
+      "expected": "calendar_node",
+      "predicted": "summarizer_node",
+      "is_correct": false,
+      "latency_ms": 1208.975699992152,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "is it freezing cold outside in Tokyo today?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 1232.9680999973789,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is the forecast and rain chance for Vienna tomorrow?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 1290.9110999898985,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how is the weather looking in New York this weekend?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 1282.0741000177804,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "who won the Champions League final match?",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1232.7629000064917,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what are the latest breaking headlines about space exploration?",
+      "expected": "web_search_node",
+      "predicted": "read_notifications",
+      "is_correct": false,
+      "latency_ms": 1205.488699983107,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look up the current market cap of NVIDIA",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1203.634499979671,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "calculate 485 multiplied by 927",
+      "expected": "code_executor_node",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1206.522499996936,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how many days are there between March 15 and October 31?",
+      "expected": "code_executor_node",
+      "predicted": "get_date",
+      "is_correct": false,
+      "latency_ms": 1252.5982999941334,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "spell the word cybernetics backwards for me",
+      "expected": "code_executor_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1211.9069000182208,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "add buy coffee beans to my todo list",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 1221.0906999825966,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "mark finish thesis draft as completed on my checklist",
+      "expected": "todolist_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1212.8418000065722,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what pending tasks do I still have left to do today?",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 1268.8185000151861,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put on my lofi hip hop playlist on Spotify",
+      "expected": "spotify_play_playlist",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1272.5076000206172,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play some chill instrumental study music",
+      "expected": "spotify_play_playlist",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1206.5562000207137,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start playing my discover weekly playlist",
+      "expected": "spotify_play_playlist",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1198.9073999866378,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play the latest Veritasium video on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "play_sad_animation",
+      "is_correct": false,
+      "latency_ms": 1205.230899999151,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "pull up a video tutorial about Three.js on my screen",
+      "expected": "youtube_play_video",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 1266.2305000121705,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "find and watch the trailer for Interstellar on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 1222.474299982423,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on the lights in the room",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 1222.8714999801014,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "it is too dark in here, please illuminate the space",
+      "expected": "lights_on",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1254.7596000076737,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lights on please, switch the smart bulbs on",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 1215.6460999976844,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn off all the lights in here",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 1183.5139000031631,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lights out, I am going to sleep now",
+      "expected": "lights_off",
+      "predicted": "cancel_alarm",
+      "is_correct": false,
+      "latency_ms": 1216.8224999913946,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "kill the ceiling lights and make it completely dark",
+      "expected": "lights_off",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1199.3020999943838,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "dim the room lights down to thirty percent",
+      "expected": "set_light_brightness",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 1190.4897000058554,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "can you make the smart bulbs a little brighter?",
+      "expected": "set_light_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1196.239599987166,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "adjust the Hue light brightness, not my computer screen",
+      "expected": "set_light_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1264.1171000141185,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "change the smart lights color to warm orange",
+      "expected": "set_light_color",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1222.8918999899179,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "switch the bulbs to a cool daylight white",
+      "expected": "set_light_color",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1190.3507999959402,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make the room glow deep purple with the Hue lights",
+      "expected": "set_light_color",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1276.3954999973066,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "activate the movie night lighting scene",
+      "expected": "activate_light_scene",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1189.124200027436,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "switch the room to the reading light preset",
+      "expected": "activate_light_scene",
+      "predicted": "set_light_color",
+      "is_correct": false,
+      "latency_ms": 1184.0927000157535,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set the ambient lighting to relax mode",
+      "expected": "activate_light_scene",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1189.5564000005834,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set the thermostat to twenty-two degrees Celsius",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 1264.5351999963168,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "crank up the heating a little bit, it feels chilly",
+      "expected": "set_thermostat",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1300.6781000003684,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn down the AC to twenty degrees",
+      "expected": "set_thermostat",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1211.4842000009958,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is the current temperature inside the house?",
+      "expected": "get_indoor_temperature",
+      "predicted": "weather_node",
+      "is_correct": false,
+      "latency_ms": 1186.8937000108417,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how warm is it in the living room right now?",
+      "expected": "get_indoor_temperature",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1258.2157000142615,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "read out the indoor humidity and room temp sensor",
+      "expected": "get_indoor_temperature",
+      "predicted": "weather_node",
+      "is_correct": false,
+      "latency_ms": 1215.164499997627,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on the smart plug for the desk fan",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 1187.4535999959335,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "power up the outlet connected to the coffee maker",
+      "expected": "turn_on_smart_plug",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1200.1525000086986,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "switch on the plug socket to start the floor heater",
+      "expected": "turn_on_smart_plug",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1207.434399984777,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn off the smart plug connected to the heater",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 1189.4939000194427,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "cut the power to the desk fan outlet",
+      "expected": "turn_off_smart_plug",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1183.7558000115678,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "switch off the wall plug socket completely",
+      "expected": "turn_off_smart_plug",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1208.272699994268,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lock the front door right now",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 1185.8206999895629,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "secure the house and make sure the door is locked",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 1205.985900014639,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "engage the smart deadbolt on the front door",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 1234.1898999875411,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn the volume up on my computer",
+      "expected": "set_system_volume",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": false,
+      "latency_ms": 1186.2508000049274,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set the laptop speaker volume to seventy percent",
+      "expected": "set_system_volume",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1198.5518999863416,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make the PC louder, not Cozmo's speaker",
+      "expected": "set_system_volume",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1271.182199998293,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "mute the computer audio right now",
+      "expected": "mute_system_audio",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1220.9904000046663,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "silence all sound output on the laptop",
+      "expected": "mute_system_audio",
+      "predicted": "play_sad_animation",
+      "is_correct": false,
+      "latency_ms": 1184.790300001623,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "unmute the PC speakers so I can hear",
+      "expected": "mute_system_audio",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1185.2703000186011,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "dim the laptop screen, it is hurting my eyes",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 1221.5461000159848,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn up the display brightness to maximum",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 1197.1069000137504,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "the screen is too dark, brighten the monitor",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 1200.4850000084843,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "switch the computer to dark mode",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 1195.1987999782432,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on the light theme for the system",
+      "expected": "toggle_dark_mode",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1190.1182000001427,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "toggle between dark and light appearance for Windows",
+      "expected": "toggle_dark_mode",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1181.0138000000734,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "take a screenshot of what is currently on my screen",
+      "expected": "take_screenshot",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1212.1090000146069,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "capture the desktop display and save the image",
+      "expected": "take_screenshot",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1192.8525000112131,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "grab a screen capture of this window",
+      "expected": "take_screenshot",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1191.338899981929,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lock my computer screen, I am stepping away",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 1203.48749999539,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lock the laptop session for security",
+      "expected": "lock_screen",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1202.4591999943368,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lock the PC until I come back",
+      "expected": "lock_screen",
+      "predicted": "lock_door",
+      "is_correct": false,
+      "latency_ms": 1205.3062000195496,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put the laptop to sleep",
+      "expected": "put_computer_to_sleep",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1177.708100003656,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "suspend the computer until tomorrow morning",
+      "expected": "put_computer_to_sleep",
+      "predicted": "shutdown_computer",
+      "is_correct": false,
+      "latency_ms": 1199.7738000063691,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put the PC into sleep mode",
+      "expected": "put_computer_to_sleep",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1177.2019999916665,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "shut down my laptop completely",
+      "expected": "shutdown_computer",
+      "predicted": "shutdown_computer",
+      "is_correct": true,
+      "latency_ms": 1171.278900001198,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "power off the computer for the night",
+      "expected": "shutdown_computer",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1188.246400008211,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "restart the PC after installing updates",
+      "expected": "shutdown_computer",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1201.3420999865048,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "open the Calculator app on my desktop",
+      "expected": "open_application",
+      "predicted": "put_computer_to_sleep",
+      "is_correct": false,
+      "latency_ms": 1207.5190999894403,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "launch Google Chrome on the laptop",
+      "expected": "open_application",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1175.3713999933098,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start the Notepad text editor program",
+      "expected": "open_application",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1199.6024000109173,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "prepare my workstation for an upcoming video meeting",
+      "expected": "setup_meeting",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 35.772500006714836,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "activate meeting mode and get my camera and mic ready",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 1201.2350999866612,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "get my desk set up for a Zoom call with the team",
+      "expected": "setup_meeting",
+      "predicted": "join_video_meeting",
+      "is_correct": false,
+      "latency_ms": 1279.3885999999475,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "check my Gmail inbox for any unread messages from my professor",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 1264.9938999966253,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "draft a quick email reply to Alex confirming the appointment",
+      "expected": "gmail_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1212.6817000098526,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "search my emails for the conference flight ticket confirmation",
+      "expected": "gmail_node",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 1204.5364000077825,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how long does it take to drive to Vienna Airport from downtown?",
+      "expected": "maps_directions_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1290.5807999777608,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "give me walking directions to the nearest train station",
+      "expected": "maps_directions_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1228.288500016788,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is the fastest route to get to Stephansplatz right now?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 1269.6657999767922,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "translate this sentence into German for me",
+      "expected": "translation_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1238.3838999958243,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how do you say thank you very much for your help in Japanese?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 1273.6813999945298,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what does the French phrase c'est la vie mean in English?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 1273.6533999850508,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "give me a short summary of this research paper abstract",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 1226.691000018036,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is the TL;DR of this long news article?",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 1258.3537999889813,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "condense this technical text into three key bullet points",
+      "expected": "summarizer_node",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1187.7415000053588,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is Christoph's phone number in my contacts?",
+      "expected": "contacts_node",
+      "predicted": "make_phone_call",
+      "is_correct": false,
+      "latency_ms": 1260.5164000124205,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look up Sarah's email address from my address book",
+      "expected": "contacts_node",
+      "predicted": "gmail_node",
+      "is_correct": false,
+      "latency_ms": 1212.2352999867871,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "find the contact details and birthday for Michael",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 1213.435700017726,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set a timer for fifteen minutes",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 1181.197500001872,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "countdown forty-five seconds starting now",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 1198.4082000271883,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start a twenty-minute kitchen timer for the pasta",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 1203.342499997234,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set an alarm for seven-thirty tomorrow morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 1193.5260000173002,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "wake me up at six AM sharp",
+      "expected": "set_alarm",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1201.668299996527,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "schedule an alarm clock alert for eight in the morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 1196.0212999838404,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "cancel my seven AM alarm",
+      "expected": "cancel_alarm",
+      "predicted": "cancel_alarm",
+      "is_correct": true,
+      "latency_ms": 1189.8312999983318,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn off the running kitchen countdown timer",
+      "expected": "cancel_alarm",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1198.3271000208333,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "disable all active morning alarms",
+      "expected": "cancel_alarm",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1193.324699997902,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "remind me in two hours to drink water",
+      "expected": "create_reminder",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1186.3007999781985,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set a reminder for five PM to take out the trash",
+      "expected": "create_reminder",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1250.0126000086311,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "remind me after thirty minutes to check the oven",
+      "expected": "create_reminder",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1228.7610999774188,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start a pomodoro session for my study sprint",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 1191.1147000209894,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "begin a twenty-five minute focus work interval",
+      "expected": "start_pomodoro",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1183.0422999919392,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start the pomodoro productivity timer with short breaks",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 1192.583200027002,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make Cozmo say hello world out loud",
+      "expected": "say_text",
+      "predicted": "play_sad_animation",
+      "is_correct": false,
+      "latency_ms": 1194.0287000034004,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "speak the phrase good morning everyone through your robot speaker",
+      "expected": "say_text",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1266.0916000022553,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "repeat after me: welcome to my thesis defense",
+      "expected": "say_text",
+      "predicted": "say_text",
+      "is_correct": true,
+      "latency_ms": 1246.8702000041958,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn up the Cozmo robot speaker volume",
+      "expected": "set_robot_volume",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1205.5986000050325,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make Cozmo speak a bit quieter",
+      "expected": "set_robot_volume",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1212.8575000097044,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "adjust the robot audio level, not my laptop speakers",
+      "expected": "set_robot_volume",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1211.572400003206,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "show happy eyes on your face display",
+      "expected": "show_oled_face_expression",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1236.6034000006039,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make a surprised expression on your OLED screen",
+      "expected": "show_oled_face_expression",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1204.2992000060622,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look angry with your digital eyes",
+      "expected": "show_oled_face_expression",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1194.132200005697,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lift your forklift arm all the way up",
+      "expected": "raise_lift",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1205.9593999874778,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "raise your front loader arm",
+      "expected": "raise_lift",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1179.3818000005558,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lift up your front forklift",
+      "expected": "raise_lift",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1177.8852999850642,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lower your forklift arm down to the table",
+      "expected": "lower_lift",
+      "predicted": "do_a_dance",
+      "is_correct": false,
+      "latency_ms": 1199.931800016202,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put your front lift back down to the ground",
+      "expected": "lower_lift",
+      "predicted": "raise_lift",
+      "is_correct": false,
+      "latency_ms": 1196.6197000001557,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "drop the forklift arm flat",
+      "expected": "lower_lift",
+      "predicted": "do_a_dance",
+      "is_correct": false,
+      "latency_ms": 1182.4423000216484,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "tilt your head and camera up towards the ceiling",
+      "expected": "tilt_head_up",
+      "predicted": "tilt_head_down",
+      "is_correct": false,
+      "latency_ms": 1214.653000002727,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look upwards with your camera",
+      "expected": "tilt_head_up",
+      "predicted": "arc_sweep",
+      "is_correct": false,
+      "latency_ms": 4.339999984949827,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
+    },
+    {
+      "query": "angle your robot head up to see my face",
+      "expected": "tilt_head_up",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1202.0104999828618,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "tilt your head down to look at the desk",
+      "expected": "tilt_head_down",
+      "predicted": "tilt_head_down",
+      "is_correct": true,
+      "latency_ms": 1183.3426999801304,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look downward with your front camera",
+      "expected": "tilt_head_down",
+      "predicted": "take_photo",
+      "is_correct": false,
+      "latency_ms": 1169.7007000038866,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "angle your camera down towards your tracks",
+      "expected": "tilt_head_down",
+      "predicted": "take_photo",
+      "is_correct": false,
+      "latency_ms": 1196.0800999950152,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "find your nearest light cube on the desk",
+      "expected": "find_cube",
+      "predicted": "set_light_brightness",
+      "is_correct": false,
+      "latency_ms": 1159.708099992713,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look around and drive up to one of your blocks",
+      "expected": "find_cube",
+      "predicted": "do_a_dance",
+      "is_correct": false,
+      "latency_ms": 1188.3654999837745,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "locate your interactive cube without picking it up",
+      "expected": "find_cube",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1192.6381000084803,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "pick up the light cube with your lift arm",
+      "expected": "pick_up_cube",
+      "predicted": "set_light_brightness",
+      "is_correct": false,
+      "latency_ms": 1186.2837999942712,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "grab the block in front of you and lift it",
+      "expected": "pick_up_cube",
+      "predicted": "do_a_dance",
+      "is_correct": false,
+      "latency_ms": 1249.3925000017043,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "scoop up the cube with your forklift",
+      "expected": "pick_up_cube",
+      "predicted": "do_a_dance",
+      "is_correct": false,
+      "latency_ms": 1214.6037000056822,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put down the cube you are carrying",
+      "expected": "place_cube_down",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1195.0175999954809,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "release the block onto the tabletop",
+      "expected": "place_cube_down",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1212.813600024674,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set the carried cube down gently",
+      "expected": "place_cube_down",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1215.6342999951448,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "stack one cube on top of the other cube",
+      "expected": "stack_cubes",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1210.2482999907807,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "build a two-cube tower with your blocks",
+      "expected": "stack_cubes",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1204.7848000074737,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "place the block you are holding onto the other block",
+      "expected": "stack_cubes",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1210.5632000020705,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "roll the light cube over onto its side",
+      "expected": "roll_cube",
+      "predicted": "set_light_brightness",
+      "is_correct": false,
+      "latency_ms": 1200.2645999891683,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "flip the block with your lift arm",
+      "expected": "roll_cube",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1224.3121000065003,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "push the cube so it tumbles over",
+      "expected": "roll_cube",
+      "predicted": "arc_sweep",
+      "is_correct": false,
+      "latency_ms": 1187.039399985224,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "pop a wheelie with your tracks",
+      "expected": "pop_a_wheelie",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1202.120300004026,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "do a trick and stand up on your back wheels",
+      "expected": "pop_a_wheelie",
+      "predicted": "do_a_dance",
+      "is_correct": false,
+      "latency_ms": 1202.5807999889366,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "balance up on your rear treads using the cube",
+      "expected": "pop_a_wheelie",
+      "predicted": "arc_sweep",
+      "is_correct": false,
+      "latency_ms": 1198.6201999825425,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "change your backpack lights to bright cyan",
+      "expected": "set_backpack_lights",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1214.364100014791,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set the LEDs on your back to green",
+      "expected": "set_backpack_lights",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1203.9347999962047,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn off your back LEDs completely",
+      "expected": "set_backpack_lights",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": false,
+      "latency_ms": 1174.1653999779373,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on your infrared headlight for night vision",
+      "expected": "toggle_head_light",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1169.0585000033025,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "switch on the front IR camera light",
+      "expected": "toggle_head_light",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1181.5549000166357,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn off your front headlight LED",
+      "expected": "toggle_head_light",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 1187.1542999870144,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "take a picture with your robot camera",
+      "expected": "take_photo",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1190.2465000166558,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "snap a photo of what Cozmo sees right now",
+      "expected": "take_photo",
+      "predicted": "take_photo",
+      "is_correct": true,
+      "latency_ms": 1246.0305000131484,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "capture an image from your front camera and save it",
+      "expected": "take_photo",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1192.6241000182927,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "scan around for human faces and see who is there",
+      "expected": "find_face",
+      "predicted": "find_face",
+      "is_correct": true,
+      "latency_ms": 1186.1508000001777,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "look for my face and say hello when you see me",
+      "expected": "find_face",
+      "predicted": "find_face",
+      "is_correct": true,
+      "latency_ms": 1240.2906999923289,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn around to detect if someone is looking at you",
+      "expected": "find_face",
+      "predicted": "turn_around",
+      "is_correct": false,
+      "latency_ms": 1242.3750000016298,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is the Cozmo robot battery level?",
+      "expected": "check_robot_battery",
+      "predicted": "check_robot_battery",
+      "is_correct": true,
+      "latency_ms": 1213.1761999917217,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "check if the robot battery voltage is low",
+      "expected": "check_robot_battery",
+      "predicted": "check_robot_battery",
+      "is_correct": true,
+      "latency_ms": 1169.9089000176173,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how much charge does Cozmo have left?",
+      "expected": "check_robot_battery",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1218.3652999810874,
+      "category": "robot",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "close the Chrome browser on my desktop",
+      "expected": "close_application",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1181.156100006774,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "quit Spotify and close the window",
+      "expected": "close_application",
+      "predicted": "spotify_play_playlist",
+      "is_correct": false,
+      "latency_ms": 1173.9410000154749,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "force quit the running Calculator app",
+      "expected": "close_application",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1199.3668999930378,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn off the Wi-Fi on my laptop",
+      "expected": "toggle_wifi",
+      "predicted": "put_computer_to_sleep",
+      "is_correct": false,
+      "latency_ms": 1177.8589000168722,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "enable the wireless network adapter",
+      "expected": "toggle_wifi",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1159.285900008399,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "disconnect from Wi-Fi on this PC",
+      "expected": "toggle_wifi",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1191.8472000106703,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on Bluetooth on my computer",
+      "expected": "toggle_bluetooth",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": false,
+      "latency_ms": 1167.582099995343,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "disable the laptop Bluetooth adapter",
+      "expected": "toggle_bluetooth",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1179.8430999915581,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "enable Bluetooth so I can connect my headphones",
+      "expected": "toggle_bluetooth",
+      "predicted": "make_phone_call",
+      "is_correct": false,
+      "latency_ms": 1170.502499997383,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on Do Not Disturb mode on my laptop",
+      "expected": "toggle_do_not_disturb",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1190.2593999984674,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "mute all Windows desktop notifications so I can focus",
+      "expected": "toggle_do_not_disturb",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1199.572600016836,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "disable Focus Assist and turn alerts back on",
+      "expected": "toggle_do_not_disturb",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1163.784599979408,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "how much RAM and CPU is the laptop using right now?",
+      "expected": "get_system_stats",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1245.3275000152644,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "check available disk space and memory on my PC",
+      "expected": "get_system_stats",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1216.442000004463,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what is the laptop battery percentage and performance stats?",
+      "expected": "get_system_stats",
+      "predicted": "get_indoor_temperature",
+      "is_correct": false,
+      "latency_ms": 1220.6336999952327,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "resume the paused song on Spotify",
+      "expected": "spotify_resume_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1193.0780000111554,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "unpause my music playback",
+      "expected": "spotify_resume_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1175.6958000187296,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "continue playing the track where I left off",
+      "expected": "spotify_resume_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1166.9533000094816,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "pause the music on Spotify",
+      "expected": "spotify_pause_playback",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1204.897899995558,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "stop playing the song for a minute",
+      "expected": "spotify_pause_playback",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1206.9348000222817,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "pause playback on my speakers",
+      "expected": "spotify_pause_playback",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1187.8689999866765,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "skip to the next song on Spotify",
+      "expected": "spotify_next_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1205.4052000166848,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "next track please, I don't like this song",
+      "expected": "spotify_next_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1192.8101000085007,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play the next track in the queue",
+      "expected": "spotify_next_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1196.6183999902569,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "go back to the previous song on Spotify",
+      "expected": "spotify_previous_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1226.87300000689,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "replay the last track from the beginning",
+      "expected": "spotify_previous_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1199.343999993289,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "restart this song or play the previous one",
+      "expected": "spotify_previous_track",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1177.9863999981899,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn up the volume inside the Spotify app",
+      "expected": "spotify_set_volume",
+      "predicted": "spotify_play_playlist",
+      "is_correct": false,
+      "latency_ms": 1197.66500001424,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set the Spotify player volume to fifty percent",
+      "expected": "spotify_set_volume",
+      "predicted": "spotify_play_playlist",
+      "is_correct": false,
+      "latency_ms": 1195.2984999807086,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make the music softer in Spotify, not master Windows volume",
+      "expected": "spotify_set_volume",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1259.819900005823,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on shuffle mode for this playlist on Spotify",
+      "expected": "spotify_toggle_shuffle",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1269.499599991832,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "disable shuffle and play the album in order",
+      "expected": "spotify_toggle_shuffle",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1193.5238000005484,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "turn on repeat for the currently playing song",
+      "expected": "spotify_toggle_shuffle",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1202.81449999311,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "like this song on Spotify",
+      "expected": "spotify_like_song",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1188.9057999942452,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "save this track to my favorite songs library",
+      "expected": "spotify_like_song",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1198.686700023245,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "add the currently playing song to my liked tracks",
+      "expected": "spotify_like_song",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1192.9188999929465,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play songs by Daft Punk on Spotify",
+      "expected": "spotify_play_artist",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1185.012399975676,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put on some Coldplay music",
+      "expected": "spotify_play_artist",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1169.8745999892708,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "shuffle tracks by Hans Zimmer",
+      "expected": "spotify_play_artist",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1182.3332000058144,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "add Bohemian Rhapsody to my Spotify queue",
+      "expected": "spotify_add_to_queue",
+      "predicted": "play_sad_animation",
+      "is_correct": false,
+      "latency_ms": 1259.27270000102,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "queue up this song to play next after the current one",
+      "expected": "spotify_add_to_queue",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1244.712999992771,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put this track into the upcoming queue",
+      "expected": "spotify_add_to_queue",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1184.2742000008002,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what song is currently playing on Spotify?",
+      "expected": "spotify_now_playing",
+      "predicted": "spotify_play_playlist",
+      "is_correct": false,
+      "latency_ms": 1178.7690999917686,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "who sings this track and what is the album name?",
+      "expected": "spotify_now_playing",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1250.4569000157062,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "tell me the artist and title of the current song",
+      "expected": "spotify_now_playing",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1208.2208000065293,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play the latest episode of the Lex Fridman podcast",
+      "expected": "play_podcast",
+      "predicted": "play_podcast",
+      "is_correct": true,
+      "latency_ms": 1232.4826999974903,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "put on the Huberman Lab podcast show",
+      "expected": "play_podcast",
+      "predicted": "play_podcast",
+      "is_correct": true,
+      "latency_ms": 1200.3983999893535,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start streaming my favorite tech podcast",
+      "expected": "play_podcast",
+      "predicted": "play_podcast",
+      "is_correct": true,
+      "latency_ms": 1203.43110000249,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "stop playing music after forty-five minutes",
+      "expected": "set_music_sleep_timer",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": true,
+      "latency_ms": 1178.3093999838457,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "set a thirty-minute sleep timer for Spotify",
+      "expected": "set_music_sleep_timer",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1187.2065000061411,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "fade out and turn off the music in an hour",
+      "expected": "set_music_sleep_timer",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": true,
+      "latency_ms": 1197.086500003934,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "unlock the front door for the guest",
+      "expected": "unlock_door",
+      "predicted": "unlock_door",
+      "is_correct": true,
+      "latency_ms": 1174.9162999913096,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "open the smart deadbolt to let my friend in",
+      "expected": "unlock_door",
+      "predicted": "unlock_door",
+      "is_correct": true,
+      "latency_ms": 1216.1428999970667,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "unlock the front entrance lock",
+      "expected": "unlock_door",
+      "predicted": "unlock_door",
+      "is_correct": true,
+      "latency_ms": 1177.515899995342,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "open the motorized window blinds to let light in",
+      "expected": "set_blinds",
+      "predicted": "set_blinds",
+      "is_correct": true,
+      "latency_ms": 1228.4699000010733,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "close the living room smart shades",
+      "expected": "set_blinds",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1206.5143999934662,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "lower the window blinds all the way down",
+      "expected": "set_blinds",
+      "predicted": "set_blinds",
+      "is_correct": true,
+      "latency_ms": 1180.0116999947932,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "tell me a funny programming joke",
+      "expected": "tell_joke",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1181.5452000009827,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "make me laugh with a witty pun",
+      "expected": "tell_joke",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1182.641599996714,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "say something humorous to cheer me up",
+      "expected": "tell_joke",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1183.161499997368,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "let's play the Speed Tap game with your cubes",
+      "expected": "play_speed_tap",
+      "predicted": "play_speed_tap",
+      "is_correct": true,
+      "latency_ms": 1185.079900023993,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "challenge Cozmo to a reflex tap match",
+      "expected": "play_speed_tap",
+      "predicted": "play_speed_tap",
+      "is_correct": true,
+      "latency_ms": 1185.9054999949876,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start a game of speed tap against the robot",
+      "expected": "play_speed_tap",
+      "predicted": "play_speed_tap",
+      "is_correct": true,
+      "latency_ms": 1187.0236000104342,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "start a game of Memory Match with your light cubes",
+      "expected": "play_memory_match",
+      "predicted": "play_memory_match",
+      "is_correct": true,
+      "latency_ms": 1188.9260000025388,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "let's play the light sequence pattern remembering game",
+      "expected": "play_memory_match",
+      "predicted": "activate_light_scene",
+      "is_correct": false,
+      "latency_ms": 1184.2415000137407,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play memory match and test my pattern recall",
+      "expected": "play_memory_match",
+      "predicted": "play_memory_match",
+      "is_correct": true,
+      "latency_ms": 1187.5523999915458,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "do a little victory dance with your tracks and lift",
+      "expected": "do_a_dance",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1191.628500004299,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "show me your dance moves Cozmo",
+      "expected": "do_a_dance",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1193.5337000177242,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "dance to the beat of the music",
+      "expected": "do_a_dance",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1185.5353999999352,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "act happy and celebrate with an excited animation",
+      "expected": "play_happy_animation",
+      "predicted": "play_happy_animation",
+      "is_correct": true,
+      "latency_ms": 1179.624899988994,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "cheer for me and show your happy celebration animation",
+      "expected": "play_happy_animation",
+      "predicted": "play_happy_animation",
+      "is_correct": true,
+      "latency_ms": 1190.2534000109881,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play a victory excited celebration routine",
+      "expected": "play_happy_animation",
+      "predicted": "play_happy_animation",
+      "is_correct": true,
+      "latency_ms": 1174.4576999917626,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "play a disappointed pouting animation",
+      "expected": "play_sad_animation",
+      "predicted": "play_sad_animation",
+      "is_correct": true,
+      "latency_ms": 1201.7918000055943,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "act sad and look dejected",
+      "expected": "play_sad_animation",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1175.8504000026733,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "show that you are feeling upset with an animation",
+      "expected": "play_sad_animation",
+      "predicted": "play_happy_animation",
+      "is_correct": false,
+      "latency_ms": 1183.2894000108354,
+      "category": "companion",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "send an SMS text message to my mom",
+      "expected": "send_sms",
+      "predicted": "send_sms",
+      "is_correct": true,
+      "latency_ms": 1172.155499982182,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "text David saying I will be there in ten minutes",
+      "expected": "send_sms",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1196.3680999760982,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "send a text message to his mobile number",
+      "expected": "send_sms",
+      "predicted": "send_sms",
+      "is_correct": true,
+      "latency_ms": 1219.1561000072397,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "call Christoph on his mobile phone",
+      "expected": "make_phone_call",
+      "predicted": "make_phone_call",
+      "is_correct": true,
+      "latency_ms": 1188.9019000227563,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "dial mom's phone number and start the call",
+      "expected": "make_phone_call",
+      "predicted": "make_phone_call",
+      "is_correct": true,
+      "latency_ms": 1191.0450999857858,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "place a phone call to the doctor's office",
+      "expected": "make_phone_call",
+      "predicted": "make_phone_call",
+      "is_correct": true,
+      "latency_ms": 1187.8173000004608,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "send a message in our Discord gaming server channel",
+      "expected": "send_discord_message",
+      "predicted": "send_discord_message",
+      "is_correct": true,
+      "latency_ms": 1187.9906999820378,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "post an update to the Discord study group chat",
+      "expected": "send_discord_message",
+      "predicted": "send_discord_message",
+      "is_correct": true,
+      "latency_ms": 1189.9190999974962,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "message my friend on Discord asking if he wants to play",
+      "expected": "send_discord_message",
+      "predicted": "play_podcast",
+      "is_correct": false,
+      "latency_ms": 1252.1640000049956,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "join my upcoming Google Meet video call right now",
+      "expected": "join_video_meeting",
+      "predicted": "join_video_meeting",
+      "is_correct": true,
+      "latency_ms": 1185.7230000023264,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "open the Zoom link from my calendar and connect",
+      "expected": "join_video_meeting",
+      "predicted": "join_video_meeting",
+      "is_correct": true,
+      "latency_ms": 1179.1465999849606,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "hop on the Microsoft Teams call that is starting",
+      "expected": "join_video_meeting",
+      "predicted": "join_video_meeting",
+      "is_correct": true,
+      "latency_ms": 1183.7983999866992,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "read out my latest unread phone and desktop notifications",
+      "expected": "read_notifications",
+      "predicted": "read_notifications",
+      "is_correct": true,
+      "latency_ms": 1186.9502000045031,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what alerts and app messages did I miss?",
+      "expected": "read_notifications",
+      "predicted": "read_notifications",
+      "is_correct": true,
+      "latency_ms": 1190.592300001299,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "check my recent notification tray and read them aloud",
+      "expected": "read_notifications",
+      "predicted": "read_notifications",
+      "is_correct": true,
+      "latency_ms": 1179.8717999772634,
+      "category": "comms",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "take a quick note: thesis defense date is in March",
+      "expected": "take_note",
+      "predicted": "take_note",
+      "is_correct": true,
+      "latency_ms": 1242.4247000017203,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "jot down this idea for my research paper",
+      "expected": "take_note",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1217.4861000094097,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "write this down in my personal notes list",
+      "expected": "take_note",
+      "predicted": "todolist_node",
+      "is_correct": false,
+      "latency_ms": 1178.6832000070717,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "read back my saved notes from this week",
+      "expected": "read_notes",
+      "predicted": "read_notes",
+      "is_correct": true,
+      "latency_ms": 1178.7176000070758,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what notes do I have stored about my thesis?",
+      "expected": "read_notes",
+      "predicted": "read_notes",
+      "is_correct": true,
+      "latency_ms": 1192.8074000170454,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "search my personal notes for the book recommendation",
+      "expected": "read_notes",
+      "predicted": "read_notes",
+      "is_correct": true,
+      "latency_ms": 1176.46539999987,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "do you have any thoughts on quantum computing?",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 1189.1162999963854,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "I really enjoy drinking espresso while listening to jazz",
+      "expected": "none",
+      "predicted": "set_music_sleep_timer",
+      "is_correct": false,
+      "latency_ms": 1257.9834000207484,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    },
+    {
+      "query": "what kind of movies do you find most interesting?",
+      "expected": "none",
+      "predicted": "play_sad_animation",
+      "is_correct": false,
+      "latency_ms": 1192.811700020684,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 2 LAYA Model - 100 Tools)"
+    }
+  ],
+  "saved_at": "2026-11-08T10:53:05.972249"
+}

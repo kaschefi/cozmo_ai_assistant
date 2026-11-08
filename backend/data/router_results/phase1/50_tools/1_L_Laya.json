@@ -1,0 +1,1591 @@
+{
+  "experiment_name": "50-Tools-1-L-Laya",
+  "model_id": "50-Tools-1-L-Laya",
+  "num_tools": 50,
+  "phase": "phase1",
+  "accuracy": 49.673202614379086,
+  "correct_count": 76,
+  "total_count": 153,
+  "p50_latency_ms": 1058.0519999930402,
+  "mean_latency_ms": 1061.7337915032026,
+  "p90_latency_ms": 1073.6591999957454,
+  "min_latency_ms": 1031.9296000016038,
+  "max_latency_ms": 1475.1432000048226,
+  "total_tokens": 0,
+  "category_breakdown": {
+    "physical": {
+      "correct": 12,
+      "total": 24
+    },
+    "digital_setup": {
+      "correct": 5,
+      "total": 9
+    },
+    "system": {
+      "correct": 4,
+      "total": 6
+    },
+    "cognitive_agent": {
+      "correct": 20,
+      "total": 30
+    },
+    "media": {
+      "correct": 4,
+      "total": 6
+    },
+    "smart_home": {
+      "correct": 9,
+      "total": 30
+    },
+    "desktop": {
+      "correct": 16,
+      "total": 30
+    },
+    "productivity": {
+      "correct": 6,
+      "total": 15
+    },
+    "conversational": {
+      "correct": 0,
+      "total": 3
+    }
+  },
+  "dataset_name": "MoKa_Router_Benchmark_50_Tools",
+  "description": "Single-Layer Monolithic LAYA decision model directly evaluated over 50 tools.",
+  "predictions": [
+    {
+      "query": "roll straight ahead a little distance",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 1053.1599000023562,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "proceed forward towards the edge",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 1064.6787000005133,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "nudge forward just an inch",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 1475.1432000048226,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "scoot backwards away from me",
+      "expected": "move_backward",
+      "predicted": "setup_meeting",
+      "is_correct": false,
+      "latency_ms": 1045.7020999965607,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "crawl in reverse for a moment",
+      "expected": "move_backward",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1060.290100002021,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "step backward by a few centimeters",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 1031.9296000016038,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "spin counterclockwise on the spot",
+      "expected": "turn_left",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1055.9503999975277,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "rotate ninety degrees to your left",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 1040.009900003497,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn to the left side please",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 1040.0441000019782,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "pivot clockwise to the right",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 1058.8022000010824,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "make a ninety degree right turn",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 1050.9502000059001,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn towards your right side",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 1045.8178999979282,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "do a complete one-eighty turn",
+      "expected": "turn_around",
+      "predicted": "turn_right",
+      "is_correct": false,
+      "latency_ms": 1048.523199999181,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "spin around to face backwards",
+      "expected": "turn_around",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1048.9401000013459,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn around and face the other direction",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 1052.0362999959616,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "freeze right there and cut the motors",
+      "expected": "stop_movement",
+      "predicted": "arc_sweep",
+      "is_correct": false,
+      "latency_ms": 1050.1460999948904,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "halt all movement immediately",
+      "expected": "stop_movement",
+      "predicted": "cancel_alarm",
+      "is_correct": false,
+      "latency_ms": 1049.4631999972626,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "emergency stop right now",
+      "expected": "stop_movement",
+      "predicted": "cancel_alarm",
+      "is_correct": false,
+      "latency_ms": 1052.269800005888,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "head back to your charging cradle",
+      "expected": "dock_with_charger",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1047.5211000011768,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "your battery is low so please dock yourself",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 1053.4576999998535,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "return to home base and charge up",
+      "expected": "dock_with_charger",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1045.9038999979384,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "perform a visual scan of the surrounding area",
+      "expected": "arc_sweep",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1053.5458000013023,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "pan your camera across the room and look around",
+      "expected": "arc_sweep",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1069.8698999985936,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "execute a sweeping survey arc with your head and tracks",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 1062.7317999969819,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "prepare my laptop so I can play video games",
+      "expected": "setup_gaming",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 1057.8202999968198,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "launch Steam and open up Discord for gaming",
+      "expected": "setup_gaming",
+      "predicted": "open_application",
+      "is_correct": false,
+      "latency_ms": 1045.5473000038182,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "it is time to hop on Counter-Strike with the squad",
+      "expected": "setup_gaming",
+      "predicted": "move_forward",
+      "is_correct": false,
+      "latency_ms": 1070.534200000111,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "get my workstation ready for my homework session",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 1044.7650999994949,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "open up Moodle and NotebookLM so I can review notes",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 1076.647399997455,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "configure my screen for university study mode",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 1050.5095000044093,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "boot up PyCharm and open my GitHub repositories",
+      "expected": "setup_coding",
+      "predicted": "setup_meeting",
+      "is_correct": false,
+      "latency_ms": 1065.5636000010418,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "launch my programming tools for Python development",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 1053.8737000024412,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "get my coding workspace ready to write software",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 1041.9956000041566,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the current time of day?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 1043.6221000054502,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "mind telling me what the clock says?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 1048.9818999994895,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "can you read out the current time?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 1062.9181000040262,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what date is marked on the calendar for today?",
+      "expected": "get_date",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 1059.6034999980475,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "which calendar day is today?",
+      "expected": "get_date",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 1055.3631999937352,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "could you tell me today's full date?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 1079.4957999969483,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "schedule a sync with Sarah on Wednesday at 2pm",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 1063.1724000049871,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "look up what events are on my calendar this Friday",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 1075.7373000014923,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "delete the team standup scheduled for tomorrow morning",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 1068.6186000020825,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "is it freezing cold outside in Tokyo today?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 1075.0676999959978,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the forecast and rain chance for Vienna tomorrow?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 1078.9632000014535,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "how is the weather looking in New York this weekend?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 1075.6082000007154,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "who won the Champions League final match?",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1066.8842000013683,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what are the latest breaking headlines about space exploration?",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1064.6044000022812,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "look up the current market cap of NVIDIA",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1062.2299999959068,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "calculate 485 multiplied by 927",
+      "expected": "code_executor_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1041.660700000648,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "how many days are there between March 15 and October 31?",
+      "expected": "code_executor_node",
+      "predicted": "get_date",
+      "is_correct": false,
+      "latency_ms": 1071.0810999953537,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "spell the word cybernetics backwards for me",
+      "expected": "code_executor_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1063.4480000007898,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "add buy coffee beans to my todo list",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 1073.2495999982348,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "mark finish thesis draft as completed on my checklist",
+      "expected": "todolist_node",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 1067.4130999977933,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what pending tasks do I still have left to do today?",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 1067.2063999954844,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "put on my lofi hip hop playlist on Spotify",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 1076.9906999994419,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "play some chill instrumental study music",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 1043.1604000041261,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "start playing my discover weekly playlist",
+      "expected": "spotify_play_playlist",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1041.812999996182,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "play the latest Veritasium video on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 1054.1845000043395,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "pull up a video tutorial about Three.js on my screen",
+      "expected": "youtube_play_video",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 1066.5350999988732,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "find and watch the trailer for Interstellar on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 1056.532900001912,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn on the lights in the room",
+      "expected": "lights_on",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": false,
+      "latency_ms": 1055.007700000715,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "it is too dark in here, please illuminate the space",
+      "expected": "lights_on",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1066.7468000028748,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "lights on please, switch the smart bulbs on",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 1054.301199998008,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn off all the lights in here",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 1068.1687999967835,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "lights out, I am going to sleep now",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 1055.9450000000652,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "kill the ceiling lights and make it completely dark",
+      "expected": "lights_off",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1058.8620999988052,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "dim the room lights down to thirty percent",
+      "expected": "set_light_brightness",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1058.361800001876,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "can you make the smart bulbs a little brighter?",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_color",
+      "is_correct": false,
+      "latency_ms": 1059.978900004353,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "adjust the Hue light brightness, not my computer screen",
+      "expected": "set_light_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1058.4782000005362,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "change the smart lights color to warm orange",
+      "expected": "set_light_color",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1036.278299994592,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch the bulbs to a cool daylight white",
+      "expected": "set_light_color",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 1045.2595999959158,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "make the room glow deep purple with the Hue lights",
+      "expected": "set_light_color",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1079.587200001697,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "activate the movie night lighting scene",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 1048.2922000010149,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch the room to the reading light preset",
+      "expected": "activate_light_scene",
+      "predicted": "set_light_color",
+      "is_correct": false,
+      "latency_ms": 1049.115100002382,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "set the ambient lighting to relax mode",
+      "expected": "activate_light_scene",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1061.6497000009986,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "set the thermostat to twenty-two degrees Celsius",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 1061.3826000044355,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "crank up the heating a little bit, it feels chilly",
+      "expected": "set_thermostat",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1084.9464999992051,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn down the AC to twenty degrees",
+      "expected": "set_thermostat",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1061.2731000001077,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the current temperature inside the house?",
+      "expected": "get_indoor_temperature",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1061.1742999972194,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "how warm is it in the living room right now?",
+      "expected": "get_indoor_temperature",
+      "predicted": "set_light_brightness",
+      "is_correct": false,
+      "latency_ms": 1079.667599995446,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "read out the indoor humidity and room temp sensor",
+      "expected": "get_indoor_temperature",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1072.7918999982649,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn on the smart plug for the desk fan",
+      "expected": "turn_on_smart_plug",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1058.7689000021783,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "power up the outlet connected to the coffee maker",
+      "expected": "turn_on_smart_plug",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1055.6379999979981,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch on the plug socket to start the floor heater",
+      "expected": "turn_on_smart_plug",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1059.1497999994317,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn off the smart plug connected to the heater",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 1062.6527999993414,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "cut the power to the desk fan outlet",
+      "expected": "turn_off_smart_plug",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 1051.3878000056138,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch off the wall plug socket completely",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": false,
+      "latency_ms": 1049.6630999987246,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock the front door right now",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 1053.8258000015048,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "secure the house and make sure the door is locked",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 1062.1946999963257,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "engage the smart deadbolt on the front door",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 1053.77359999693,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn the volume up on my computer",
+      "expected": "set_system_volume",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1062.597199997981,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "set the laptop speaker volume to seventy percent",
+      "expected": "set_system_volume",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1056.538199998613,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "make the PC louder, not Cozmo's speaker",
+      "expected": "set_system_volume",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1073.6591999957454,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "mute the computer audio right now",
+      "expected": "mute_system_audio",
+      "predicted": "shutdown_computer",
+      "is_correct": false,
+      "latency_ms": 1059.6222000021953,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "silence all sound output on the laptop",
+      "expected": "mute_system_audio",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1053.1190000037896,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "unmute the PC speakers so I can hear",
+      "expected": "mute_system_audio",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1062.9355999990366,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "dim the laptop screen, it is hurting my eyes",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 1067.1427999986918,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn up the display brightness to maximum",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 1057.0971999986796,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "the screen is too dark, brighten the monitor",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 1069.8875000016415,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch the computer to dark mode",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 1051.7755999971996,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn on the light theme for the system",
+      "expected": "toggle_dark_mode",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 1055.0711999967461,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "toggle between dark and light appearance for Windows",
+      "expected": "toggle_dark_mode",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": false,
+      "latency_ms": 1056.598800001666,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "take a screenshot of what is currently on my screen",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 1070.0014000030933,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "capture the desktop display and save the image",
+      "expected": "take_screenshot",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1039.7511999981361,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "grab a screen capture of this window",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 1055.0379999986035,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock my computer screen, I am stepping away",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 1057.985599996755,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock the laptop session for security",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 1050.7914000045275,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock the PC until I come back",
+      "expected": "lock_screen",
+      "predicted": "shutdown_computer",
+      "is_correct": false,
+      "latency_ms": 1040.2787999992142,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "put the laptop to sleep",
+      "expected": "put_computer_to_sleep",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1045.0800999969942,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "suspend the computer until tomorrow morning",
+      "expected": "put_computer_to_sleep",
+      "predicted": "shutdown_computer",
+      "is_correct": false,
+      "latency_ms": 1053.4630000038305,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "put the PC into sleep mode",
+      "expected": "put_computer_to_sleep",
+      "predicted": "shutdown_computer",
+      "is_correct": false,
+      "latency_ms": 1041.898300005414,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "shut down my laptop completely",
+      "expected": "shutdown_computer",
+      "predicted": "shutdown_computer",
+      "is_correct": true,
+      "latency_ms": 1043.5279999946943,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "power off the computer for the night",
+      "expected": "shutdown_computer",
+      "predicted": "shutdown_computer",
+      "is_correct": true,
+      "latency_ms": 1051.9529000011971,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "restart the PC after installing updates",
+      "expected": "shutdown_computer",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1063.1701000020257,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "open the Calculator app on my desktop",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 1053.3222000012756,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "launch Google Chrome on the laptop",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 1059.4426000025123,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "start the Notepad text editor program",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 1039.8027999981423,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "prepare my workstation for an upcoming video meeting",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 1052.1482999974978,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "activate meeting mode and get my camera and mic ready",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 1055.4744000037317,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "get my desk set up for a Zoom call with the team",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 1073.0802999969455,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "check my Gmail inbox for any unread messages from my professor",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 1094.810199996573,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "draft a quick email reply to Alex confirming the appointment",
+      "expected": "gmail_node",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 1062.5395999959437,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "search my emails for the conference flight ticket confirmation",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 1057.0527999952901,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "how long does it take to drive to Vienna Airport from downtown?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 1087.7811000027577,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "give me walking directions to the nearest train station",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 1062.4807999993209,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the fastest route to get to Stephansplatz right now?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 1078.39850000164,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "translate this sentence into German for me",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 1069.911000005959,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "how do you say thank you very much for your help in Japanese?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 1066.9398000027286,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what does the French phrase c'est la vie mean in English?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 1083.9555999991717,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "give me a short summary of this research paper abstract",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 1057.5240000034682,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the TL;DR of this long news article?",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 1072.2615999984555,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "condense this technical text into three key bullet points",
+      "expected": "summarizer_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1065.1442000016687,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is Christoph's phone number in my contacts?",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 1064.2179999995278,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "look up Sarah's email address from my address book",
+      "expected": "contacts_node",
+      "predicted": "gmail_node",
+      "is_correct": false,
+      "latency_ms": 1055.7372999974177,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "find the contact details and birthday for Michael",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 1049.624599996605,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "set a timer for fifteen minutes",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 1057.7017000032356,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "countdown forty-five seconds starting now",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 1048.1596000026911,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "start a twenty-minute kitchen timer for the pasta",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 1071.6427999941516,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "set an alarm for seven-thirty tomorrow morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 1057.628200003819,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "wake me up at six AM sharp",
+      "expected": "set_alarm",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1046.2379999953555,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "schedule an alarm clock alert for eight in the morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 1067.1180999997887,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "cancel my seven AM alarm",
+      "expected": "cancel_alarm",
+      "predicted": "cancel_alarm",
+      "is_correct": true,
+      "latency_ms": 1055.17410000175,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn off the running kitchen countdown timer",
+      "expected": "cancel_alarm",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1058.0519999930402,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "disable all active morning alarms",
+      "expected": "cancel_alarm",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1057.712800000445,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "remind me in two hours to drink water",
+      "expected": "create_reminder",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1066.751899998053,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "set a reminder for five PM to take out the trash",
+      "expected": "create_reminder",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 1070.7088999988628,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "remind me after thirty minutes to check the oven",
+      "expected": "create_reminder",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 1054.1744000001927,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "start a pomodoro session for my study sprint",
+      "expected": "start_pomodoro",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 1069.0995999975712,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "begin a twenty-five minute focus work interval",
+      "expected": "start_pomodoro",
+      "predicted": "set_timer",
+      "is_correct": false,
+      "latency_ms": 1068.861100000504,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "start the pomodoro productivity timer with short breaks",
+      "expected": "start_pomodoro",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 1065.8411999975215,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "do you have any thoughts on quantum computing?",
+      "expected": "none",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 1050.6099999984144,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "I really enjoy drinking espresso while listening to jazz",
+      "expected": "none",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 1063.3556000029785,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    },
+    {
+      "query": "what kind of movies do you find most interesting?",
+      "expected": "none",
+      "predicted": "youtube_play_video",
+      "is_correct": false,
+      "latency_ms": 1063.1940000021132,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Direct LAYA - 50 Tools)"
+    }
+  ],
+  "saved_at": "2026-11-06T09:49:40.660595",
+  "llm_calls_count": 0,
+  "avg_tokens_per_call": 0.0,
+  "avg_tokens_per_query": 0.0
+}

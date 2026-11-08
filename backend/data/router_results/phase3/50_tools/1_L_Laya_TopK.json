@@ -1,0 +1,1591 @@
+{
+  "experiment_name": "50-Tools-1-L-Laya-TopK",
+  "model_id": "50-Tools-1-L-Laya-TopK",
+  "num_tools": 50,
+  "phase": "phase3",
+  "accuracy": 66.01307189542483,
+  "correct_count": 101,
+  "total_count": 153,
+  "p50_latency_ms": 786.3425000105053,
+  "mean_latency_ms": 785.0852777775882,
+  "p90_latency_ms": 811.9485999923199,
+  "min_latency_ms": 706.5671999880578,
+  "max_latency_ms": 1034.3641999934334,
+  "total_tokens": 0,
+  "llm_calls_count": 0,
+  "avg_tokens_per_call": 0.0,
+  "avg_tokens_per_query": 0.0,
+  "category_breakdown": {
+    "physical": {
+      "correct": 17,
+      "total": 24
+    },
+    "digital_setup": {
+      "correct": 9,
+      "total": 9
+    },
+    "system": {
+      "correct": 3,
+      "total": 6
+    },
+    "cognitive_agent": {
+      "correct": 22,
+      "total": 30
+    },
+    "media": {
+      "correct": 5,
+      "total": 6
+    },
+    "smart_home": {
+      "correct": 20,
+      "total": 30
+    },
+    "desktop": {
+      "correct": 15,
+      "total": 30
+    },
+    "productivity": {
+      "correct": 8,
+      "total": 15
+    },
+    "conversational": {
+      "correct": 2,
+      "total": 3
+    }
+  },
+  "dataset_name": "MoKa_Router_Benchmark_50_Tools",
+  "description": "Single-Layer LAYA Router with Top-3 FastEmbed Tool RAG retrieval (50 tools).",
+  "predictions": [
+    {
+      "query": "roll straight ahead a little distance",
+      "expected": "move_forward",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 788.502100011101,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "proceed forward towards the edge",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 779.0854000195395,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "nudge forward just an inch",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 759.7410999878775,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "scoot backwards away from me",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 790.361599996686,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "crawl in reverse for a moment",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 706.5671999880578,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "step backward by a few centimeters",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 764.4913000112865,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "spin counterclockwise on the spot",
+      "expected": "turn_left",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 767.3985000001267,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "rotate ninety degrees to your left",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 752.932100003818,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn to the left side please",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 776.0012999933679,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "pivot clockwise to the right",
+      "expected": "turn_right",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 769.2536000104155,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "make a ninety degree right turn",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 764.8337999999058,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn towards your right side",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 720.472199987853,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "do a complete one-eighty turn",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 811.9485999923199,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "spin around to face backwards",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 728.1589999911375,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn around and face the other direction",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 789.706900017336,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "freeze right there and cut the motors",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 736.1194000113755,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "halt all movement immediately",
+      "expected": "stop_movement",
+      "predicted": "cancel_alarm",
+      "is_correct": false,
+      "latency_ms": 1034.3641999934334,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "emergency stop right now",
+      "expected": "stop_movement",
+      "predicted": "cancel_alarm",
+      "is_correct": false,
+      "latency_ms": 773.6566000094172,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "head back to your charging cradle",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 805.4431999917142,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "your battery is low so please dock yourself",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 813.2982999959495,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "return to home base and charge up",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 743.8309999997728,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "perform a visual scan of the surrounding area",
+      "expected": "arc_sweep",
+      "predicted": "setup_meeting",
+      "is_correct": false,
+      "latency_ms": 812.1107000042684,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "pan your camera across the room and look around",
+      "expected": "arc_sweep",
+      "predicted": "setup_meeting",
+      "is_correct": false,
+      "latency_ms": 811.7641999851912,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "execute a sweeping survey arc with your head and tracks",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 786.8215999915265,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "prepare my laptop so I can play video games",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 742.0173000136856,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "launch Steam and open up Discord for gaming",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 740.2380999992602,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "it is time to hop on Counter-Strike with the squad",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 782.7545999898575,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "get my workstation ready for my homework session",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 766.4925999997649,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "open up Moodle and NotebookLM so I can review notes",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 804.1907000006177,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "configure my screen for university study mode",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 770.4087999882177,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "boot up PyCharm and open my GitHub repositories",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 749.2917999916244,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "launch my programming tools for Python development",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 739.2095000250265,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "get my coding workspace ready to write software",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 752.7545999910217,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the current time of day?",
+      "expected": "tell_time",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 774.9322000017855,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "mind telling me what the clock says?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 825.2128000021912,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "can you read out the current time?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 773.7101000093389,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what date is marked on the calendar for today?",
+      "expected": "get_date",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 786.7507000046317,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "which calendar day is today?",
+      "expected": "get_date",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 769.224799994845,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "could you tell me today's full date?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 775.9000999794807,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "schedule a sync with Sarah on Wednesday at 2pm",
+      "expected": "calendar_node",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 765.817799983779,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "look up what events are on my calendar this Friday",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 778.5607999830972,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "delete the team standup scheduled for tomorrow morning",
+      "expected": "calendar_node",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 777.0161000080407,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "is it freezing cold outside in Tokyo today?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 786.6313999984413,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the forecast and rain chance for Vienna tomorrow?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 784.6782999986317,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "how is the weather looking in New York this weekend?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 788.2947000034619,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "who won the Champions League final match?",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 758.8721000065561,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what are the latest breaking headlines about space exploration?",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 749.1618000203744,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "look up the current market cap of NVIDIA",
+      "expected": "web_search_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 759.330000000773,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "calculate 485 multiplied by 927",
+      "expected": "code_executor_node",
+      "predicted": "code_executor_node",
+      "is_correct": true,
+      "latency_ms": 776.8167000031099,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "how many days are there between March 15 and October 31?",
+      "expected": "code_executor_node",
+      "predicted": "create_reminder",
+      "is_correct": false,
+      "latency_ms": 781.2037999974564,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "spell the word cybernetics backwards for me",
+      "expected": "code_executor_node",
+      "predicted": "code_executor_node",
+      "is_correct": true,
+      "latency_ms": 738.9747999841347,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "add buy coffee beans to my todo list",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 787.4882000032812,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "mark finish thesis draft as completed on my checklist",
+      "expected": "todolist_node",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 792.638499988243,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what pending tasks do I still have left to do today?",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 779.9846999987494,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "put on my lofi hip hop playlist on Spotify",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 788.6758999957237,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "play some chill instrumental study music",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 798.5249000194017,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "start playing my discover weekly playlist",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 780.8277999865822,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "play the latest Veritasium video on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 787.957099993946,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "pull up a video tutorial about Three.js on my screen",
+      "expected": "youtube_play_video",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 781.6757000109646,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "find and watch the trailer for Interstellar on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 769.5344000239857,
+      "category": "media",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn on the lights in the room",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 767.4911999783944,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "it is too dark in here, please illuminate the space",
+      "expected": "lights_on",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 785.7587000180501,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "lights on please, switch the smart bulbs on",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 758.5345999978017,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn off all the lights in here",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 748.958499985747,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "lights out, I am going to sleep now",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 800.0078999903053,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "kill the ceiling lights and make it completely dark",
+      "expected": "lights_off",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 735.6778999965172,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "dim the room lights down to thirty percent",
+      "expected": "set_light_brightness",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 797.9668999905698,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "can you make the smart bulbs a little brighter?",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 793.7894000206143,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "adjust the Hue light brightness, not my computer screen",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_color",
+      "is_correct": false,
+      "latency_ms": 856.5563000156544,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "change the smart lights color to warm orange",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 812.9258999833837,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch the bulbs to a cool daylight white",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 788.7072000012267,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "make the room glow deep purple with the Hue lights",
+      "expected": "set_light_color",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 805.3165999881458,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "activate the movie night lighting scene",
+      "expected": "activate_light_scene",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 767.0706999779213,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch the room to the reading light preset",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 793.7146000040229,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "set the ambient lighting to relax mode",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 805.1512000092771,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "set the thermostat to twenty-two degrees Celsius",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 806.4761999994516,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "crank up the heating a little bit, it feels chilly",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 822.5190999801271,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn down the AC to twenty degrees",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 799.7630999889225,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the current temperature inside the house?",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 824.3704999913462,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "how warm is it in the living room right now?",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 829.5727999939118,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "read out the indoor humidity and room temp sensor",
+      "expected": "get_indoor_temperature",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 804.4770999986213,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn on the smart plug for the desk fan",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 844.7987000108697,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "power up the outlet connected to the coffee maker",
+      "expected": "turn_on_smart_plug",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 790.8246000006329,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch on the plug socket to start the floor heater",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 810.6604999920819,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn off the smart plug connected to the heater",
+      "expected": "turn_off_smart_plug",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 786.4373000047635,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "cut the power to the desk fan outlet",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 784.7464999940712,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch off the wall plug socket completely",
+      "expected": "turn_off_smart_plug",
+      "predicted": "lights_off",
+      "is_correct": false,
+      "latency_ms": 771.2582999956794,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock the front door right now",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 794.9178999988362,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "secure the house and make sure the door is locked",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 793.6093999887817,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "engage the smart deadbolt on the front door",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 826.2504000158515,
+      "category": "smart_home",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn the volume up on my computer",
+      "expected": "set_system_volume",
+      "predicted": "set_system_volume",
+      "is_correct": true,
+      "latency_ms": 766.2922999879811,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "set the laptop speaker volume to seventy percent",
+      "expected": "set_system_volume",
+      "predicted": "set_system_volume",
+      "is_correct": true,
+      "latency_ms": 811.4369000250008,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "make the PC louder, not Cozmo's speaker",
+      "expected": "set_system_volume",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 783.7036999990232,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "mute the computer audio right now",
+      "expected": "mute_system_audio",
+      "predicted": "mute_system_audio",
+      "is_correct": true,
+      "latency_ms": 795.6274000171106,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "silence all sound output on the laptop",
+      "expected": "mute_system_audio",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 786.3425000105053,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "unmute the PC speakers so I can hear",
+      "expected": "mute_system_audio",
+      "predicted": "set_system_volume",
+      "is_correct": false,
+      "latency_ms": 799.7434000135399,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "dim the laptop screen, it is hurting my eyes",
+      "expected": "adjust_screen_brightness",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 796.4838999905623,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn up the display brightness to maximum",
+      "expected": "adjust_screen_brightness",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 803.6832000070717,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "the screen is too dark, brighten the monitor",
+      "expected": "adjust_screen_brightness",
+      "predicted": "toggle_dark_mode",
+      "is_correct": false,
+      "latency_ms": 836.7188999836799,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "switch the computer to dark mode",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 758.0808000057004,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn on the light theme for the system",
+      "expected": "toggle_dark_mode",
+      "predicted": "lights_on",
+      "is_correct": false,
+      "latency_ms": 751.6375000122935,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "toggle between dark and light appearance for Windows",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 781.299800000852,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "take a screenshot of what is currently on my screen",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 793.1190000090282,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "capture the desktop display and save the image",
+      "expected": "take_screenshot",
+      "predicted": "setup_meeting",
+      "is_correct": false,
+      "latency_ms": 804.4540999981109,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "grab a screen capture of this window",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 742.4072000139859,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock my computer screen, I am stepping away",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 764.2028999980539,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock the laptop session for security",
+      "expected": "lock_screen",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 762.4694000114687,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "lock the PC until I come back",
+      "expected": "lock_screen",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 784.306799992919,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "put the laptop to sleep",
+      "expected": "put_computer_to_sleep",
+      "predicted": "put_computer_to_sleep",
+      "is_correct": true,
+      "latency_ms": 802.6333999878261,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "suspend the computer until tomorrow morning",
+      "expected": "put_computer_to_sleep",
+      "predicted": "create_reminder",
+      "is_correct": false,
+      "latency_ms": 796.9378999841865,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "put the PC into sleep mode",
+      "expected": "put_computer_to_sleep",
+      "predicted": "put_computer_to_sleep",
+      "is_correct": true,
+      "latency_ms": 736.0447999963071,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "shut down my laptop completely",
+      "expected": "shutdown_computer",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 795.2152999932878,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "power off the computer for the night",
+      "expected": "shutdown_computer",
+      "predicted": "put_computer_to_sleep",
+      "is_correct": false,
+      "latency_ms": 788.1461000069976,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "restart the PC after installing updates",
+      "expected": "shutdown_computer",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 771.1778999946546,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "open the Calculator app on my desktop",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 764.3481999984942,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "launch Google Chrome on the laptop",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 767.1301999944262,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "start the Notepad text editor program",
+      "expected": "open_application",
+      "predicted": "setup_coding",
+      "is_correct": false,
+      "latency_ms": 785.4381000215653,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "prepare my workstation for an upcoming video meeting",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 799.2245000205003,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "activate meeting mode and get my camera and mic ready",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 787.8818000026513,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "get my desk set up for a Zoom call with the team",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 806.5924000111409,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "check my Gmail inbox for any unread messages from my professor",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 791.314699978102,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "draft a quick email reply to Alex confirming the appointment",
+      "expected": "gmail_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 784.3197000038344,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "search my emails for the conference flight ticket confirmation",
+      "expected": "gmail_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 784.4733000092674,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "how long does it take to drive to Vienna Airport from downtown?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 806.7869999795221,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "give me walking directions to the nearest train station",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 806.512399984058,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the fastest route to get to Stephansplatz right now?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 783.2573000050616,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "translate this sentence into German for me",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 755.1710999978241,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "how do you say thank you very much for your help in Japanese?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 796.226000005845,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what does the French phrase c'est la vie mean in English?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 792.120199999772,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "give me a short summary of this research paper abstract",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 749.8113000183366,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is the TL;DR of this long news article?",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 786.781400005566,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "condense this technical text into three key bullet points",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 760.4617000033613,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what is Christoph's phone number in my contacts?",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 773.4862999932375,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "look up Sarah's email address from my address book",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 782.5010999804363,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "find the contact details and birthday for Michael",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 732.8706000116654,
+      "category": "cognitive_agent",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "set a timer for fifteen minutes",
+      "expected": "set_timer",
+      "predicted": "start_pomodoro",
+      "is_correct": false,
+      "latency_ms": 789.7769999981392,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "countdown forty-five seconds starting now",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 797.708900005091,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "start a twenty-minute kitchen timer for the pasta",
+      "expected": "set_timer",
+      "predicted": "start_pomodoro",
+      "is_correct": false,
+      "latency_ms": 799.6767000004184,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "set an alarm for seven-thirty tomorrow morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 795.805499976268,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "wake me up at six AM sharp",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 784.0951000107452,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "schedule an alarm clock alert for eight in the morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 786.2714000220876,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "cancel my seven AM alarm",
+      "expected": "cancel_alarm",
+      "predicted": "cancel_alarm",
+      "is_correct": true,
+      "latency_ms": 773.1055000040215,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "turn off the running kitchen countdown timer",
+      "expected": "cancel_alarm",
+      "predicted": "cancel_alarm",
+      "is_correct": true,
+      "latency_ms": 801.8359999987297,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "disable all active morning alarms",
+      "expected": "cancel_alarm",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 802.2756999998819,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "remind me in two hours to drink water",
+      "expected": "create_reminder",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 793.9316999982111,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "set a reminder for five PM to take out the trash",
+      "expected": "create_reminder",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 818.7674999935552,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "remind me after thirty minutes to check the oven",
+      "expected": "create_reminder",
+      "predicted": "set_alarm",
+      "is_correct": false,
+      "latency_ms": 805.6116999941878,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "start a pomodoro session for my study sprint",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 833.2850000006147,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "begin a twenty-five minute focus work interval",
+      "expected": "start_pomodoro",
+      "predicted": "setup_meeting",
+      "is_correct": false,
+      "latency_ms": 795.4707000171766,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "start the pomodoro productivity timer with short breaks",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 807.5283000071067,
+      "category": "productivity",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "do you have any thoughts on quantum computing?",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 741.5956000040751,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "I really enjoy drinking espresso while listening to jazz",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 780.2172999945469,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    },
+    {
+      "query": "what kind of movies do you find most interesting?",
+      "expected": "none",
+      "predicted": "activate_light_scene",
+      "is_correct": false,
+      "latency_ms": 841.2853999761865,
+      "category": "conversational",
+      "tokens_used": 0,
+      "pipeline": "Single-Layer (Top-3 Tool RAG + LAYA - 50 Tools)"
+    }
+  ],
+  "saved_at": "2026-11-08T10:33:49.184916"
+}

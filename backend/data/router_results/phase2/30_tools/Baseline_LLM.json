@@ -1,0 +1,983 @@
+{
+  "experiment_name": "30-Tools-Baseline-LLM",
+  "model_id": "30-Tools-Baseline-LLM",
+  "num_tools": 30,
+  "phase": "phase2",
+  "accuracy": 87.09677419354838,
+  "correct_count": 81,
+  "total_count": 93,
+  "p50_latency_ms": 1966.723199991975,
+  "mean_latency_ms": 1987.7264655911194,
+  "p90_latency_ms": 3257.3326000128873,
+  "min_latency_ms": 690.7883000094444,
+  "max_latency_ms": 13707.14980000048,
+  "total_tokens": 145852,
+  "llm_calls_count": 93,
+  "avg_tokens_per_call": 1568.3,
+  "avg_tokens_per_query": 1568.3,
+  "category_breakdown": {
+    "physical": {
+      "correct": 22,
+      "total": 24
+    },
+    "digital_setup": {
+      "correct": 8,
+      "total": 9
+    },
+    "system": {
+      "correct": 5,
+      "total": 6
+    },
+    "cognitive_agent": {
+      "correct": 11,
+      "total": 15
+    },
+    "media": {
+      "correct": 6,
+      "total": 6
+    },
+    "smart_home": {
+      "correct": 26,
+      "total": 30
+    },
+    "conversational": {
+      "correct": 3,
+      "total": 3
+    }
+  },
+  "dataset_name": "MoKa_Router_Benchmark_30_Tools",
+  "description": "Monolithic single-shot baseline router passing all 30 tools to LLM.",
+  "predictions": [
+    {
+      "query": "roll straight ahead a little distance",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 13707.14980000048,
+      "category": "physical",
+      "tokens_used": 1575,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "proceed forward towards the edge",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 815.8344999828842,
+      "category": "physical",
+      "tokens_used": 1549,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "nudge forward just an inch",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 2378.2322999904864,
+      "category": "physical",
+      "tokens_used": 1575,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "scoot backwards away from me",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 825.9428000019398,
+      "category": "physical",
+      "tokens_used": 1550,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "crawl in reverse for a moment",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 2013.0812000134028,
+      "category": "physical",
+      "tokens_used": 1570,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "step backward by a few centimeters",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 2527.6665999845136,
+      "category": "physical",
+      "tokens_used": 1579,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "spin counterclockwise on the spot",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 874.5976999925915,
+      "category": "physical",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "rotate ninety degrees to your left",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 734.2996000079438,
+      "category": "physical",
+      "tokens_used": 1549,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn to the left side please",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 764.3895000219345,
+      "category": "physical",
+      "tokens_used": 1549,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "pivot clockwise to the right",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 756.9782999926247,
+      "category": "physical",
+      "tokens_used": 1548,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "make a ninety degree right turn",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 792.4980000243522,
+      "category": "physical",
+      "tokens_used": 1549,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn towards your right side",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 749.7158000187483,
+      "category": "physical",
+      "tokens_used": 1548,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "do a complete one-eighty turn",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 893.336899986025,
+      "category": "physical",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "spin around to face backwards",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 2703.9573000220116,
+      "category": "physical",
+      "tokens_used": 1582,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn around and face the other direction",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 835.3170999907888,
+      "category": "physical",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "freeze right there and cut the motors",
+      "expected": "stop_movement",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 3005.170899996301,
+      "category": "physical",
+      "tokens_used": 1585,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "halt all movement immediately",
+      "expected": "stop_movement",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 3719.7426999919116,
+      "category": "physical",
+      "tokens_used": 1592,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "emergency stop right now",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 690.7883000094444,
+      "category": "physical",
+      "tokens_used": 1546,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "head back to your charging cradle",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 962.4426999944262,
+      "category": "physical",
+      "tokens_used": 1553,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "your battery is low so please dock yourself",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 981.0503000044264,
+      "category": "physical",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "return to home base and charge up",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 942.5230999768246,
+      "category": "physical",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "perform a visual scan of the surrounding area",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 977.6396999950521,
+      "category": "physical",
+      "tokens_used": 1553,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "pan your camera across the room and look around",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 1069.2934999824502,
+      "category": "physical",
+      "tokens_used": 1555,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "execute a sweeping survey arc with your head and tracks",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 1102.8624000027776,
+      "category": "physical",
+      "tokens_used": 1556,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "prepare my laptop so I can play video games",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 1023.0138000042643,
+      "category": "digital_setup",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "launch Steam and open up Discord for gaming",
+      "expected": "setup_gaming",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 7345.769300009124,
+      "category": "digital_setup",
+      "tokens_used": 1663,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "it is time to hop on Counter-Strike with the squad",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 989.4003999943379,
+      "category": "digital_setup",
+      "tokens_used": 1558,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "get my workstation ready for my homework session",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 773.6142000067048,
+      "category": "digital_setup",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "open up Moodle and NotebookLM so I can review notes",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 813.4336000075564,
+      "category": "digital_setup",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "configure my screen for university study mode",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 813.1623000081163,
+      "category": "digital_setup",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "boot up PyCharm and open my GitHub repositories",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 936.0662999970373,
+      "category": "digital_setup",
+      "tokens_used": 1555,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "launch my programming tools for Python development",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 798.2422000204679,
+      "category": "digital_setup",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "get my coding workspace ready to write software",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 838.3021999907214,
+      "category": "digital_setup",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what is the current time of day?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 872.5893000082579,
+      "category": "system",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "mind telling me what the clock says?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 773.0457999859937,
+      "category": "system",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "can you read out the current time?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 847.3879999946803,
+      "category": "system",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what date is marked on the calendar for today?",
+      "expected": "get_date",
+      "predicted": "calendar_node",
+      "is_correct": false,
+      "latency_ms": 2781.521899974905,
+      "category": "system",
+      "tokens_used": 1584,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "which calendar day is today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 879.3988000252284,
+      "category": "system",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "could you tell me today's full date?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 926.8221999809612,
+      "category": "system",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "schedule a sync with Sarah on Wednesday at 2pm",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 2656.7299000162166,
+      "category": "cognitive_agent",
+      "tokens_used": 1586,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "look up what events are on my calendar this Friday",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 1982.4631999945268,
+      "category": "cognitive_agent",
+      "tokens_used": 1571,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "delete the team standup scheduled for tomorrow morning",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 2838.5935999976937,
+      "category": "cognitive_agent",
+      "tokens_used": 1585,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "is it freezing cold outside in Tokyo today?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 3281.1265000200365,
+      "category": "cognitive_agent",
+      "tokens_used": 1592,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what is the forecast and rain chance for Vienna tomorrow?",
+      "expected": "weather_node",
+      "predicted": "web_search_node",
+      "is_correct": false,
+      "latency_ms": 3367.946899990784,
+      "category": "cognitive_agent",
+      "tokens_used": 1596,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "how is the weather looking in New York this weekend?",
+      "expected": "weather_node",
+      "predicted": "web_search_node",
+      "is_correct": false,
+      "latency_ms": 3257.3326000128873,
+      "category": "cognitive_agent",
+      "tokens_used": 1588,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "who won the Champions League final match?",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 3695.818300009705,
+      "category": "cognitive_agent",
+      "tokens_used": 1588,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what are the latest breaking headlines about space exploration?",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 3417.0668000006117,
+      "category": "cognitive_agent",
+      "tokens_used": 1590,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "look up the current market cap of NVIDIA",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 3135.154199990211,
+      "category": "cognitive_agent",
+      "tokens_used": 1583,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "calculate 485 multiplied by 927",
+      "expected": "code_executor_node",
+      "predicted": "code_executor_node",
+      "is_correct": true,
+      "latency_ms": 3697.1743000030983,
+      "category": "cognitive_agent",
+      "tokens_used": 1596,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "how many days are there between March 15 and October 31?",
+      "expected": "code_executor_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 962.1057999902405,
+      "category": "cognitive_agent",
+      "tokens_used": 1560,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "spell the word cybernetics backwards for me",
+      "expected": "code_executor_node",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 926.5554000157863,
+      "category": "cognitive_agent",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "add buy coffee beans to my todo list",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 2595.8660000178497,
+      "category": "cognitive_agent",
+      "tokens_used": 1577,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "mark finish thesis draft as completed on my checklist",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 2977.1303000161424,
+      "category": "cognitive_agent",
+      "tokens_used": 1582,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what pending tasks do I still have left to do today?",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 2871.3949999946635,
+      "category": "cognitive_agent",
+      "tokens_used": 1586,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "put on my lofi hip hop playlist on Spotify",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 2213.494499999797,
+      "category": "media",
+      "tokens_used": 1575,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "play some chill instrumental study music",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 907.1794000046793,
+      "category": "media",
+      "tokens_used": 1551,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "start playing my discover weekly playlist",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 2765.780599991558,
+      "category": "media",
+      "tokens_used": 1579,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "play the latest Veritasium video on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 2811.4142999984324,
+      "category": "media",
+      "tokens_used": 1585,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "pull up a video tutorial about Three.js on my screen",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 3818.880300008459,
+      "category": "media",
+      "tokens_used": 1600,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "find and watch the trailer for Interstellar on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 2836.301600007573,
+      "category": "media",
+      "tokens_used": 1586,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn on the lights in the room",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 745.5466999963392,
+      "category": "smart_home",
+      "tokens_used": 1550,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "it is too dark in here, please illuminate the space",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 805.0386999966577,
+      "category": "smart_home",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "lights on please, switch the smart bulbs on",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 837.7020999905653,
+      "category": "smart_home",
+      "tokens_used": 1553,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn off all the lights in here",
+      "expected": "lights_off",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": false,
+      "latency_ms": 2685.43270000373,
+      "category": "smart_home",
+      "tokens_used": 1583,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "lights out, I am going to sleep now",
+      "expected": "lights_off",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": false,
+      "latency_ms": 2635.9142000146676,
+      "category": "smart_home",
+      "tokens_used": 1583,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "kill the ceiling lights and make it completely dark",
+      "expected": "lights_off",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": false,
+      "latency_ms": 2466.0069000092335,
+      "category": "smart_home",
+      "tokens_used": 1577,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "dim the room lights down to thirty percent",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 2153.9359999878798,
+      "category": "smart_home",
+      "tokens_used": 1572,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "can you make the smart bulbs a little brighter?",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 2667.5924999872223,
+      "category": "smart_home",
+      "tokens_used": 1581,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "adjust the Hue light brightness, not my computer screen",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 912.371099984739,
+      "category": "smart_home",
+      "tokens_used": 1555,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "change the smart lights color to warm orange",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 2748.7992999958806,
+      "category": "smart_home",
+      "tokens_used": 1582,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "switch the bulbs to a cool daylight white",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 2990.0830000115093,
+      "category": "smart_home",
+      "tokens_used": 1584,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "make the room glow deep purple with the Hue lights",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 2609.4510999973863,
+      "category": "smart_home",
+      "tokens_used": 1582,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "activate the movie night lighting scene",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 1872.1348000108264,
+      "category": "smart_home",
+      "tokens_used": 1567,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "switch the room to the reading light preset",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 2390.2687999943737,
+      "category": "smart_home",
+      "tokens_used": 1578,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "set the ambient lighting to relax mode",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 2253.143700014334,
+      "category": "smart_home",
+      "tokens_used": 1575,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "set the thermostat to twenty-two degrees Celsius",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 2523.5562000016216,
+      "category": "smart_home",
+      "tokens_used": 1579,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "crank up the heating a little bit, it feels chilly",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 1966.723199991975,
+      "category": "smart_home",
+      "tokens_used": 1574,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn down the AC to twenty degrees",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 2431.496499979403,
+      "category": "smart_home",
+      "tokens_used": 1578,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what is the current temperature inside the house?",
+      "expected": "get_indoor_temperature",
+      "predicted": "none",
+      "is_correct": false,
+      "latency_ms": 2566.362499987008,
+      "category": "smart_home",
+      "tokens_used": 1581,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "how warm is it in the living room right now?",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 861.5819000115152,
+      "category": "smart_home",
+      "tokens_used": 1555,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "read out the indoor humidity and room temp sensor",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 2885.65819998621,
+      "category": "smart_home",
+      "tokens_used": 1588,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn on the smart plug for the desk fan",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2100.862599996617,
+      "category": "smart_home",
+      "tokens_used": 1574,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "power up the outlet connected to the coffee maker",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2399.217400001362,
+      "category": "smart_home",
+      "tokens_used": 1579,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "switch on the plug socket to start the floor heater",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2618.8612999976613,
+      "category": "smart_home",
+      "tokens_used": 1583,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "turn off the smart plug connected to the heater",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2102.5842999806628,
+      "category": "smart_home",
+      "tokens_used": 1574,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "cut the power to the desk fan outlet",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2362.534299987601,
+      "category": "smart_home",
+      "tokens_used": 1578,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "switch off the wall plug socket completely",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 877.3890999727882,
+      "category": "smart_home",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "lock the front door right now",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 820.2550999994855,
+      "category": "smart_home",
+      "tokens_used": 1550,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "secure the house and make sure the door is locked",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 856.159499991918,
+      "category": "smart_home",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "engage the smart deadbolt on the front door",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 942.5204000144731,
+      "category": "smart_home",
+      "tokens_used": 1553,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "do you have any thoughts on quantum computing?",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 874.4565000233706,
+      "category": "conversational",
+      "tokens_used": 1553,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "I really enjoy drinking espresso while listening to jazz",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 790.4104999906849,
+      "category": "conversational",
+      "tokens_used": 1552,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    },
+    {
+      "query": "what kind of movies do you find most interesting?",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 852.7193999907468,
+      "category": "conversational",
+      "tokens_used": 1554,
+      "pipeline": "Baseline-LLM (30 Tools)"
+    }
+  ],
+  "saved_at": "2026-11-07T16:10:03.603756"
+}

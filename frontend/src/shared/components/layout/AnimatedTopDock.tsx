@@ -57,14 +57,13 @@ const ITEMS = [
     ),
   },
   {
-    id: "about",
-    label: "ABOUT PROJECT",
+    id: "bachelor-thesis",
+    label: "BACHELOR THESIS",
     icon: (
       <>
-        <rect x="2.25" y="2.25" width="4.5" height="4.5" rx=".8" />
-        <rect x="9.25" y="2.25" width="4.5" height="4.5" rx=".8" />
-        <rect x="2.25" y="9.25" width="4.5" height="4.5" rx=".8" />
-        <rect x="9.25" y="9.25" width="4.5" height="4.5" rx=".8" />
+        <path d="M8 2.5 1.5 6l6.5 3.5 6.5-3.5L8 2.5Z" />
+        <path d="M4 7.6v3.8c0 1.2 1.8 2.1 4 2.1s4-.9 4-2.1V7.6" />
+        <path d="M14.5 6v5" />
       </>
     ),
   },
@@ -82,6 +81,10 @@ export function AnimatedTopDock({ className = "", defaultActive = "home", ...pro
     if (!root) return undefined;
     return createTopDockController(root, () => optionsRef.current);
   }, []);
+
+  useEffect(() => {
+    setActive(defaultActive);
+  }, [defaultActive]);
 
   const handleClick = (id: string) => {
     setActive(id);
@@ -101,16 +104,13 @@ export function AnimatedTopDock({ className = "", defaultActive = "home", ...pro
     } else if (id === "cozmo") {
       window.history.pushState({}, "", "/cozmo");
       window.dispatchEvent(new Event("popstate"));
-    } else if (id === "about") {
-      if (window.location.pathname !== "/" && window.location.pathname !== "") {
-        window.history.pushState({}, "", "/");
+    } else if (id === "bachelor-thesis") {
+      if (window.location.pathname !== "/bachelor-thesis" && window.location.pathname !== "/bachelor-thesis/") {
+        clearTabActiveSession();
+        window.history.pushState({}, "", "/bachelor-thesis");
         window.dispatchEvent(new Event("popstate"));
-        setTimeout(() => {
-          document.querySelector("#project-intro")?.scrollIntoView({ behavior: "smooth" });
-        }, 100);
-      } else {
-        document.querySelector("#project-intro")?.scrollIntoView({ behavior: "smooth" });
       }
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 

@@ -1,0 +1,81 @@
+1. The Logit Collapse & "Semantic Attractor" Effect (ModernBERT vs. Qwen-2.5)
+
+In the 20-tool setting, candidate tools retrieved by FAISS are generally semantically distinct (e.g. move_forward vs. weather_agent vs. spotify_play_playlist).
+
+In the 100-tool setting, tool density produces intra-domain synonym clusters. When a user asks a lighting query, the candidate set provided to the classifier contains: ['set_light_color', 'lights_on', 'lights_off', 'set_light_brightness', 'activate_light_scene'].
+
+When testing these live through laya.load("convaiinnovations/laya-typed-decisions"), the log results were:
+
+text
+Query: 'dim the room lights down to thirty percent'
+  Expected: set_light_brightness (Rank 1 distance: 0.36)
+  Candidates: ['set_light_brightness', 'lights_off', 'lights_on', 'adjust_screen_brightness']
+  Laya Choice: lights_off (confidence: 0.05) -> WRONG
+Query: 'change the smart lights color to warm orange'
+  Expected: set_light_color (Rank 1 distance: 0.45)
+  Candidates: ['set_light_color', 'set_backpack_lights', 'lights_on', 'lights_off']
+  Laya Choice: lights_on (confidence: 0.02) -> WRONG
+Query: 'switch the room to the reading light preset'
+  Expected: activate_light_scene (Rank 1 distance: 0.55)
+  Candidates: ['activate_light_scene', 'lights_on', 'lights_off', 'set_light_brightness']
+  Laya Choice: lights_on (confidence: 0.05) -> WRONG
+Query: 'turn up the display brightness to maximum'
+  Expected: adjust_screen_brightness (Rank 1 distance: 0.45)
+  Candidates: ['adjust_screen_brightness', 'set_light_brightness', 'lights_on', 'set_light_color']
+  Laya Choice: lights_on (confidence: 0.06) -> WRONG
+Why LAYA failed: ModernBERT is a 140M-parameter bidirectional encoder. When 5 candidates share the same core vocabulary (light, room, smart, turn, brightness), self-attention layers distribute weights evenly across the shared tokens. The final softmax classification head experiences entropy collapse: confidence values drop to 0.02 – 0.06. Because the margins are near zero, short, high-frequency pre-training labels (lights_on, lights_off) act as semantic attractors and dominate the output.
+Why the LLM succeeded: qwen2.5:3b has 3 Billion parameters (21x larger) and operates as an autoregressive causal decoder. It performs attribute subsumption reasoning: it reads "warm orange" and determines that a specific color modifier requires set_light_color rather than the superordinate lights_on.
+2. Negation Blindness & Entity Ambiguity in Bidirectional Attention
+
+Cross-encoders evaluate text similarity via joint sequence representation without causal step-by-step reasoning tokens:
+
+Query: "make the PC louder, not Cozmo's speaker"
+Expected: set_system_volume
+Candidates: ['set_robot_volume (0.42)', 'set_system_volume (0.53)', 'mute_system_audio (0.58)']
+LAYA Choice: set_robot_volume (confidence: 0.02)
+Root Cause: ModernBERT observes the strong bidirectional token link between "Cozmo" in the query and "Cozmo robot speaker" in the description of set_robot_volume. It cannot parse the negative scope ("not Cozmo's speaker"), causing it to select the negated entity.
+LLM Behavior: The LLM's causal attention mask and instruction fine-tuning resolve the negation constraint, routing to set_system_volume.
+3. Layer 1 Semantic Reflex Collisions (Desktop vs. Robot)
+
+In the 20-tool setting, semantic_layer.py Tier 1 reflexes were designed around Cozmo's physical actions. In the 100-tool benchmark, desktop and system utilities were introduced, creating cross-domain collisions:
+
+text
+Query: 'put the laptop to sleep'
+  Expected: put_computer_to_sleep
+  Actual Predicted: dock_with_charger (Tier 1 Reflex)
+Query: 'put the PC into sleep mode'
+  Expected: put_computer_to_sleep
+  Actual Predicted: dock_with_charger (Tier 1 Reflex)
+Query: 'suspend the computer until tomorrow morning'
+  Expected: put_computer_to_sleep
+  Actual Predicted: set_alarm (Tier 1 Reflex)
+Root Cause: The Layer 1 FastEmbed threshold for "go to sleep" was mapped to dock_with_charger. Because "put the laptop to sleep" shares high cosine similarity with "go to sleep", Tier 1 fired at 4.5ms and committed to dock_with_charger before Layer 2 RAG or LAYA ever saw the query.
+4. The Benchmark Configuration Asymmetry (
+𝑘
+=
+3
+k=3 vs. 
+𝑘
+=
+5
+k=5)
+
+When checking the experiment files across the suite:
+
+In 20_tools.py, 2-L-Laya-TopK was set to k=5.
+In 100_tools.py, 2-L-Laya-TopK was configured as:
+python
+"get_predictor": lambda: get_two_layer_laya_topk_predictor(num_tools=NUM_TOOLS, k=3),
+While 2-L-LLM in line 102 was configured as:
+python
+"get_predictor": lambda: get_two_layer_llm_predictor(num_tools=NUM_TOOLS, k=5),
+
+In a dense 100-tool space, specific tools often land at ranks 4 or 5:
+
+Query: "adjust the Hue light brightness, not my computer screen"
+set_light_brightness was rank 5 (distance 0.63).
+Because LAYA was evaluated at 
+𝑘
+=
+3
+k=3, the correct tool was dropped before candidate evaluation.

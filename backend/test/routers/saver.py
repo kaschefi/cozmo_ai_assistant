@@ -39,14 +39,15 @@ def clean_model_filename(raw_name: str) -> str:
 def get_results_dir(phase: str = "phase3", num_tools: Optional[int] = None) -> str:
     """
     Returns the absolute path to:
-    - `backend/data/router results/<phase>/<num_tools>_tools` if num_tools is provided
-    - `backend/data/router results/<phase>` if num_tools is None.
+    - `backend/data/router_results/<phase>/<num_tools>_tools` if num_tools is provided
+    - `backend/data/router_results/<phase>` if num_tools is None.
     Creates directories if they do not exist.
     """
+    folder_name = "router_results" if os.path.exists(os.path.join(backend_path, "data", "router_results")) else "router results"
     if num_tools is not None:
-        target_dir = os.path.join(backend_path, "data", "router results", phase, f"{num_tools}_tools")
+        target_dir = os.path.join(backend_path, "data", folder_name, phase, f"{num_tools}_tools")
     else:
-        target_dir = os.path.join(backend_path, "data", "router results", phase)
+        target_dir = os.path.join(backend_path, "data", folder_name, phase)
     os.makedirs(target_dir, exist_ok=True)
     return target_dir
 

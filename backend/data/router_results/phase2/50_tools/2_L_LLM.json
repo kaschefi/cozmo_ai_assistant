@@ -1,0 +1,1591 @@
+{
+  "experiment_name": "50-Tools-2-L-LLM",
+  "model_id": "50-Tools-2-L-LLM",
+  "num_tools": 50,
+  "phase": "phase2",
+  "accuracy": 94.11764705882352,
+  "correct_count": 144,
+  "total_count": 153,
+  "p50_latency_ms": 2689.280599995982,
+  "mean_latency_ms": 2088.5203111126602,
+  "p90_latency_ms": 3119.1863999993075,
+  "min_latency_ms": 3.9206999936141074,
+  "max_latency_ms": 8625.567599985516,
+  "total_tokens": 45345,
+  "llm_calls_count": 113,
+  "avg_tokens_per_call": 401.3,
+  "avg_tokens_per_query": 296.4,
+  "category_breakdown": {
+    "physical": {
+      "correct": 24,
+      "total": 24
+    },
+    "digital_setup": {
+      "correct": 9,
+      "total": 9
+    },
+    "system": {
+      "correct": 6,
+      "total": 6
+    },
+    "cognitive_agent": {
+      "correct": 29,
+      "total": 30
+    },
+    "media": {
+      "correct": 5,
+      "total": 6
+    },
+    "smart_home": {
+      "correct": 29,
+      "total": 30
+    },
+    "desktop": {
+      "correct": 27,
+      "total": 30
+    },
+    "productivity": {
+      "correct": 14,
+      "total": 15
+    },
+    "conversational": {
+      "correct": 1,
+      "total": 3
+    }
+  },
+  "dataset_name": "MoKa_Router_Benchmark_50_Tools",
+  "description": "Production Two-Layer Router: FastEmbed Reflexes + Top-5 Tool RAG + LLM Classifier (50 tools).",
+  "predictions": [
+    {
+      "query": "roll straight ahead a little distance",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 4.466000013053417,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "proceed forward towards the edge",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 4.432600020663813,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "nudge forward just an inch",
+      "expected": "move_forward",
+      "predicted": "move_forward",
+      "is_correct": true,
+      "latency_ms": 5.9668000030796975,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "scoot backwards away from me",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.341399995610118,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "crawl in reverse for a moment",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.375299991806969,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "step backward by a few centimeters",
+      "expected": "move_backward",
+      "predicted": "move_backward",
+      "is_correct": true,
+      "latency_ms": 4.00330001139082,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "spin counterclockwise on the spot",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 4.6384999877773225,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "rotate ninety degrees to your left",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 4.767399979755282,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "turn to the left side please",
+      "expected": "turn_left",
+      "predicted": "turn_left",
+      "is_correct": true,
+      "latency_ms": 4.4562000257428735,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "pivot clockwise to the right",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.451399989193305,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "make a ninety degree right turn",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 4.36779999290593,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "turn towards your right side",
+      "expected": "turn_right",
+      "predicted": "turn_right",
+      "is_correct": true,
+      "latency_ms": 5.481700005475432,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "do a complete one-eighty turn",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.425400024047121,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "spin around to face backwards",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.00040001841262,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "turn around and face the other direction",
+      "expected": "turn_around",
+      "predicted": "turn_around",
+      "is_correct": true,
+      "latency_ms": 4.436200018972158,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "freeze right there and cut the motors",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.000200016889721,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "halt all movement immediately",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 3.9206999936141074,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "emergency stop right now",
+      "expected": "stop_movement",
+      "predicted": "stop_movement",
+      "is_correct": true,
+      "latency_ms": 4.215499997371808,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "head back to your charging cradle",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.763200005982071,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "your battery is low so please dock yourself",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.576400009682402,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "return to home base and charge up",
+      "expected": "dock_with_charger",
+      "predicted": "dock_with_charger",
+      "is_correct": true,
+      "latency_ms": 4.47450001956895,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "perform a visual scan of the surrounding area",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 4.711000015959144,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "pan your camera across the room and look around",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 4.427700012456626,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "execute a sweeping survey arc with your head and tracks",
+      "expected": "arc_sweep",
+      "predicted": "arc_sweep",
+      "is_correct": true,
+      "latency_ms": 4.500300012296066,
+      "category": "physical",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "prepare my laptop so I can play video games",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 5.059499992057681,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "launch Steam and open up Discord for gaming",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 4.319300001952797,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "it is time to hop on Counter-Strike with the squad",
+      "expected": "setup_gaming",
+      "predicted": "setup_gaming",
+      "is_correct": true,
+      "latency_ms": 8625.567599985516,
+      "category": "digital_setup",
+      "tokens_used": 411,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "get my workstation ready for my homework session",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 7.665899989660829,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "open up Moodle and NotebookLM so I can review notes",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 4.887299990514293,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "configure my screen for university study mode",
+      "expected": "setup_study",
+      "predicted": "setup_study",
+      "is_correct": true,
+      "latency_ms": 5.060299998149276,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "boot up PyCharm and open my GitHub repositories",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 2875.331699993694,
+      "category": "digital_setup",
+      "tokens_used": 392,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "launch my programming tools for Python development",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 4.907499998807907,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "get my coding workspace ready to write software",
+      "expected": "setup_coding",
+      "predicted": "setup_coding",
+      "is_correct": true,
+      "latency_ms": 5.173999990802258,
+      "category": "digital_setup",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "what is the current time of day?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 5.119599984027445,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "mind telling me what the clock says?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 4.760000010719523,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "can you read out the current time?",
+      "expected": "tell_time",
+      "predicted": "tell_time",
+      "is_correct": true,
+      "latency_ms": 4.664300009608269,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "what date is marked on the calendar for today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 5.108799989102408,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "which calendar day is today?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 5.731000012019649,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "could you tell me today's full date?",
+      "expected": "get_date",
+      "predicted": "get_date",
+      "is_correct": true,
+      "latency_ms": 9.858699981123209,
+      "category": "system",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "schedule a sync with Sarah on Wednesday at 2pm",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 3373.306599998614,
+      "category": "cognitive_agent",
+      "tokens_used": 444,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "look up what events are on my calendar this Friday",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 3059.1878999839537,
+      "category": "cognitive_agent",
+      "tokens_used": 423,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "delete the team standup scheduled for tomorrow morning",
+      "expected": "calendar_node",
+      "predicted": "calendar_node",
+      "is_correct": true,
+      "latency_ms": 3119.1863999993075,
+      "category": "cognitive_agent",
+      "tokens_used": 424,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "is it freezing cold outside in Tokyo today?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 2882.2503999981564,
+      "category": "cognitive_agent",
+      "tokens_used": 396,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what is the forecast and rain chance for Vienna tomorrow?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 2797.573599993484,
+      "category": "cognitive_agent",
+      "tokens_used": 411,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "how is the weather looking in New York this weekend?",
+      "expected": "weather_node",
+      "predicted": "weather_node",
+      "is_correct": true,
+      "latency_ms": 2569.6652000187896,
+      "category": "cognitive_agent",
+      "tokens_used": 400,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "who won the Champions League final match?",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 2855.5073000025004,
+      "category": "cognitive_agent",
+      "tokens_used": 382,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what are the latest breaking headlines about space exploration?",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 2867.7270999760367,
+      "category": "cognitive_agent",
+      "tokens_used": 389,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "look up the current market cap of NVIDIA",
+      "expected": "web_search_node",
+      "predicted": "web_search_node",
+      "is_correct": true,
+      "latency_ms": 2882.784499990521,
+      "category": "cognitive_agent",
+      "tokens_used": 398,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "calculate 485 multiplied by 927",
+      "expected": "code_executor_node",
+      "predicted": "code_executor_node",
+      "is_correct": true,
+      "latency_ms": 3128.8168000173755,
+      "category": "cognitive_agent",
+      "tokens_used": 423,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "how many days are there between March 15 and October 31?",
+      "expected": "code_executor_node",
+      "predicted": "get_date",
+      "is_correct": false,
+      "latency_ms": 3114.758300012909,
+      "category": "cognitive_agent",
+      "tokens_used": 432,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "spell the word cybernetics backwards for me",
+      "expected": "code_executor_node",
+      "predicted": "code_executor_node",
+      "is_correct": true,
+      "latency_ms": 3016.3288000039756,
+      "category": "cognitive_agent",
+      "tokens_used": 406,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "add buy coffee beans to my todo list",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 3431.9329999852926,
+      "category": "cognitive_agent",
+      "tokens_used": 457,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "mark finish thesis draft as completed on my checklist",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 3287.853999994695,
+      "category": "cognitive_agent",
+      "tokens_used": 450,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what pending tasks do I still have left to do today?",
+      "expected": "todolist_node",
+      "predicted": "todolist_node",
+      "is_correct": true,
+      "latency_ms": 2976.9771000137553,
+      "category": "cognitive_agent",
+      "tokens_used": 456,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "put on my lofi hip hop playlist on Spotify",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 2990.8684999973048,
+      "category": "media",
+      "tokens_used": 395,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "play some chill instrumental study music",
+      "expected": "spotify_play_playlist",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 2849.269900005311,
+      "category": "media",
+      "tokens_used": 391,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "start playing my discover weekly playlist",
+      "expected": "spotify_play_playlist",
+      "predicted": "spotify_play_playlist",
+      "is_correct": true,
+      "latency_ms": 2455.699799989816,
+      "category": "media",
+      "tokens_used": 391,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "play the latest Veritasium video on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 2966.9674999895506,
+      "category": "media",
+      "tokens_used": 393,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "pull up a video tutorial about Three.js on my screen",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 2782.5637999922037,
+      "category": "media",
+      "tokens_used": 411,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "find and watch the trailer for Interstellar on YouTube",
+      "expected": "youtube_play_video",
+      "predicted": "youtube_play_video",
+      "is_correct": true,
+      "latency_ms": 2815.6447000219487,
+      "category": "media",
+      "tokens_used": 409,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn on the lights in the room",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 2802.4482000037096,
+      "category": "smart_home",
+      "tokens_used": 386,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "it is too dark in here, please illuminate the space",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 2799.135400011437,
+      "category": "smart_home",
+      "tokens_used": 386,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "lights on please, switch the smart bulbs on",
+      "expected": "lights_on",
+      "predicted": "lights_on",
+      "is_correct": true,
+      "latency_ms": 2998.4898999973666,
+      "category": "smart_home",
+      "tokens_used": 398,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn off all the lights in here",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 2846.680799993919,
+      "category": "smart_home",
+      "tokens_used": 384,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "lights out, I am going to sleep now",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 2660.9761000145227,
+      "category": "smart_home",
+      "tokens_used": 384,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "kill the ceiling lights and make it completely dark",
+      "expected": "lights_off",
+      "predicted": "lights_off",
+      "is_correct": true,
+      "latency_ms": 2689.280599995982,
+      "category": "smart_home",
+      "tokens_used": 388,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "dim the room lights down to thirty percent",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 2834.007700002985,
+      "category": "smart_home",
+      "tokens_used": 384,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "can you make the smart bulbs a little brighter?",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 2789.732700010063,
+      "category": "smart_home",
+      "tokens_used": 386,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "adjust the Hue light brightness, not my computer screen",
+      "expected": "set_light_brightness",
+      "predicted": "set_light_brightness",
+      "is_correct": true,
+      "latency_ms": 2950.9481999848504,
+      "category": "smart_home",
+      "tokens_used": 386,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "change the smart lights color to warm orange",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 2391.695600003004,
+      "category": "smart_home",
+      "tokens_used": 384,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "switch the bulbs to a cool daylight white",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 2759.431600017706,
+      "category": "smart_home",
+      "tokens_used": 388,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "make the room glow deep purple with the Hue lights",
+      "expected": "set_light_color",
+      "predicted": "set_light_color",
+      "is_correct": true,
+      "latency_ms": 2980.0657000159845,
+      "category": "smart_home",
+      "tokens_used": 390,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "activate the movie night lighting scene",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 2909.0764000138734,
+      "category": "smart_home",
+      "tokens_used": 383,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "switch the room to the reading light preset",
+      "expected": "activate_light_scene",
+      "predicted": "activate_light_scene",
+      "is_correct": true,
+      "latency_ms": 1932.4106999847572,
+      "category": "smart_home",
+      "tokens_used": 388,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "set the ambient lighting to relax mode",
+      "expected": "activate_light_scene",
+      "predicted": "set_light_color",
+      "is_correct": false,
+      "latency_ms": 2213.415400008671,
+      "category": "smart_home",
+      "tokens_used": 387,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "set the thermostat to twenty-two degrees Celsius",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 3089.0079000091646,
+      "category": "smart_home",
+      "tokens_used": 400,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "crank up the heating a little bit, it feels chilly",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 2808.7408999854233,
+      "category": "smart_home",
+      "tokens_used": 417,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn down the AC to twenty degrees",
+      "expected": "set_thermostat",
+      "predicted": "set_thermostat",
+      "is_correct": true,
+      "latency_ms": 2536.698300013086,
+      "category": "smart_home",
+      "tokens_used": 395,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what is the current temperature inside the house?",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 3038.7438999896403,
+      "category": "smart_home",
+      "tokens_used": 402,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "how warm is it in the living room right now?",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 2604.520599998068,
+      "category": "smart_home",
+      "tokens_used": 399,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "read out the indoor humidity and room temp sensor",
+      "expected": "get_indoor_temperature",
+      "predicted": "get_indoor_temperature",
+      "is_correct": true,
+      "latency_ms": 2544.0295999869704,
+      "category": "smart_home",
+      "tokens_used": 393,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn on the smart plug for the desk fan",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 3010.475300019607,
+      "category": "smart_home",
+      "tokens_used": 399,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "power up the outlet connected to the coffee maker",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 3103.852000000188,
+      "category": "smart_home",
+      "tokens_used": 406,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "switch on the plug socket to start the floor heater",
+      "expected": "turn_on_smart_plug",
+      "predicted": "turn_on_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2301.085899991449,
+      "category": "smart_home",
+      "tokens_used": 403,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn off the smart plug connected to the heater",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2595.018899999559,
+      "category": "smart_home",
+      "tokens_used": 408,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "cut the power to the desk fan outlet",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2283.5634000075515,
+      "category": "smart_home",
+      "tokens_used": 402,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "switch off the wall plug socket completely",
+      "expected": "turn_off_smart_plug",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": true,
+      "latency_ms": 2877.536800020607,
+      "category": "smart_home",
+      "tokens_used": 403,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "lock the front door right now",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 2838.9602999959607,
+      "category": "smart_home",
+      "tokens_used": 386,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "secure the house and make sure the door is locked",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 2234.205499989912,
+      "category": "smart_home",
+      "tokens_used": 402,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "engage the smart deadbolt on the front door",
+      "expected": "lock_door",
+      "predicted": "lock_door",
+      "is_correct": true,
+      "latency_ms": 2737.767199985683,
+      "category": "smart_home",
+      "tokens_used": 402,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn the volume up on my computer",
+      "expected": "set_system_volume",
+      "predicted": "set_system_volume",
+      "is_correct": true,
+      "latency_ms": 3062.0915000035893,
+      "category": "desktop",
+      "tokens_used": 396,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "set the laptop speaker volume to seventy percent",
+      "expected": "set_system_volume",
+      "predicted": "set_system_volume",
+      "is_correct": true,
+      "latency_ms": 2335.543300025165,
+      "category": "desktop",
+      "tokens_used": 383,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "make the PC louder, not Cozmo's speaker",
+      "expected": "set_system_volume",
+      "predicted": "set_system_volume",
+      "is_correct": true,
+      "latency_ms": 2269.510700018145,
+      "category": "desktop",
+      "tokens_used": 400,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "mute the computer audio right now",
+      "expected": "mute_system_audio",
+      "predicted": "mute_system_audio",
+      "is_correct": true,
+      "latency_ms": 2878.380699985428,
+      "category": "desktop",
+      "tokens_used": 382,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "silence all sound output on the laptop",
+      "expected": "mute_system_audio",
+      "predicted": "mute_system_audio",
+      "is_correct": true,
+      "latency_ms": 2383.912200020859,
+      "category": "desktop",
+      "tokens_used": 384,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "unmute the PC speakers so I can hear",
+      "expected": "mute_system_audio",
+      "predicted": "mute_system_audio",
+      "is_correct": true,
+      "latency_ms": 2154.9592000083067,
+      "category": "desktop",
+      "tokens_used": 388,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "dim the laptop screen, it is hurting my eyes",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 2911.065000022063,
+      "category": "desktop",
+      "tokens_used": 381,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn up the display brightness to maximum",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 2339.583400025731,
+      "category": "desktop",
+      "tokens_used": 383,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "the screen is too dark, brighten the monitor",
+      "expected": "adjust_screen_brightness",
+      "predicted": "adjust_screen_brightness",
+      "is_correct": true,
+      "latency_ms": 2655.9662999934517,
+      "category": "desktop",
+      "tokens_used": 388,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "switch the computer to dark mode",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 2827.899299998535,
+      "category": "desktop",
+      "tokens_used": 376,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn on the light theme for the system",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 2715.2988000016194,
+      "category": "desktop",
+      "tokens_used": 382,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "toggle between dark and light appearance for Windows",
+      "expected": "toggle_dark_mode",
+      "predicted": "toggle_dark_mode",
+      "is_correct": true,
+      "latency_ms": 2337.463800009573,
+      "category": "desktop",
+      "tokens_used": 379,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "take a screenshot of what is currently on my screen",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 3082.003400020767,
+      "category": "desktop",
+      "tokens_used": 404,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "capture the desktop display and save the image",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 2796.243799995864,
+      "category": "desktop",
+      "tokens_used": 408,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "grab a screen capture of this window",
+      "expected": "take_screenshot",
+      "predicted": "take_screenshot",
+      "is_correct": true,
+      "latency_ms": 2293.230000010226,
+      "category": "desktop",
+      "tokens_used": 407,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "lock my computer screen, I am stepping away",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 2805.321699997876,
+      "category": "desktop",
+      "tokens_used": 378,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "lock the laptop session for security",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 2515.5227999784984,
+      "category": "desktop",
+      "tokens_used": 370,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "lock the PC until I come back",
+      "expected": "lock_screen",
+      "predicted": "lock_screen",
+      "is_correct": true,
+      "latency_ms": 2599.614599981578,
+      "category": "desktop",
+      "tokens_used": 378,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "put the laptop to sleep",
+      "expected": "put_computer_to_sleep",
+      "predicted": "dock_with_charger",
+      "is_correct": false,
+      "latency_ms": 4.86260000616312,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "suspend the computer until tomorrow morning",
+      "expected": "put_computer_to_sleep",
+      "predicted": "put_computer_to_sleep",
+      "is_correct": true,
+      "latency_ms": 3031.883299991023,
+      "category": "desktop",
+      "tokens_used": 387,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "put the PC into sleep mode",
+      "expected": "put_computer_to_sleep",
+      "predicted": "dock_with_charger",
+      "is_correct": false,
+      "latency_ms": 4.5683999778702855,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "shut down my laptop completely",
+      "expected": "shutdown_computer",
+      "predicted": "shutdown_computer",
+      "is_correct": true,
+      "latency_ms": 2821.794800023781,
+      "category": "desktop",
+      "tokens_used": 376,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "power off the computer for the night",
+      "expected": "shutdown_computer",
+      "predicted": "shutdown_computer",
+      "is_correct": true,
+      "latency_ms": 2836.4098999882117,
+      "category": "desktop",
+      "tokens_used": 375,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "restart the PC after installing updates",
+      "expected": "shutdown_computer",
+      "predicted": "shutdown_computer",
+      "is_correct": true,
+      "latency_ms": 2923.164599982556,
+      "category": "desktop",
+      "tokens_used": 383,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "open the Calculator app on my desktop",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 2971.6917000187095,
+      "category": "desktop",
+      "tokens_used": 403,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "launch Google Chrome on the laptop",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 2861.2294999766164,
+      "category": "desktop",
+      "tokens_used": 394,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "start the Notepad text editor program",
+      "expected": "open_application",
+      "predicted": "open_application",
+      "is_correct": true,
+      "latency_ms": 2414.767000009306,
+      "category": "desktop",
+      "tokens_used": 396,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "prepare my workstation for an upcoming video meeting",
+      "expected": "setup_meeting",
+      "predicted": "setup_study",
+      "is_correct": false,
+      "latency_ms": 13.39090001420118,
+      "category": "desktop",
+      "tokens_used": 0,
+      "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex - 0 Tokens)"
+    },
+    {
+      "query": "activate meeting mode and get my camera and mic ready",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 3143.1384999887086,
+      "category": "desktop",
+      "tokens_used": 412,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "get my desk set up for a Zoom call with the team",
+      "expected": "setup_meeting",
+      "predicted": "setup_meeting",
+      "is_correct": true,
+      "latency_ms": 2911.9043000100646,
+      "category": "desktop",
+      "tokens_used": 432,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "check my Gmail inbox for any unread messages from my professor",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 3146.252500009723,
+      "category": "cognitive_agent",
+      "tokens_used": 430,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "draft a quick email reply to Alex confirming the appointment",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 2585.285400011344,
+      "category": "cognitive_agent",
+      "tokens_used": 423,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "search my emails for the conference flight ticket confirmation",
+      "expected": "gmail_node",
+      "predicted": "gmail_node",
+      "is_correct": true,
+      "latency_ms": 3158.1448999932036,
+      "category": "cognitive_agent",
+      "tokens_used": 417,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "how long does it take to drive to Vienna Airport from downtown?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 3115.959600021597,
+      "category": "cognitive_agent",
+      "tokens_used": 410,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "give me walking directions to the nearest train station",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 2897.9081000143196,
+      "category": "cognitive_agent",
+      "tokens_used": 424,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what is the fastest route to get to Stephansplatz right now?",
+      "expected": "maps_directions_node",
+      "predicted": "maps_directions_node",
+      "is_correct": true,
+      "latency_ms": 3288.765899982536,
+      "category": "cognitive_agent",
+      "tokens_used": 434,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "translate this sentence into German for me",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 2930.4778999940027,
+      "category": "cognitive_agent",
+      "tokens_used": 409,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "how do you say thank you very much for your help in Japanese?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 2693.229700002121,
+      "category": "cognitive_agent",
+      "tokens_used": 403,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what does the French phrase c'est la vie mean in English?",
+      "expected": "translation_node",
+      "predicted": "translation_node",
+      "is_correct": true,
+      "latency_ms": 2611.2754000059795,
+      "category": "cognitive_agent",
+      "tokens_used": 418,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "give me a short summary of this research paper abstract",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 3225.8177000039723,
+      "category": "cognitive_agent",
+      "tokens_used": 419,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what is the TL;DR of this long news article?",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 3148.429099994246,
+      "category": "cognitive_agent",
+      "tokens_used": 409,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "condense this technical text into three key bullet points",
+      "expected": "summarizer_node",
+      "predicted": "summarizer_node",
+      "is_correct": true,
+      "latency_ms": 3339.56270001363,
+      "category": "cognitive_agent",
+      "tokens_used": 421,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what is Christoph's phone number in my contacts?",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 3342.3678999824915,
+      "category": "cognitive_agent",
+      "tokens_used": 436,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "look up Sarah's email address from my address book",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 2693.201100017177,
+      "category": "cognitive_agent",
+      "tokens_used": 392,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "find the contact details and birthday for Michael",
+      "expected": "contacts_node",
+      "predicted": "contacts_node",
+      "is_correct": true,
+      "latency_ms": 2667.3893999832217,
+      "category": "cognitive_agent",
+      "tokens_used": 401,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "set a timer for fifteen minutes",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 3007.247900008224,
+      "category": "productivity",
+      "tokens_used": 409,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "countdown forty-five seconds starting now",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 2534.5374000025913,
+      "category": "productivity",
+      "tokens_used": 420,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "start a twenty-minute kitchen timer for the pasta",
+      "expected": "set_timer",
+      "predicted": "set_timer",
+      "is_correct": true,
+      "latency_ms": 2189.5014999900013,
+      "category": "productivity",
+      "tokens_used": 412,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "set an alarm for seven-thirty tomorrow morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 3020.9353000100236,
+      "category": "productivity",
+      "tokens_used": 407,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "wake me up at six AM sharp",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 2416.24259998207,
+      "category": "productivity",
+      "tokens_used": 403,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "schedule an alarm clock alert for eight in the morning",
+      "expected": "set_alarm",
+      "predicted": "set_alarm",
+      "is_correct": true,
+      "latency_ms": 2452.6719999848865,
+      "category": "productivity",
+      "tokens_used": 412,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "cancel my seven AM alarm",
+      "expected": "cancel_alarm",
+      "predicted": "cancel_alarm",
+      "is_correct": true,
+      "latency_ms": 2996.348999993643,
+      "category": "productivity",
+      "tokens_used": 399,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "turn off the running kitchen countdown timer",
+      "expected": "cancel_alarm",
+      "predicted": "turn_off_smart_plug",
+      "is_correct": false,
+      "latency_ms": 2811.646499991184,
+      "category": "productivity",
+      "tokens_used": 387,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "disable all active morning alarms",
+      "expected": "cancel_alarm",
+      "predicted": "cancel_alarm",
+      "is_correct": true,
+      "latency_ms": 609.2108000011649,
+      "category": "productivity",
+      "tokens_used": 399,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "remind me in two hours to drink water",
+      "expected": "create_reminder",
+      "predicted": "create_reminder",
+      "is_correct": true,
+      "latency_ms": 2424.5611999940593,
+      "category": "productivity",
+      "tokens_used": 402,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "set a reminder for five PM to take out the trash",
+      "expected": "create_reminder",
+      "predicted": "create_reminder",
+      "is_correct": true,
+      "latency_ms": 2459.2736000195146,
+      "category": "productivity",
+      "tokens_used": 410,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "remind me after thirty minutes to check the oven",
+      "expected": "create_reminder",
+      "predicted": "create_reminder",
+      "is_correct": true,
+      "latency_ms": 2186.081000021659,
+      "category": "productivity",
+      "tokens_used": 408,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "start a pomodoro session for my study sprint",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 3135.0286999950185,
+      "category": "productivity",
+      "tokens_used": 415,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "begin a twenty-five minute focus work interval",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 2934.4611999986228,
+      "category": "productivity",
+      "tokens_used": 424,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "start the pomodoro productivity timer with short breaks",
+      "expected": "start_pomodoro",
+      "predicted": "start_pomodoro",
+      "is_correct": true,
+      "latency_ms": 2927.155600016704,
+      "category": "productivity",
+      "tokens_used": 443,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "do you have any thoughts on quantum computing?",
+      "expected": "none",
+      "predicted": "web_search_node",
+      "is_correct": false,
+      "latency_ms": 2968.6869000142906,
+      "category": "conversational",
+      "tokens_used": 393,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "I really enjoy drinking espresso while listening to jazz",
+      "expected": "none",
+      "predicted": "spotify_play_playlist",
+      "is_correct": false,
+      "latency_ms": 3238.1939999759197,
+      "category": "conversational",
+      "tokens_used": 403,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    },
+    {
+      "query": "what kind of movies do you find most interesting?",
+      "expected": "none",
+      "predicted": "none",
+      "is_correct": true,
+      "latency_ms": 2417.050999996718,
+      "category": "conversational",
+      "tokens_used": 325,
+      "pipeline": "Two-Layer (Tier 2 LLM - 50 Tools)"
+    }
+  ],
+  "saved_at": "2026-11-07T16:24:30.871819"
+}
