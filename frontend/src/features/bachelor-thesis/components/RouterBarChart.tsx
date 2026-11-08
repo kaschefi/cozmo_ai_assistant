@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { BenchmarkRecord } from '../data/routerBenchmarkData';
+import { type BenchmarkRecord, MODEL_DISPLAY_ORDER } from '../data/routerBenchmarkData';
 
 export interface RouterBarChartProps {
   records: BenchmarkRecord[];
@@ -18,6 +18,10 @@ export interface RouterBarChartProps {
  *
  * Recreates the publication-grade benchmark visualization from matplotlib
  * with full responsiveness, interactive tooltips, and theme support.
+ *
+ * Height Stability Guarantee:
+ * Uses a fixed vertical frame based on maximum benchmark models so filtering
+ * models in or out never causes height collapse, expansion, or layout jumps.
  */
 export const RouterBarChart: React.FC<RouterBarChartProps> = ({
   records,
@@ -27,26 +31,14 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
 }) => {
   const [hoveredModel, setHoveredModel] = useState<string | null>(null);
 
-  if (!records || records.length === 0) {
-    return (
-      <div className={`w-full py-20 px-4 text-center rounded-2xl border ${
-        isDarkMode 
-          ? 'bg-black/40 border-white/10 text-slate-400' 
-          : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-      }`}>
-        <p className="text-base font-medium">No models selected to display.</p>
-        <p className="text-xs mt-1 text-slate-400">Enable at least one model from the filter below to view benchmark results.</p>
-      </div>
-    );
-  }
-
-  // Visual layout constants
+  // Visual layout constants - strictly fixed height to prevent layout shifts during filtering
   const viewBoxWidth = 1180;
   const rowHeight = 58;
   const headerHeight = 72;
   const footerHeight = 48;
-  const contentHeight = records.length * rowHeight;
-  const totalSvgHeight = headerHeight + contentHeight + footerHeight;
+  const maxModels = Math.max(MODEL_DISPLAY_ORDER.length, records?.length || 0); // 6
+  const fixedContentHeight = maxModels * rowHeight; // 348
+  const totalSvgHeight = headerHeight + fixedContentHeight + footerHeight; // 468
 
   // Horizontal column boundaries
   const labelWidth = 135;
@@ -63,10 +55,14 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
   // Panel 1 x-axis max has 15% headroom for right-side text labels (e.g. 96.8%)
   const panel1ScaleMax = 115;
 
-  const rawMaxLat = Math.max(...records.map(r => Math.max(r.p50LatencyMs, r.meanLatencyMs)), 100);
+  const rawMaxLat = records && records.length > 0
+    ? Math.max(...records.map(r => Math.max(r.p50LatencyMs, r.meanLatencyMs)), 100)
+    : 1000;
   const panel2ScaleMax = Math.ceil(rawMaxLat * 1.25 / 250) * 250 || 2000;
 
-  const rawMaxTokens = Math.max(...records.map(r => r.totalTokens), 1000);
+  const rawMaxTokens = records && records.length > 0
+    ? Math.max(...records.map(r => r.totalTokens), 1000)
+    : 50000;
   const panel3ScaleMax = Math.ceil(rawMaxTokens * 1.25 / 10000) * 10000 || 100000;
 
   // Theme styling colors
@@ -77,11 +73,10 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
   const subtextColor = isDarkMode ? '#94a3b8' : '#475569';
 
   return (
-    <div className={`w-full overflow-x-auto rounded-2xl border transition-all duration-300 shadow-xl ${
-      isDarkMode 
-        ? 'bg-[#06080d]/90 border-white/10' 
+    <div className={`w-full overflow-x-auto rounded-2xl border transition-all duration-300 shadow-xl ${isDarkMode
+        ? 'bg-[#06080d]/90 border-white/10'
         : 'bg-white border-slate-200'
-    }`}>
+      }`}>
       <div className="min-w-[860px] p-4 md:p-6 select-none">
         <svg
           viewBox={`0 0 ${viewBoxWidth} ${totalSvgHeight}`}
@@ -121,11 +116,26 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
               x={0}
               y={0}
               width={panelWidth}
-              height={contentHeight}
+              height={fixedContentHeight}
               fill={bgFill}
               stroke={panelBorder}
               strokeWidth="1.2"
             />
+
+            {/* Horizontal row divider guides */}
+            {Array.from({ length: maxModels - 1 }).map((_, i) => (
+              <line
+                key={`row-sep-1-${i}`}
+                x1={0}
+                y1={(i + 1) * rowHeight}
+                x2={panelWidth}
+                y2={(i + 1) * rowHeight}
+                stroke={gridLineColor}
+                strokeDasharray="2 3"
+                strokeWidth="0.8"
+                opacity={0.6}
+              />
+            ))}
 
             {/* Grid Lines at 0, 20, 40, 60, 80, 100 */}
             {[0, 20, 40, 60, 80, 100].map((tick) => {
@@ -136,7 +146,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
                     x1={xPos}
                     y1={0}
                     x2={xPos}
-                    y2={contentHeight}
+                    y2={fixedContentHeight}
                     stroke={gridLineColor}
                     strokeDasharray="3 3"
                     strokeWidth="1"
@@ -144,7 +154,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
                   {/* Bottom tick label */}
                   <text
                     x={xPos}
-                    y={contentHeight + 16}
+                    y={fixedContentHeight + 16}
                     textAnchor="middle"
                     fill={subtextColor}
                     fontSize="10"
@@ -159,7 +169,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
             {/* X-Axis Caption */}
             <text
               x={panelWidth / 2}
-              y={contentHeight + 35}
+              y={fixedContentHeight + 35}
               textAnchor="middle"
               fill={subtextColor}
               fontSize="11"
@@ -177,7 +187,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
               const isHovered = hoveredModel === r.modelId;
 
               return (
-                <g 
+                <g
                   key={`acc-bar-${r.modelId}`}
                   onMouseEnter={() => setHoveredModel(r.modelId)}
                   onMouseLeave={() => setHoveredModel(null)}
@@ -269,11 +279,26 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
               x={0}
               y={0}
               width={panelWidth}
-              height={contentHeight}
+              height={fixedContentHeight}
               fill={bgFill}
               stroke={panelBorder}
               strokeWidth="1.2"
             />
+
+            {/* Horizontal row divider guides */}
+            {Array.from({ length: maxModels - 1 }).map((_, i) => (
+              <line
+                key={`row-sep-2-${i}`}
+                x1={0}
+                y1={(i + 1) * rowHeight}
+                x2={panelWidth}
+                y2={(i + 1) * rowHeight}
+                stroke={gridLineColor}
+                strokeDasharray="2 3"
+                strokeWidth="0.8"
+                opacity={0.6}
+              />
+            ))}
 
             {/* Grid Lines for Latency */}
             {(() => {
@@ -290,14 +315,14 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
                       x1={xPos}
                       y1={0}
                       x2={xPos}
-                      y2={contentHeight}
+                      y2={fixedContentHeight}
                       stroke={gridLineColor}
                       strokeDasharray="3 3"
                       strokeWidth="1"
                     />
                     <text
                       x={xPos}
-                      y={contentHeight + 16}
+                      y={fixedContentHeight + 16}
                       textAnchor="middle"
                       fill={subtextColor}
                       fontSize="10"
@@ -313,7 +338,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
             {/* X-Axis Caption */}
             <text
               x={panelWidth / 2}
-              y={contentHeight + 35}
+              y={fixedContentHeight + 35}
               textAnchor="middle"
               fill={subtextColor}
               fontSize="11"
@@ -428,11 +453,26 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
               x={0}
               y={0}
               width={panelWidth}
-              height={contentHeight}
+              height={fixedContentHeight}
               fill={bgFill}
               stroke={panelBorder}
               strokeWidth="1.2"
             />
+
+            {/* Horizontal row divider guides */}
+            {Array.from({ length: maxModels - 1 }).map((_, i) => (
+              <line
+                key={`row-sep-3-${i}`}
+                x1={0}
+                y1={(i + 1) * rowHeight}
+                x2={panelWidth}
+                y2={(i + 1) * rowHeight}
+                stroke={gridLineColor}
+                strokeDasharray="2 3"
+                strokeWidth="0.8"
+                opacity={0.6}
+              />
+            ))}
 
             {/* Grid Lines for Tokens (subtle dashed guidelines, no scale numbers at bottom per request) */}
             {(() => {
@@ -449,7 +489,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
                       x1={xPos}
                       y1={0}
                       x2={xPos}
-                      y2={contentHeight}
+                      y2={fixedContentHeight}
                       stroke={gridLineColor}
                       strokeDasharray="3 3"
                       strokeWidth="1"
@@ -462,7 +502,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
             {/* X-Axis Caption */}
             <text
               x={panelWidth / 2}
-              y={contentHeight + 25}
+              y={fixedContentHeight + 35}
               textAnchor="middle"
               fill={subtextColor}
               fontSize="11"
@@ -476,7 +516,7 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
               const yCenter = idx * rowHeight + rowHeight / 2;
               const barHeight = 28;
               const barY = yCenter - barHeight / 2;
-              const barWidth = r.totalTokens > 0 
+              const barWidth = r.totalTokens > 0
                 ? Math.max(3, (r.totalTokens / panel3ScaleMax) * panelWidth)
                 : 0;
               const isHovered = hoveredModel === r.modelId;
@@ -521,6 +561,42 @@ export const RouterBarChart: React.FC<RouterBarChartProps> = ({
               );
             })}
           </g>
+
+          {/* Clean centered empty state when no models are selected (without collapsing height) */}
+          {(!records || records.length === 0) && (
+            <g transform={`translate(${viewBoxWidth / 2}, ${headerHeight + fixedContentHeight / 2})`}>
+              <rect
+                x={-200}
+                y={-34}
+                width={400}
+                height={68}
+                rx={10}
+                fill={isDarkMode ? 'rgba(10, 13, 20, 0.94)' : 'rgba(255, 255, 255, 0.95)'}
+                stroke={panelBorder}
+                strokeWidth="1.2"
+              />
+              <text
+                x={0}
+                y={-6}
+                textAnchor="middle"
+                fill={textColor}
+                fontSize="13"
+                fontWeight="700"
+              >
+                No models selected to display
+              </text>
+              <text
+                x={0}
+                y={15}
+                textAnchor="middle"
+                fill={subtextColor}
+                fontSize="11"
+                fontWeight="500"
+              >
+                Enable at least one model from the filter below to view results
+              </text>
+            </g>
+          )}
         </svg>
       </div>
     </div>

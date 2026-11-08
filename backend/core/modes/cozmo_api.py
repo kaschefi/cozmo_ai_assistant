@@ -394,6 +394,17 @@ async def execute_cozmo_command(req: CozmoCommandRequest):
         feat = cozmo_web_state.active_selection_feat
         bbox = cozmo_web_state.active_selection_bbox or (0.25, 0.25, 0.75, 0.75)
 
+        if feat is None and req.click_x is not None and req.click_y is not None and async_vision_engine._latest_raw_bgr is not None:
+            try:
+                pil_img = Image.fromarray(cv2.cvtColor(async_vision_engine._latest_raw_bgr, cv2.COLOR_BGR2RGB))
+                feat, bbox, _, _ = dino_heatmap_extractor.extract_from_click_segment(
+                    pil_img,
+                    click_norm_x=float(req.click_x),
+                    click_norm_y=float(req.click_y),
+                )
+            except Exception as e:
+                print(f"[Cozmo Teach] Fallback click extraction notice: {e}")
+
         if feat is None and async_vision_engine._latest_raw_bgr is not None:
             pil_img = Image.fromarray(cv2.cvtColor(async_vision_engine._latest_raw_bgr, cv2.COLOR_BGR2RGB))
             feat, _, _ = dino_heatmap_extractor.extract_reticle_roi(pil_img, reticle_box=bbox)
@@ -406,13 +417,27 @@ async def execute_cozmo_command(req: CozmoCommandRequest):
                 robot_pose=pose,
                 head_angle_rad=math.radians(head_pitch),
             )
-            visual_anchor_store.add_or_update_anchor(
+            # 1. Save in visual anchor store
+            visual_anchor_store.save_anchor(
                 label=label,
-                descriptor=feat,
-                estimated_x=wx,
-                estimated_y=wy,
-                estimated_theta_deg=pose[2],
+                feature_vector=feat,
+                x=wx,
+                y=wy,
+                theta_deg=pose[2],
             )
+            # 2. Teach in REMIND visual memory bank
+            try:
+                remind_engine.teach_anchor(
+                    label=label,
+                    image_or_feat=feat,
+                    x=wx,
+                    y=wy,
+                    theta_deg=pose[2],
+                )
+            except Exception as e:
+                print(f"[REMIND] teach_anchor notice: {e}")
+
+            # 3. Clear active selection so purple box is removed and detection takes over
             async_vision_engine.clear_selection()
             return {
                 "status": "success",
@@ -420,6 +445,7 @@ async def execute_cozmo_command(req: CozmoCommandRequest):
                 "label": label,
                 "world_x": wx,
                 "world_y": wy,
+                "distance_mm": dist,
             }
         return {"status": "error", "message": "Failed to extract object embedding."}
 
@@ -987,7 +1013,7 @@ class AsyncVisionEngine:
                 if patch_tokens is not None and not is_calibrating:
                     detections = visual_anchor_store.detect_objects_in_patches(
                         patch_tokens_grid=patch_tokens,
-                        min_patch_similarity=0.76,
+                        min_patch_similarity=0.72,
                         min_matching_patches=2,
                     )
                     for det in detections:
@@ -1054,15 +1080,11 @@ def generate_mjpeg_stream(source: Optional[str] = None):
 
             # Strictly Cozmo - DO NOT fall back to webcam
             if not (cli and cozmo_manager.is_connected):
-                # Inform user that Cozmo is not connected
-                offline_frame = np.zeros((240, 480, 3), dtype=np.uint8)
-                cv2.rectangle(offline_frame, (10, 30), (470, 210), (18, 22, 32), -1)
-                cv2.rectangle(offline_frame, (10, 30), (470, 210), (40, 50, 80), 1)
+                cozmo_web_state.latest_detections = []
+                async_vision_engine.clear_selection()
 
-                cv2.putText(offline_frame, "COZMO NOT CONNECTED", (110, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.60, (0, 90, 255), 2)
-                cv2.putText(offline_frame, "Cannot connect to Cozmo robot.", (100, 115), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (230, 230, 230), 1)
-                cv2.putText(offline_frame, "Please connect to Cozmo Wi-Fi", (110, 145), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (160, 180, 200), 1)
-                cv2.putText(offline_frame, "or switch to Webcam on top right.", (95, 170), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (0, 200, 255), 1)
+                # Clean solid obsidian frame matching #030407 (BGR: 7, 4, 3)
+                offline_frame = np.full((240, 480, 3), (7, 4, 3), dtype=np.uint8)
 
                 ret, jpeg = cv2.imencode(".jpg", offline_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 65])
                 if ret:
@@ -1106,9 +1128,9 @@ def generate_mjpeg_stream(source: Optional[str] = None):
                     raw_frame = None
 
             if raw_frame is None:
-                waiting_frame = np.zeros((240, 480, 3), dtype=np.uint8)
-                cv2.putText(waiting_frame, "COZMO CAM CONNECTED", (120, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 240, 255), 1)
-                cv2.putText(waiting_frame, "Awaiting first frame...", (135, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (180, 200, 220), 1)
+                waiting_frame = np.full((240, 480, 3), (7, 4, 3), dtype=np.uint8)
+                cv2.putText(waiting_frame, "COZMO CAM CONNECTED", (135, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.52, (220, 200, 60), 1, cv2.LINE_AA)
+                cv2.putText(waiting_frame, "Awaiting first camera frame...", (130, 138), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (150, 160, 175), 1, cv2.LINE_AA)
                 ret, jpeg = cv2.imencode(".jpg", waiting_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 65])
                 if ret:
                     yield (b"--frame\r\n"
@@ -1126,14 +1148,10 @@ def generate_mjpeg_stream(source: Optional[str] = None):
                         pass
                     webcam_cap = None
                 async_vision_engine.clear_frame()
+                cozmo_web_state.latest_detections = []
 
-                off_frame = np.zeros((240, 480, 3), dtype=np.uint8)
-                cv2.rectangle(off_frame, (10, 30), (470, 210), (18, 22, 32), -1)
-                cv2.rectangle(off_frame, (10, 30), (470, 210), (40, 50, 80), 1)
-
-                cv2.putText(off_frame, "WEBCAM DISABLED", (135, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.60, (120, 140, 160), 2)
-                cv2.putText(off_frame, "Webcam device closed & DINO stopped.", (90, 125), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (200, 210, 230), 1)
-                cv2.putText(off_frame, "Click 'Webcam OFF' button below to re-enable.", (80, 155), cv2.FONT_HERSHEY_SIMPLEX, 0.40, (0, 240, 255), 1)
+                # Clean solid obsidian frame matching #030407 (BGR: 7, 4, 3)
+                off_frame = np.full((240, 480, 3), (7, 4, 3), dtype=np.uint8)
 
                 ret, jpeg = cv2.imencode(".jpg", off_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 65])
                 if ret:

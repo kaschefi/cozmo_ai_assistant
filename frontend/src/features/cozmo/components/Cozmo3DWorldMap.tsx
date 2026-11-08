@@ -1075,9 +1075,9 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
 
       {/* Loading Overlay */}
       {isLoadingModel && (
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-20 pointer-events-none">
-          <div className="w-10 h-10 border-3 border-cyan-400/20 border-t-cyan-400 rounded-full animate-spin" />
-          <span className="text-xs font-mono text-cyan-300 tracking-wider">LOADING COZMO 3D SIMULATION...</span>
+        <div className="absolute inset-0 bg-[#03060a]/85 backdrop-blur-md flex flex-col items-center justify-center gap-3 z-20 pointer-events-none">
+          <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <span className="text-xs font-mono text-slate-200 tracking-wider">LOADING COZMO 3D DIGITAL TWIN...</span>
         </div>
       )}
 
@@ -1154,23 +1154,23 @@ export const Cozmo3DWorldMap: React.FC<Cozmo3DWorldMapProps> = ({
 
       {/* Bottom HUD Overlay */}
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-none z-10">
-        <div className="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-slate-300 flex items-center gap-3 shadow-xl">
+        <div className="bg-[#03060a]/85 backdrop-blur-xl px-3.5 py-1.5 rounded-xl border border-white/[0.08] text-[11px] font-mono text-slate-300 flex items-center gap-3 shadow-xl">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>Pose: ({(robot.x / 10).toFixed(1)}, {(robot.y / 10).toFixed(1)})cm | {robot.theta_deg.toFixed(0)}°</span>
           </span>
-          <span className="text-slate-500">|</span>
-          <span className="text-amber-300 font-semibold">5cm Block Safety Margin Active</span>
+          <span className="text-slate-600">|</span>
+          <span className="text-amber-300 font-semibold">50mm Safety Buffer Active</span>
           {isSimulatingDock && (
             <>
-              <span className="text-slate-500">|</span>
+              <span className="text-slate-600">|</span>
               <span className="text-cyan-300 animate-pulse">2-Way A* Dock Active</span>
             </>
           )}
         </div>
 
-        <div className="bg-slate-900/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-[11px] font-mono text-cyan-300 shadow-xl">
-          {blocks.length} Cubes Loaded (5cm Buffer)
+        <div className="bg-[#03060a]/85 backdrop-blur-xl px-3 py-1.5 rounded-xl border border-white/[0.08] text-[11px] font-mono text-slate-300 shadow-xl">
+          {blocks.length} Cubes Loaded (50mm Buffer)
         </div>
       </div>
     </div>

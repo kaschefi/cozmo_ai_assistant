@@ -51,25 +51,12 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
 
   const isPhaseMode = comparisonMode === 'phases';
 
-  if (!trajectories || trajectories.length === 0) {
-    return (
-      <div className={`w-full py-20 px-4 text-center rounded-2xl border ${
-        isDarkMode 
-          ? 'bg-black/40 border-white/10 text-slate-400' 
-          : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-      }`}>
-        <p className="text-base font-medium">No trajectory data available.</p>
-        <p className="text-xs mt-1 text-slate-400">Select at least one router model or enable 3-phase comparison.</p>
-      </div>
-    );
-  }
-
-  const isSingleModel = !isPhaseMode && trajectories.length === 1;
+  const isSingleModel = !isPhaseMode && trajectories && trajectories.length === 1;
   const singleModel = isSingleModel ? trajectories[0] : null;
 
-  // Layout coordinate constants
+  // Layout coordinate constants - strictly fixed height to prevent vertical layout shifts
   const viewBoxWidth = 1340;
-  const headerHeight = isSingleModel ? 68 : 96;
+  const headerHeight = 96;
   const footerHeight = 45;
   const plotHeight = 260;
   const totalSvgHeight = headerHeight + plotHeight + footerHeight;
@@ -106,31 +93,39 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
   const subtextColor = isDarkMode ? '#94a3b8' : '#475569';
 
   // Y-axis scaling for Panel 2 (Latency)
-  const allLatencies = trajectories.flatMap(t => 
-    isSingleModel 
-      ? t.points.flatMap(p => [p.p50LatencyMs, p.meanLatencyMs])
-      : t.points.map(p => latencyMetric === 'mean' ? p.meanLatencyMs : p.p50LatencyMs)
-  );
-  const rawMaxLat = Math.max(...allLatencies, 100);
+  const allLatencies = trajectories && trajectories.length > 0
+    ? trajectories.flatMap(t =>
+      isSingleModel
+        ? t.points.flatMap(p => [p.p50LatencyMs, p.meanLatencyMs])
+        : t.points.map(p => latencyMetric === 'mean' ? p.meanLatencyMs : p.p50LatencyMs)
+    )
+    : [];
+  const rawMaxLat = allLatencies.length > 0 ? Math.max(...allLatencies, 100) : 1000;
   const panel2Max = Math.ceil(rawMaxLat * 1.15 / 200) * 200 || 1500;
-  const panel2Min = isSingleModel && Math.min(...allLatencies) > 700 ? Math.floor(Math.min(...allLatencies) * 0.9 / 100) * 100 : 0;
+  const panel2Min = isSingleModel && allLatencies.length > 0 && Math.min(...allLatencies) > 700
+    ? Math.floor(Math.min(...allLatencies) * 0.9 / 100) * 100
+    : 0;
 
   // Y-axis scaling for Panel 3 (Avg Tokens Per Call)
-  const allTokensPerCall = trajectories.flatMap(t => t.points.map(p => p.avgTokensPerCall));
-  const rawMaxTPC = Math.max(...allTokensPerCall, 10);
+  const allTokensPerCall = trajectories && trajectories.length > 0
+    ? trajectories.flatMap(t => t.points.map(p => p.avgTokensPerCall))
+    : [];
+  const rawMaxTPC = allTokensPerCall.length > 0 ? Math.max(...allTokensPerCall, 10) : 500;
   const panel3Max = Math.ceil(rawMaxTPC * 1.2 / 500) * 500 || 20;
 
   // Y-axis scaling for Panel 4 (Total Cumulative Tokens)
-  const allTotalTokens = trajectories.flatMap(t => t.points.map(p => p.totalTokens));
-  const rawMaxTot = Math.max(...allTotalTokens, 100);
+  const allTotalTokens = trajectories && trajectories.length > 0
+    ? trajectories.flatMap(t => t.points.map(p => p.totalTokens))
+    : [];
+  const rawMaxTot = allTotalTokens.length > 0 ? Math.max(...allTotalTokens, 100) : 10000;
   const panel4Max = Math.ceil(rawMaxTot * 1.2 / 10000) * 10000 || 50;
 
   // Main Figure Title
   const figureTitle = isPhaseMode
     ? `Cross-Phase Scalability: ${comparedModelName || 'Model'} (Phase 1 vs Phase 2 vs Phase 3)`
     : isSingleModel
-    ? `Scalability Trajectory: ${singleModel?.modelName} (Phase: ${phase})`
-    : `Router Scalability Comparison across Tool Scale (Phase: ${phase})`;
+      ? `Scalability Trajectory: ${singleModel?.modelName} (Phase: ${phase})`
+      : `Router Scalability Comparison across Tool Scale (Phase: ${phase})`;
 
   // Helper to render distinct geometric markers for phases or models
   const renderPointMarker = (
@@ -191,11 +186,10 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
   };
 
   return (
-    <div className={`w-full overflow-x-auto rounded-2xl border transition-all duration-300 shadow-xl ${
-      isDarkMode 
-        ? 'bg-[#06080d]/90 border-white/10' 
+    <div className={`w-full overflow-x-auto rounded-2xl border transition-all duration-300 shadow-xl ${isDarkMode
+        ? 'bg-[#06080d]/90 border-white/10'
         : 'bg-white border-slate-200'
-    }`}>
+      }`}>
       <div className="min-w-[960px] p-4 md:p-6 select-none relative overflow-hidden">
         <svg
           viewBox={`0 0 ${viewBoxWidth} ${totalSvgHeight}`}
@@ -214,8 +208,19 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
             {figureTitle}
           </text>
 
+          {/* Single Model Indicator */}
+          {isSingleModel && singleModel && (
+            <g transform={`translate(${viewBoxWidth / 2}, 54)`}>
+              <line x1={-60} y1={0} x2={-44} y2={0} stroke={singleModel.color} strokeWidth="2.8" />
+              <circle cx={-52} cy={0} r={4} fill={singleModel.color} />
+              <text x={-36} y={3.5} fill={textColor} fontSize="11" fontWeight="700">
+                {singleModel.modelName} (Single Model Trajectory)
+              </text>
+            </g>
+          )}
+
           {/* Legend Banner (when comparing 2+ models OR 3 phases) */}
-          {!isSingleModel && (
+          {!isSingleModel && trajectories && trajectories.length > 0 && (
             <g transform={`translate(${viewBoxWidth / 2}, 54)`}>
               {(() => {
                 const itemSpacing = isPhaseMode ? 220 : 180;
@@ -769,6 +774,42 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
               );
             })}
           </g>
+
+          {/* Clean centered empty state when no models/trajectories are selected (without collapsing height) */}
+          {(!trajectories || trajectories.length === 0) && (
+            <g transform={`translate(${viewBoxWidth / 2}, ${headerHeight + plotHeight / 2})`}>
+              <rect
+                x={-200}
+                y={-34}
+                width={400}
+                height={68}
+                rx={10}
+                fill={isDarkMode ? 'rgba(10, 13, 20, 0.94)' : 'rgba(255, 255, 255, 0.95)'}
+                stroke={panelBorder}
+                strokeWidth="1.2"
+              />
+              <text
+                x={0}
+                y={-6}
+                textAnchor="middle"
+                fill={textColor}
+                fontSize="13"
+                fontWeight="700"
+              >
+                No trajectory data available
+              </text>
+              <text
+                x={0}
+                y={15}
+                textAnchor="middle"
+                fill={subtextColor}
+                fontSize="11"
+                fontWeight="500"
+              >
+                Select at least one router model or enable 3-phase comparison
+              </text>
+            </g>
+          )}
         </svg>
 
         {/* Floating Tooltip for Interactive Inspection (anchors inward from edges to eliminate overflow jitter) */}

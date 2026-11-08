@@ -445,7 +445,7 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
     ctx.fillText(`HDG: ${robot.theta_deg.toFixed(1)}°`, 18, 52);
     ctx.restore();
 
-  }, [robot, anchors, obstacles, path, scale, offset, trail]);
+  }, [robot, anchors, obstacles, blocks, path, scale, offset, trail]);
 
   // Mouse Interaction: Pan & Drag
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -500,7 +500,7 @@ export const SemanticGridMap: React.FC<SemanticGridMapProps> = ({
   };
 
   return (
-    <div className={`relative w-full h-full overflow-hidden bg-[#0a0d14] rounded-xl border border-cyan-900/40 ${className}`}>
+    <div className={`relative w-full h-full overflow-hidden bg-black/60 rounded-2xl border border-white/[0.08] ${className}`}>
       <canvas
         ref={canvasRef}
         width={750}

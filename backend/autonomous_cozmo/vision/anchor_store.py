@@ -288,6 +288,31 @@ class VisualAnchorStore:
             self.save_to_disk()
             return anchor
 
+    def add_or_update_anchor(
+        self,
+        label: str,
+        descriptor: Union[np.ndarray, List[float]],
+        estimated_x: float = 0.0,
+        estimated_y: float = 0.0,
+        estimated_theta_deg: float = 0.0,
+        confidence_threshold: float = 0.72,
+        is_permanent: bool = True,
+        notes: str = "",
+    ) -> VisualAnchor:
+        """
+        Alias for save_anchor: saves or updates a labeled visual anchor with descriptor.
+        """
+        return self.save_anchor(
+            label=label,
+            feature_vector=descriptor,
+            x=estimated_x,
+            y=estimated_y,
+            theta_deg=estimated_theta_deg,
+            confidence_threshold=confidence_threshold,
+            is_permanent=is_permanent,
+            notes=notes,
+        )
+
     def identify(
         self,
         feature_vector: np.ndarray,
