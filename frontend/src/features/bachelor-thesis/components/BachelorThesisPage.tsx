@@ -48,7 +48,7 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
   );
 
   // Default to publication view (matplotlib white) as requested to match the uploaded screenshot
-  const [isChartDarkMode, setIsChartDarkMode] = useState<boolean>(false);
+  const [isChartDarkMode, setIsChartDarkMode] = useState<boolean>(true);
 
   // Filter records dynamically based on active phase, tool count, and selected models
   const filteredRecords = useMemo(() => {
@@ -82,7 +82,7 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
     () => new Set(MODEL_DISPLAY_ORDER)
   );
   const [lineChartLatencyMetric, setLineChartLatencyMetric] = useState<'mean' | 'p50'>('mean');
-  const [isLineChartDarkMode, setIsLineChartDarkMode] = useState<boolean>(false);
+  const [isLineChartDarkMode, setIsLineChartDarkMode] = useState<boolean>(true);
 
   // Cross-Phase Comparison State (comparing 1 model across Phase 1 vs Phase 2 vs Phase 3)
   const [isCrossPhaseMode, setIsCrossPhaseMode] = useState<boolean>(false);
@@ -185,109 +185,109 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
       <Header defaultActive="bachelor-thesis" />
 
       {/* 2. Main Page Content */}
-        <main className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 pt-24 md:pt-28 pb-28 flex flex-col gap-16">
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 pt-24 md:pt-28 pb-28 flex flex-col gap-16">
 
-          {/* Redesigned Publication-Grade Hero Section */}
-          <BachelorThesisHero
-            selectedPhase={selectedPhase}
-            selectedToolCount={selectedToolCount}
-            kpis={kpis}
-          />
+        {/* Redesigned Publication-Grade Hero Section */}
+        <BachelorThesisHero
+          selectedPhase={selectedPhase}
+          selectedToolCount={selectedToolCount}
+          kpis={kpis}
+        />
 
-          {/* =========================================================================
+        {/* =========================================================================
             SECTION 1: COMPARATIVE HORIZONTAL BAR CHART
            ========================================================================= */}
-          <section id="single-scale-benchmark" className="flex flex-col gap-5 scroll-mt-28">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: 'var(--brand-primary)' }}
-                />
-                <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">
-                  Single-Scale Comparative Benchmark
-                </h2>
-              </div>
-              <span className="text-xs font-mono text-slate-400">
-                Showing {filteredRecords.length} Active Models
-              </span>
+        <section id="single-scale-benchmark" className="flex flex-col gap-5 scroll-mt-28">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--brand-primary)' }}
+              />
+              <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">
+                Single-Scale Comparative Benchmark
+              </h2>
             </div>
+            <span className="text-xs font-mono text-slate-400">
+              Showing {filteredRecords.length} Active Models
+            </span>
+          </div>
 
-            {/* 3-Panel Horizontal Bar Chart */}
-            <RouterBarChart
-              records={filteredRecords}
-              phase={selectedPhase}
-              numTools={selectedToolCount}
-              isDarkMode={isChartDarkMode}
-            />
+          {/* 3-Panel Horizontal Bar Chart */}
+          <RouterBarChart
+            records={filteredRecords}
+            phase={selectedPhase}
+            numTools={selectedToolCount}
+            isDarkMode={isChartDarkMode}
+          />
 
-            {/* Interactive Controls Bar Directly Under the Chart */}
-            <BenchmarkControlBar
-              selectedPhase={selectedPhase}
-              onSelectPhase={setSelectedPhase}
-              selectedToolCount={selectedToolCount}
-              onSelectToolCount={setSelectedToolCount}
-              activeModels={activeModels}
-              onToggleModel={handleToggleModel}
-              onSelectAllModels={handleSelectAllModels}
-              onDeselectAllModels={handleDeselectAllModels}
-              isDarkMode={isChartDarkMode}
-              onToggleDarkMode={() => setIsChartDarkMode(!isChartDarkMode)}
-            />
-          </section>
+          {/* Interactive Controls Bar Directly Under the Chart */}
+          <BenchmarkControlBar
+            selectedPhase={selectedPhase}
+            onSelectPhase={setSelectedPhase}
+            selectedToolCount={selectedToolCount}
+            onSelectToolCount={setSelectedToolCount}
+            activeModels={activeModels}
+            onToggleModel={handleToggleModel}
+            onSelectAllModels={handleSelectAllModels}
+            onDeselectAllModels={handleDeselectAllModels}
+            isDarkMode={isChartDarkMode}
+            onToggleDarkMode={() => setIsChartDarkMode(!isChartDarkMode)}
+          />
+        </section>
 
-          {/* =========================================================================
+        {/* =========================================================================
             SECTION 2: 4-PANEL SCALABILITY LINE CHART (20 → 100 TOOLS)
            ========================================================================= */}
-          <section id="scalability-trajectories" className="mt-8 pt-8 border-t border-white/[0.08] flex flex-col gap-5 scroll-mt-28">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: 'var(--brand-light)' }}
-                />
-                <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">
-                  Multi-Scale Scalability Trajectories
-                </h2>
-              </div>
-              <span className="text-xs font-mono text-purple-400/90">
-                {isCrossPhaseMode
-                  ? `Comparing ${MODEL_METADATA[crossPhaseModel]?.label || crossPhaseModel} (Phase 1 vs 2 vs 3)`
-                  : `Comparing ${scalabilityTrajectories.length} Model Trajectories (20 → 100 Tools)`}
-              </span>
+        <section id="scalability-trajectories" className="mt-8 pt-8 border-t border-white/[0.08] flex flex-col gap-5 scroll-mt-28">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-2.5 h-2.5 rounded-full"
+                style={{ backgroundColor: 'var(--brand-light)' }}
+              />
+              <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">
+                Multi-Scale Scalability Trajectories
+              </h2>
             </div>
+            <span className="text-xs font-mono text-purple-400/90">
+              {isCrossPhaseMode
+                ? `Comparing ${MODEL_METADATA[crossPhaseModel]?.label || crossPhaseModel} (Phase 1 vs 2 vs 3)`
+                : `Comparing ${scalabilityTrajectories.length} Model Trajectories (20 → 100 Tools)`}
+            </span>
+          </div>
 
-            {/* 4-Panel Line Chart Component */}
-            <RouterScalabilityLineChart
-              trajectories={scalabilityTrajectories}
-              phase={lineChartPhase}
-              latencyMetric={lineChartLatencyMetric}
-              isDarkMode={isLineChartDarkMode}
-              comparisonMode={isCrossPhaseMode ? 'phases' : 'models'}
-              comparedModelId={crossPhaseModel}
-              comparedModelName={MODEL_METADATA[crossPhaseModel]?.label || crossPhaseModel}
-            />
+          {/* 4-Panel Line Chart Component */}
+          <RouterScalabilityLineChart
+            trajectories={scalabilityTrajectories}
+            phase={lineChartPhase}
+            latencyMetric={lineChartLatencyMetric}
+            isDarkMode={isLineChartDarkMode}
+            comparisonMode={isCrossPhaseMode ? 'phases' : 'models'}
+            comparedModelId={crossPhaseModel}
+            comparedModelName={MODEL_METADATA[crossPhaseModel]?.label || crossPhaseModel}
+          />
 
-            {/* Interactive Controls Bar for Line Chart */}
-            <ScalabilityControlBar
-              selectedPhase={lineChartPhase}
-              onSelectPhase={setLineChartPhase}
-              activeModels={lineChartActiveModels}
-              onToggleModel={handleToggleLineModel}
-              onSelectAllModels={handleSelectAllLineModels}
-              onDeselectAllModels={handleDeselectAllLineModels}
-              latencyMetric={lineChartLatencyMetric}
-              onSelectLatencyMetric={setLineChartLatencyMetric}
-              isDarkMode={isLineChartDarkMode}
-              onToggleDarkMode={() => setIsLineChartDarkMode(!isLineChartDarkMode)}
-              isCrossPhaseMode={isCrossPhaseMode}
-              onToggleCrossPhaseMode={() => setIsCrossPhaseMode(!isCrossPhaseMode)}
-              crossPhaseModel={crossPhaseModel}
-              onSelectCrossPhaseModel={setCrossPhaseModel}
-            />
-          </section>
+          {/* Interactive Controls Bar for Line Chart */}
+          <ScalabilityControlBar
+            selectedPhase={lineChartPhase}
+            onSelectPhase={setLineChartPhase}
+            activeModels={lineChartActiveModels}
+            onToggleModel={handleToggleLineModel}
+            onSelectAllModels={handleSelectAllLineModels}
+            onDeselectAllModels={handleDeselectAllLineModels}
+            latencyMetric={lineChartLatencyMetric}
+            onSelectLatencyMetric={setLineChartLatencyMetric}
+            isDarkMode={isLineChartDarkMode}
+            onToggleDarkMode={() => setIsLineChartDarkMode(!isLineChartDarkMode)}
+            isCrossPhaseMode={isCrossPhaseMode}
+            onToggleCrossPhaseMode={() => setIsCrossPhaseMode(!isCrossPhaseMode)}
+            crossPhaseModel={crossPhaseModel}
+            onSelectCrossPhaseModel={setCrossPhaseModel}
+          />
+        </section>
 
-        </main>
+      </main>
     </div>
   );
 };

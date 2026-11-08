@@ -1,4 +1,5 @@
 import React from 'react';
+import { useDockMagnification } from '../../../shared/hooks';
 import {
   type PhaseId,
   AVAILABLE_PHASES,
@@ -52,6 +53,9 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
   const activeCount = activeModels.size;
   const totalModels = MODEL_DISPLAY_ORDER.length;
 
+  const phaseDockRef = useDockMagnification<HTMLDivElement>({ proximity: 90, popDistance: 3.5, scaleGrowth: 0.03 });
+  const metricDockRef = useDockMagnification<HTMLDivElement>({ proximity: 85, popDistance: 3.5, scaleGrowth: 0.03 });
+
   return (
     <div className="w-full flex flex-col gap-5 p-6 rounded-2xl border border-white/[0.08] bg-black/40 backdrop-blur-xl shadow-2xl">
       {/* Top Controls Grid */}
@@ -63,20 +67,21 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
             <span className="flex items-center gap-2">
               <span>Evaluation Phase</span>
               {isCrossPhaseMode ? (
-                <span className="text-[10px] text-amber-400 font-mono font-bold">
+                <span className="text-[10px] text-slate-400 font-mono font-bold">
                   (Phases 1, 2, 3 Active)
                 </span>
               ) : (
-                <span className="text-[10px] text-cyan-400 font-mono">({selectedPhase})</span>
+                <span className="text-[10px] text-slate-400 font-mono">({selectedPhase.toUpperCase()})</span>
               )}
             </span>
           </label>
-          <div className="flex rounded-xl bg-black/50 border border-white/[0.08] p-1 gap-1">
+          <div ref={phaseDockRef} className="flex rounded-xl bg-[#08080c]/85 border border-white/[0.08] p-1 gap-1 backdrop-blur-xl shadow-lg overflow-visible">
             {AVAILABLE_PHASES.map((p) => {
               const isActive = !isCrossPhaseMode && selectedPhase === p.id;
               return (
                 <button
                   key={p.id}
+                  data-dock-item
                   type="button"
                   onClick={() => {
                     if (isCrossPhaseMode) {
@@ -84,12 +89,11 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
                     }
                     onSelectPhase(p.id);
                   }}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  aria-pressed={isActive}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs transition-colors duration-150 cursor-pointer ${
                     isActive
-                      ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/20'
-                      : isCrossPhaseMode
-                      ? 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                      ? 'bg-white text-[#09090b] font-bold border border-white shadow-[0_4px_14px_rgba(255,255,255,0.18)]'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium'
                   }`}
                   title={isCrossPhaseMode ? `Exit 3-Phase mode and switch to ${p.label}` : p.description}
                 >
@@ -104,29 +108,33 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
         <div className="md:col-span-4 flex flex-col gap-2">
           <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <span>Latency Metric</span>
-            <span className="text-[10px] text-emerald-400 font-mono">
-              ({latencyMetric === 'mean' ? 'Mean Latency' : 'P50 Median'})
+            <span className="text-[10px] text-slate-400 font-mono">
+              ({latencyMetric === 'mean' ? 'MEAN LATENCY' : 'P50 MEDIAN'})
             </span>
           </label>
-          <div className="flex rounded-xl bg-black/50 border border-white/[0.08] p-1 gap-1">
+          <div ref={metricDockRef} className="flex rounded-xl bg-[#08080c]/85 border border-white/[0.08] p-1 gap-1 backdrop-blur-xl shadow-lg overflow-visible">
             <button
+              data-dock-item
               type="button"
               onClick={() => onSelectLatencyMetric('mean')}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              aria-pressed={latencyMetric === 'mean'}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs transition-colors duration-150 cursor-pointer ${
                 latencyMetric === 'mean'
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                  ? 'bg-white text-[#09090b] font-bold border border-white shadow-[0_4px_14px_rgba(255,255,255,0.18)]'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium'
               }`}
             >
               Mean (Average)
             </button>
             <button
+              data-dock-item
               type="button"
               onClick={() => onSelectLatencyMetric('p50')}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+              aria-pressed={latencyMetric === 'p50'}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs transition-colors duration-150 cursor-pointer ${
                 latencyMetric === 'p50'
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                  ? 'bg-white text-[#09090b] font-bold border border-white shadow-[0_4px_14px_rgba(255,255,255,0.18)]'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium'
               }`}
             >
               P50 (Median)

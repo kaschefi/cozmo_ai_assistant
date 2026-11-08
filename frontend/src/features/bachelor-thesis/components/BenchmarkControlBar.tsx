@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useDockMagnification } from '../../../shared/hooks';
 import {
   type PhaseId,
   type ToolCount,
@@ -44,6 +45,8 @@ export const BenchmarkControlBar: React.FC<BenchmarkControlBarProps> = ({
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const phaseDockRef = useDockMagnification<HTMLDivElement>({ proximity: 90, popDistance: 3.5, scaleGrowth: 0.03 });
+  const toolDockRef = useDockMagnification<HTMLDivElement>({ proximity: 80, popDistance: 3.5, scaleGrowth: 0.03 });
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -72,20 +75,22 @@ export const BenchmarkControlBar: React.FC<BenchmarkControlBarProps> = ({
         <div className="md:col-span-4 flex flex-col gap-2">
           <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <span>Evaluation Phase</span>
-            <span className="text-[10px] text-cyan-400 font-mono">({selectedPhase})</span>
+            <span className="text-[10px] text-slate-400 font-mono">({selectedPhase.toUpperCase()})</span>
           </label>
-          <div className="flex rounded-xl bg-black/50 border border-white/[0.08] p-1 gap-1">
+          <div ref={phaseDockRef} className="flex rounded-xl bg-[#08080c]/85 border border-white/[0.08] p-1 gap-1 backdrop-blur-xl shadow-lg overflow-visible">
             {AVAILABLE_PHASES.map((p) => {
               const isActive = selectedPhase === p.id;
               return (
                 <button
                   key={p.id}
+                  data-dock-item
                   type="button"
                   onClick={() => onSelectPhase(p.id)}
-                  className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  aria-pressed={isActive}
+                  className={`flex-1 py-2 px-3 rounded-lg text-xs transition-colors duration-150 cursor-pointer ${
                     isActive
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                      ? 'bg-white text-[#09090b] font-bold border border-white shadow-[0_4px_14px_rgba(255,255,255,0.18)]'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium'
                   }`}
                   title={p.description}
                 >
@@ -100,20 +105,22 @@ export const BenchmarkControlBar: React.FC<BenchmarkControlBarProps> = ({
         <div className="md:col-span-4 flex flex-col gap-2">
           <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <span>Tool Scale Size</span>
-            <span className="text-[10px] text-emerald-400 font-mono">({selectedToolCount} Tools)</span>
+            <span className="text-[10px] text-slate-400 font-mono">({selectedToolCount} TOOLS)</span>
           </label>
-          <div className="flex rounded-xl bg-black/50 border border-white/[0.08] p-1 gap-1">
+          <div ref={toolDockRef} className="flex rounded-xl bg-[#08080c]/85 border border-white/[0.08] p-1 gap-1 backdrop-blur-xl shadow-lg overflow-visible">
             {AVAILABLE_TOOL_COUNTS.map((tc) => {
               const isActive = selectedToolCount === tc;
               return (
                 <button
                   key={tc}
+                  data-dock-item
                   type="button"
                   onClick={() => onSelectToolCount(tc)}
-                  className={`flex-1 py-2 px-2.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  aria-pressed={isActive}
+                  className={`flex-1 py-2 px-2.5 rounded-lg text-xs transition-colors duration-150 cursor-pointer ${
                     isActive
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                      ? 'bg-white text-[#09090b] font-bold border border-white shadow-[0_4px_14px_rgba(255,255,255,0.18)]'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.08] border border-transparent font-medium'
                   }`}
                 >
                   {tc} Tools
