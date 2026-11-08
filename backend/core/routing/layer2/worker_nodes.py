@@ -170,100 +170,100 @@ def todolist_node(state: AgentState):
     return {"messages": [AIMessage(content=reply)]}
 
 
+def run_sync(coro):
+    """
+    Safely executes an async coroutine from synchronous LangGraph worker nodes.
+    Prevents 'no current event loop in thread' errors when invoked from ThreadPoolExecutor threads.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            return executor.submit(asyncio.run, coro).result()
+    else:
+        return asyncio.run(coro)
+
+
 def move_forward_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import move_forward
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(move_forward(distance_mm=100.0))
+        res = run_sync(move_forward(distance_mm=100.0))
     except Exception:
         res = "Moving forward."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def move_backward_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import move_backward
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(move_backward(distance_mm=100.0))
+        res = run_sync(move_backward(distance_mm=100.0))
     except Exception:
         res = "Moving backward."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def turn_left_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import turn_left
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(turn_left(angle_degrees=90.0))
+        res = run_sync(turn_left(angle_degrees=90.0))
     except Exception:
         res = "Turning left."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def turn_right_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import turn_right
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(turn_right(angle_degrees=90.0))
+        res = run_sync(turn_right(angle_degrees=90.0))
     except Exception:
         res = "Turning right."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def turn_around_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import turn_around
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(turn_around())
+        res = run_sync(turn_around())
     except Exception:
         res = "Turning around."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def stop_movement_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import stop_movement
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(stop_movement())
+        res = run_sync(stop_movement())
     except Exception:
         res = "Stopping all movement."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def dock_with_charger_node(state: AgentState):
-    import asyncio
     from actions.physical.charger import dock_with_charger
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(dock_with_charger())
+        res = run_sync(dock_with_charger())
     except Exception:
         res = "Docking with charger."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def arc_sweep_node(state: AgentState):
-    import asyncio
     from actions.physical.movement import arc_sweep
     try:
-        loop = asyncio.get_event_loop()
-        res = loop.run_until_complete(arc_sweep())
+        res = run_sync(arc_sweep())
     except Exception:
         res = "Scanning surroundings."
     return {"messages": [AIMessage(content=str(res))]}
 
 
 def setup_gaming_node(state: AgentState):
-    import asyncio
     from actions.digital.setups import setup_gaming
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(setup_gaming())
+        run_sync(setup_gaming())
         res = "Gaming setup launched."
     except Exception as e:
         res = f"Gaming setup error: {e}"
@@ -271,11 +271,9 @@ def setup_gaming_node(state: AgentState):
 
 
 def setup_study_node(state: AgentState):
-    import asyncio
     from actions.digital.setups import setup_study
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(setup_study())
+        run_sync(setup_study())
         res = "Study setup launched."
     except Exception as e:
         res = f"Study setup error: {e}"
@@ -283,11 +281,9 @@ def setup_study_node(state: AgentState):
 
 
 def setup_coding_node(state: AgentState):
-    import asyncio
     from actions.digital.setups import setup_coding
     try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(setup_coding())
+        run_sync(setup_coding())
         res = "Coding setup launched."
     except Exception as e:
         res = f"Coding setup error: {e}"

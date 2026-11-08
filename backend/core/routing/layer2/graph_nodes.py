@@ -32,12 +32,43 @@ def get_laya_agent(model_id: str = "convaiinnovations/laya-typed-decisions"):
 chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
 
 
+def is_conversational_query(text: str) -> bool:
+    """
+    Detects whether user input is purely conversational greeting, acknowledgment, or chit-chat.
+    Ensures casual chat prompts bypass tool RAG matching and route straight to chat_node.
+    """
+    if not text:
+        return True
+    t = text.strip().lower()
+    t_clean = re.sub(r'[^\w\s]', '', t)
+    words = t_clean.split()
+    if not words:
+        return True
+
+    GREETINGS = {
+        "hi", "hello", "hey", "hiya", "howdy", "greetings", "yo", "sup",
+        "good morning", "good afternoon", "good evening", "good night",
+        "how are you", "how are you doing", "hows it going", "how are things",
+        "whats up", "what is up", "who are you", "what can you do", "introduce yourself",
+        "nice to meet you", "pleased to meet you",
+        "thanks", "thank you", "ok", "okay", "cool", "bye", "goodbye"
+    }
+    if t_clean in GREETINGS:
+        return True
+    if len(words) <= 2 and words[0] in {"hi", "hello", "hey", "hiya", "yo"}:
+        return True
+    return False
+
+
 def tool_retrieval_node(state: AgentState):
     """
     RAG LAYER STEP 1: Programmatically query our tool database vector space
     to pull only the top 5 matching candidates.
     """
     last_message = state["messages"][-1].content
+    if is_conversational_query(last_message):
+        return {"active_tools": []}
+
     # Pull top 5 most matching tools to keep the prompt absolutely razor sharp
     matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=5)
     return {"active_tools": matched_tools}
@@ -161,8 +192,8 @@ def route_query(state: AgentState):
     last_message = state["messages"][-1].content
     active_tools = state.get("active_tools", [])
 
-    # If no tools passed the RAG similarity gate, bypass router classification completely
-    if not active_tools:
+    # Fast-path for conversational greetings or when no tools passed the RAG similarity gate
+    if is_conversational_query(last_message) or not active_tools:
         return {"next_route": "none"}
 
     # Formulate typed choice criteria dictionary from Top-K RAG selection
@@ -181,11 +212,15 @@ def route_query(state: AgentState):
         }
     }
 
-    agent = get_laya_agent()
-    result = agent.predict(last_message, questions)
-    answers = result.get("answers", result)
-    decision = answers.get("tool_selection", {})
-    selected_route = decision.get("choice", "none")
+    try:
+        agent = get_laya_agent()
+        result = agent.predict(last_message, questions)
+        answers = result.get("answers", result)
+        decision = answers.get("tool_selection", {})
+        selected_route = decision.get("choice", "none")
+    except Exception as e:
+        print(f"[route_query Error] Laya prediction failed: {e}. Falling back to 'none'.")
+        selected_route = "none"
 
     return {"next_route": selected_route}
 
