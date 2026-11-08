@@ -31,45 +31,45 @@ canonical_map = {
     'baseline-llm': 'Baseline-LLM',
 }
 
-# Distinct styling colors per model (matching the uploaded reference image)
+# Distinct, high-contrast, non-confusable colors per model architecture
 model_meta = {
     "2-L-Laya-TopK": {
-        "color": "#EF4444",      # Vibrant coral/red
-        "badgeBg": "rgba(239, 68, 68, 0.15)",
-        "badgeBorder": "rgba(239, 68, 68, 0.35)",
+        "color": "#F43F5E",      # Vibrant Rose / Crimson
+        "badgeBg": "rgba(244, 63, 94, 0.15)",
+        "badgeBorder": "rgba(244, 63, 94, 0.35)",
         "label": "2-L-Laya-TopK",
         "category": "Hybrid LAYA Router"
     },
     "2-L-Laya": {
-        "color": "#F59E0B",      # Amber / Warm Orange
-        "badgeBg": "rgba(245, 158, 11, 0.15)",
-        "badgeBorder": "rgba(245, 158, 11, 0.35)",
+        "color": "#F97316",      # Bright Tangerine Orange
+        "badgeBg": "rgba(249, 115, 22, 0.15)",
+        "badgeBorder": "rgba(249, 115, 22, 0.35)",
         "label": "2-L-Laya",
         "category": "Hybrid LAYA Router"
     },
     "1-L-Laya-TopK": {
-        "color": "#93C5FD",      # Soft Sky Blue
-        "badgeBg": "rgba(147, 197, 253, 0.15)",
-        "badgeBorder": "rgba(147, 197, 253, 0.35)",
+        "color": "#10B981",      # Vivid Emerald Green
+        "badgeBg": "rgba(16, 185, 129, 0.15)",
+        "badgeBorder": "rgba(16, 185, 129, 0.35)",
         "label": "1-L-Laya-TopK",
         "category": "Direct LAYA Router"
     },
     "1-L-Laya": {
-        "color": "#60A5FA",      # Sky Blue
-        "badgeBg": "rgba(96, 165, 250, 0.15)",
-        "badgeBorder": "rgba(96, 165, 250, 0.35)",
+        "color": "#06B6D4",      # Electric Cyan / Aqua
+        "badgeBg": "rgba(6, 182, 212, 0.15)",
+        "badgeBorder": "rgba(6, 182, 212, 0.35)",
         "label": "1-L-Laya",
         "category": "Direct LAYA Router"
     },
     "2-L-LLM": {
-        "color": "#3B82F6",      # Vivid Royal Blue
-        "badgeBg": "rgba(59, 130, 246, 0.15)",
-        "badgeBorder": "rgba(59, 130, 246, 0.35)",
+        "color": "#A855F7",      # Vivid Purple / Violet
+        "badgeBg": "rgba(168, 85, 247, 0.15)",
+        "badgeBorder": "rgba(168, 85, 247, 0.35)",
         "label": "2-L-LLM",
         "category": "2-Layer LLM Router"
     },
     "Baseline-LLM": {
-        "color": "#2563EB",      # Deep Classic Blue
+        "color": "#2563EB",      # Classic Royal Blue
         "badgeBg": "rgba(37, 99, 235, 0.15)",
         "badgeBorder": "rgba(37, 99, 235, 0.35)",
         "label": "Baseline-LLM",
@@ -201,6 +201,63 @@ export function getFilteredBenchmarkRecords(
     const idxA = MODEL_DISPLAY_ORDER.indexOf(a.modelId);
     const idxB = MODEL_DISPLAY_ORDER.indexOf(b.modelId);
     return (idxA !== -1 ? idxA : 99) - (idxB !== -1 ? idxB : 99);
+  }});
+}}
+
+export interface ModelTrajectoryPoint {{
+  numTools: ToolCount;
+  accuracy: number;
+  p50LatencyMs: number;
+  meanLatencyMs: number;
+  avgTokensPerCall: number;
+  totalTokens: number;
+  correctCount: number;
+  totalCount: number;
+}}
+
+export interface ModelTrajectory {{
+  modelId: string;
+  modelName: string;
+  color: string;
+  category: string;
+  isLaya: boolean;
+  points: ModelTrajectoryPoint[];
+}}
+
+/**
+ * Helper to retrieve scalability trajectories across all tool scales (20, 30, 50, 100)
+ * for active models in a specific phase.
+ */
+export function getModelScalabilityTrajectories(
+  phase: PhaseId,
+  activeModels?: Set<string> | string[]
+): ModelTrajectory[] {{
+  const activeSet = activeModels instanceof Set ? activeModels : activeModels ? new Set(activeModels) : null;
+  const models = MODEL_DISPLAY_ORDER.filter((m) => !activeSet || activeSet.has(m));
+
+  return models.map((modelId) => {{
+    const meta = MODEL_METADATA[modelId];
+    const records = ROUTER_BENCHMARK_DATA.filter(
+      (r) => r.phase === phase && r.modelId === modelId
+    ).sort((a, b) => a.numTools - b.numTools);
+
+    return {{
+      modelId,
+      modelName: meta?.label || modelId,
+      color: meta?.color || '#3b82f6',
+      category: meta?.category || 'Model',
+      isLaya: modelId.toLowerCase().includes('laya'),
+      points: records.map((r) => ({{
+        numTools: r.numTools,
+        accuracy: r.accuracy,
+        p50LatencyMs: r.p50LatencyMs,
+        meanLatencyMs: r.meanLatencyMs,
+        avgTokensPerCall: r.avgTokensPerCall,
+        totalTokens: r.totalTokens,
+        correctCount: r.correctCount,
+        totalCount: r.totalCount,
+      }}))
+    }};
   }});
 }}
 """

@@ -10,10 +10,13 @@ import {
   type PhaseId,
   type ToolCount,
   MODEL_DISPLAY_ORDER,
-  getFilteredBenchmarkRecords
+  getFilteredBenchmarkRecords,
+  getModelScalabilityTrajectories
 } from '../data/routerBenchmarkData';
 import { RouterBarChart } from './RouterBarChart';
 import { BenchmarkControlBar } from './BenchmarkControlBar';
+import { RouterScalabilityLineChart } from './RouterScalabilityLineChart';
+import { ScalabilityControlBar } from './ScalabilityControlBar';
 
 export interface BachelorThesisPageProps {
   onBackToLanding?: () => void;
@@ -68,6 +71,38 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
 
   const handleDeselectAllModels = () => {
     setActiveModels(new Set());
+  };
+
+  // Section 2: Scalability Line Chart state & trajectories
+  const [lineChartPhase, setLineChartPhase] = useState<PhaseId>('phase3');
+  const [lineChartActiveModels, setLineChartActiveModels] = useState<Set<string>>(
+    () => new Set(MODEL_DISPLAY_ORDER)
+  );
+  const [lineChartLatencyMetric, setLineChartLatencyMetric] = useState<'mean' | 'p50'>('mean');
+  const [isLineChartDarkMode, setIsLineChartDarkMode] = useState<boolean>(false);
+
+  const scalabilityTrajectories = useMemo(() => {
+    return getModelScalabilityTrajectories(lineChartPhase, lineChartActiveModels);
+  }, [lineChartPhase, lineChartActiveModels]);
+
+  const handleToggleLineModel = (modelId: string) => {
+    setLineChartActiveModels((prev) => {
+      const next = new Set(prev);
+      if (next.has(modelId)) {
+        next.delete(modelId);
+      } else {
+        next.add(modelId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllLineModels = () => {
+    setLineChartActiveModels(new Set(MODEL_DISPLAY_ORDER));
+  };
+
+  const handleDeselectAllLineModels = () => {
+    setLineChartActiveModels(new Set());
   };
 
   // KPI Quick Highlights for active selection
@@ -244,29 +279,42 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
         </section>
 
         {/* =========================================================================
-            SECTION 2: PLACEHOLDER FOR UPCOMING SECOND CHART (SCALABILITY TRACKING)
+            SECTION 2: 4-PANEL SCALABILITY LINE CHART (20 → 100 TOOLS)
            ========================================================================= */}
-        <section className="mt-8 pt-8 border-t border-white/[0.08] flex flex-col gap-4">
+        <section className="mt-8 pt-8 border-t border-white/[0.08] flex flex-col gap-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-              <h3 className="text-lg md:text-xl font-bold text-white tracking-wide">
-                Multi-Scale Scalability Tracking
-              </h3>
+              <h2 className="text-lg md:text-xl font-bold text-white tracking-wide">
+                Multi-Scale Scalability Trajectories
+              </h2>
             </div>
-            <span className="text-xs font-mono text-purple-400/80">
-              Chart 2 Placeholder
+            <span className="text-xs font-mono text-purple-400/90">
+              Comparing {scalabilityTrajectories.length} Model Trajectories (20 → 100 Tools)
             </span>
           </div>
 
-          <div className="w-full rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.02] p-8 text-center flex flex-col items-center justify-center gap-2">
-            <p className="text-sm font-semibold text-slate-300">
-              Ready for the Second Chart
-            </p>
-            <p className="text-xs text-slate-400 max-w-lg">
-              Scalability curve tracking accuracy, latency, and token cost progression across 20, 30, 50, and 100 tool spaces.
-            </p>
-          </div>
+          {/* 4-Panel Line Chart Component */}
+          <RouterScalabilityLineChart
+            trajectories={scalabilityTrajectories}
+            phase={lineChartPhase}
+            latencyMetric={lineChartLatencyMetric}
+            isDarkMode={isLineChartDarkMode}
+          />
+
+          {/* Interactive Controls Bar for Line Chart */}
+          <ScalabilityControlBar
+            selectedPhase={lineChartPhase}
+            onSelectPhase={setLineChartPhase}
+            activeModels={lineChartActiveModels}
+            onToggleModel={handleToggleLineModel}
+            onSelectAllModels={handleSelectAllLineModels}
+            onDeselectAllModels={handleDeselectAllLineModels}
+            latencyMetric={lineChartLatencyMetric}
+            onSelectLatencyMetric={setLineChartLatencyMetric}
+            isDarkMode={isLineChartDarkMode}
+            onToggleDarkMode={() => setIsLineChartDarkMode(!isLineChartDarkMode)}
+          />
         </section>
 
       </main>
