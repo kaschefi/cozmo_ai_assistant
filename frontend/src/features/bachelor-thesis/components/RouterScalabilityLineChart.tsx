@@ -6,10 +6,14 @@ export interface RouterScalabilityLineChartProps {
   phase: string;
   latencyMetric?: 'mean' | 'p50';
   isDarkMode?: boolean;
+  comparisonMode?: 'models' | 'phases';
+  comparedModelId?: string;
+  comparedModelName?: string;
 }
 
 interface HoverState {
-  modelId: string;
+  seriesId: string;
+  seriesName: string;
   numTools: number;
   accuracy: number;
   meanLatency: number;
@@ -26,18 +30,26 @@ interface HoverState {
  * Implements a publication-ready 4-panel line chart tracking router trajectory across
  * tool scaling tiers (20, 30, 50, and 100 tools):
  * Panel 1: Routing Accuracy (%)
- * Panel 2: Routing Latency (ms) [P50 & Mean when single model; multi-model lines when comparing]
+ * Panel 2: Routing Latency (ms) [P50 & Mean when single model; multi-curve when comparing models or phases]
  * Panel 3: Avg Tokens Per LLM Call (Context Complexity)
  * Panel 4: Total Cumulative Tokens (Cumulative Benchmark Cost)
+ *
+ * Supports two analysis modes:
+ * - 'models': Compare multiple router models within a chosen phase.
+ * - 'phases': Compare a single chosen model across all 3 phases (Phase 1 vs 2 vs 3).
  */
 export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProps> = ({
   trajectories,
   phase,
   latencyMetric = 'mean',
-  isDarkMode = false
+  isDarkMode = false,
+  comparisonMode = 'models',
+  comparedModelName
 }) => {
   const [hoveredState, setHoveredState] = useState<HoverState | null>(null);
   const [focusedModelId, setFocusedModelId] = useState<string | null>(null);
+
+  const isPhaseMode = comparisonMode === 'phases';
 
   if (!trajectories || trajectories.length === 0) {
     return (
@@ -46,13 +58,13 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
           ? 'bg-black/40 border-white/10 text-slate-400' 
           : 'bg-white border-slate-200 text-slate-500 shadow-sm'
       }`}>
-        <p className="text-base font-medium">No models selected for trajectory comparison.</p>
-        <p className="text-xs mt-1 text-slate-400">Enable at least one model from the filter below to view scalability curves.</p>
+        <p className="text-base font-medium">No trajectory data available.</p>
+        <p className="text-xs mt-1 text-slate-400">Select at least one router model or enable 3-phase comparison.</p>
       </div>
     );
   }
 
-  const isSingleModel = trajectories.length === 1;
+  const isSingleModel = !isPhaseMode && trajectories.length === 1;
   const singleModel = isSingleModel ? trajectories[0] : null;
 
   // Layout coordinate constants
@@ -113,10 +125,70 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
   const rawMaxTot = Math.max(...allTotalTokens, 100);
   const panel4Max = Math.ceil(rawMaxTot * 1.2 / 10000) * 10000 || 50;
 
-  // Title text
-  const figureTitle = isSingleModel
+  // Main Figure Title
+  const figureTitle = isPhaseMode
+    ? `Cross-Phase Scalability: ${comparedModelName || 'Model'} (Phase 1 vs Phase 2 vs Phase 3)`
+    : isSingleModel
     ? `Scalability Trajectory: ${singleModel?.modelName} (Phase: ${phase})`
     : `Router Scalability Comparison across Tool Scale (Phase: ${phase})`;
+
+  // Helper to render distinct geometric markers for phases or models
+  const renderPointMarker = (
+    trajId: string,
+    x: number,
+    y: number,
+    color: string,
+    isFocused: boolean
+  ) => {
+    if (isPhaseMode) {
+      if (trajId === 'phase1') {
+        return (
+          <circle
+            cx={x}
+            cy={y}
+            r={isFocused ? 5.2 : 4.2}
+            fill={color}
+            stroke={bgFill}
+            strokeWidth="1.5"
+          />
+        );
+      }
+      if (trajId === 'phase2') {
+        return (
+          <rect
+            x={x - (isFocused ? 4.5 : 3.8)}
+            y={y - (isFocused ? 4.5 : 3.8)}
+            width={isFocused ? 9 : 7.6}
+            height={isFocused ? 9 : 7.6}
+            fill={color}
+            stroke={bgFill}
+            strokeWidth="1.5"
+          />
+        );
+      }
+      // phase3 -> Diamond
+      const s = isFocused ? 5.8 : 4.8;
+      return (
+        <polygon
+          points={`${x},${y - s} ${x + s},${y} ${x},${y + s} ${x - s},${y}`}
+          fill={color}
+          stroke={bgFill}
+          strokeWidth="1.5"
+        />
+      );
+    }
+
+    return (
+      <circle
+        cx={x}
+        cy={y}
+        r={isFocused ? 4.8 : 3.6}
+        fill={color}
+        stroke={bgFill}
+        strokeWidth="1.5"
+      />
+    );
+  };
 
   return (
     <div className={`w-full overflow-x-auto rounded-2xl border transition-all duration-300 shadow-xl ${
@@ -124,7 +196,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
         ? 'bg-[#06080d]/90 border-white/10' 
         : 'bg-white border-slate-200'
     }`}>
-      <div className="min-w-[960px] p-4 md:p-6 select-none relative">
+      <div className="min-w-[960px] p-4 md:p-6 select-none relative overflow-hidden">
         <svg
           viewBox={`0 0 ${viewBoxWidth} ${totalSvgHeight}`}
           className="w-full h-auto overflow-visible font-sans"
@@ -142,11 +214,11 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
             {figureTitle}
           </text>
 
-          {/* Multi-model Legend Banner (when comparing 2+ models - centered with ample vertical headroom) */}
+          {/* Legend Banner (when comparing 2+ models OR 3 phases) */}
           {!isSingleModel && (
             <g transform={`translate(${viewBoxWidth / 2}, 54)`}>
               {(() => {
-                const itemSpacing = 180;
+                const itemSpacing = isPhaseMode ? 220 : 180;
                 const totalLegendWidth = trajectories.length * itemSpacing;
                 const startX = -totalLegendWidth / 2 + 10;
                 return trajectories.map((traj, idx) => {
@@ -162,8 +234,19 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                       opacity={focusedModelId && !isHovered ? 0.35 : 1}
                     >
                       <line x1={0} y1={0} x2={16} y2={0} stroke={traj.color} strokeWidth="2.8" />
-                      <circle cx={8} cy={0} r={4} fill={traj.color} />
-                      <text x={22} y={3.5} fill={isHovered ? traj.color : textColor} fontSize="11" fontWeight="700">
+                      {/* Geometric marker representation */}
+                      {isPhaseMode ? (
+                        traj.modelId === 'phase1' ? (
+                          <circle cx={8} cy={0} r={4.5} fill={traj.color} />
+                        ) : traj.modelId === 'phase2' ? (
+                          <rect x={4.5} y={-3.5} width={7} height={7} fill={traj.color} />
+                        ) : (
+                          <polygon points="8,-4.5 12.5,0 8,4.5 3.5,0" fill={traj.color} />
+                        )
+                      ) : (
+                        <circle cx={8} cy={0} r={4} fill={traj.color} />
+                      )}
+                      <text x={24} y={3.5} fill={isHovered ? traj.color : textColor} fontSize="11" fontWeight="700">
                         {traj.modelName}
                       </text>
                     </g>
@@ -250,7 +333,8 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         key={`p1-pt-${traj.modelId}-${p.numTools}`}
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredState({
-                          modelId: traj.modelId,
+                          seriesId: traj.modelId,
+                          seriesName: traj.modelName,
                           numTools: p.numTools,
                           accuracy: p.accuracy,
                           meanLatency: p.meanLatencyMs,
@@ -262,7 +346,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         })}
                         onMouseLeave={() => setHoveredState(null)}
                       >
-                        <circle cx={x} cy={y} r={isFocused ? 4.5 : 3.5} fill={traj.color} stroke={bgFill} strokeWidth="1.5" />
+                        {renderPointMarker(traj.modelId, x, y, traj.color, isFocused)}
                         {/* Display value label if single model or focused */}
                         {(isSingleModel || focusedModelId === traj.modelId) && (
                           <text x={x} y={y - 8} textAnchor="middle" fill={textColor} fontSize="8.5" fontWeight="700">
@@ -283,7 +367,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
           <g transform={`translate(${panelX[1]}, ${headerHeight})`}>
             {/* Title */}
             <text x={panelWidth / 2} y={-12} textAnchor="middle" fill={textColor} fontSize="12" fontWeight="700">
-              Routing Latency (ms)
+              {isPhaseMode ? `Routing Latency (${latencyMetric.toUpperCase()}) (ms)` : 'Routing Latency (ms)'}
             </text>
 
             {/* Box */}
@@ -331,7 +415,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
               Latency (ms)
             </text>
 
-            {/* If Single Model: Replicate exact matplotlib dual-curve (P50 & Mean) */}
+            {/* If Single Model: dual-curve (P50 & Mean) */}
             {isSingleModel && singleModel && (
               <>
                 {/* P50 Line (Solid Green #059669 with squares) */}
@@ -351,7 +435,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         return (
                           <g key={`p50-pt-${p.numTools}`}>
                             <rect x={x - 4} y={y - 4} width={8} height={8} fill="#059669" stroke={bgFill} strokeWidth="1" />
-                            <text x={x} y={y - 8} textAnchor="middle" fill={textColor} fontSize="8" fontWeight="600">
+                            <text x={x} y={y - 7} textAnchor="middle" fill={subtextColor} fontSize="7.5" fontWeight="600">
                               {Math.round(p.p50LatencyMs)}ms
                             </text>
                           </g>
@@ -399,7 +483,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
               </>
             )}
 
-            {/* If Multi-Model Comparison: Plot each active model's line */}
+            {/* If Multi-Model or Phase Comparison: Plot each trajectory line */}
             {!isSingleModel && trajectories.map((traj) => {
               const isFocused = !focusedModelId || focusedModelId === traj.modelId;
               const pointsStr = traj.points.map(p => {
@@ -432,7 +516,8 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         key={`p2-pt-${traj.modelId}-${p.numTools}`}
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredState({
-                          modelId: traj.modelId,
+                          seriesId: traj.modelId,
+                          seriesName: traj.modelName,
                           numTools: p.numTools,
                           accuracy: p.accuracy,
                           meanLatency: p.meanLatencyMs,
@@ -444,7 +529,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         })}
                         onMouseLeave={() => setHoveredState(null)}
                       >
-                        <circle cx={x} cy={y} r={isFocused ? 4.5 : 3.5} fill={traj.color} stroke={bgFill} strokeWidth="1.5" />
+                        {renderPointMarker(traj.modelId, x, y, traj.color, isFocused)}
                         {focusedModelId === traj.modelId && (
                           <text x={x} y={y - 8} textAnchor="middle" fill={textColor} fontSize="8" fontWeight="700">
                             {Math.round(val)}ms
@@ -470,9 +555,9 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
             {/* Box */}
             <rect x={0} y={0} width={panelWidth} height={plotHeight} fill={bgFill} stroke={panelBorder} strokeWidth="1.2" />
 
-            {/* Y-Grid Ticks for Tokens Per Call */}
+            {/* Y-Grid Ticks for Tokens */}
             {(() => {
-              const step = panel3Max <= 50 ? 10 : panel3Max <= 2000 ? 500 : 1000;
+              const step = panel3Max <= 20 ? 5 : panel3Max <= 1000 ? 250 : 1000;
               const ticks = [];
               for (let t = 0; t <= panel3Max; t += step) {
                 ticks.push(t);
@@ -483,7 +568,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                   <g key={`p3-grid-${tick}`}>
                     <line x1={0} y1={yPos} x2={panelWidth} y2={yPos} stroke={gridLineColor} strokeDasharray="3 3" strokeWidth="1" />
                     <text x={-6} y={yPos + 3.5} textAnchor="end" fill={subtextColor} fontSize="8.5" fontWeight="500">
-                      {tick}
+                      {tick >= 1000 ? `${(tick / 1000).toFixed(0)}k` : tick}
                     </text>
                   </g>
                 );
@@ -544,7 +629,8 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         key={`p3-pt-${traj.modelId}-${p.numTools}`}
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredState({
-                          modelId: traj.modelId,
+                          seriesId: traj.modelId,
+                          seriesName: traj.modelName,
                           numTools: p.numTools,
                           accuracy: p.accuracy,
                           meanLatency: p.meanLatencyMs,
@@ -556,13 +642,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         })}
                         onMouseLeave={() => setHoveredState(null)}
                       >
-                        {/* Diamond marker */}
-                        <polygon
-                          points={`${x},${y - 4} ${x + 4},${y} ${x},${y + 4} ${x - 4},${y}`}
-                          fill={traj.color}
-                          stroke={bgFill}
-                          strokeWidth="1.2"
-                        />
+                        {renderPointMarker(traj.modelId, x, y, traj.color, isFocused)}
                         {(isSingleModel || focusedModelId === traj.modelId) && (
                           <text x={x} y={y - 8} textAnchor="middle" fill={textColor} fontSize="7.5" fontWeight="700">
                             {labelTxt}
@@ -588,27 +668,21 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
             {/* Box */}
             <rect x={0} y={0} width={panelWidth} height={plotHeight} fill={bgFill} stroke={panelBorder} strokeWidth="1.2" />
 
-            {/* Y-Grid Ticks for Cumulative Tokens (dynamically stepped for 4-6 clean ticks) */}
+            {/* Y-Grid Ticks for Cumulative Tokens (dynamic step calculation producing 4-5 clean ticks) */}
             {(() => {
-              let step = 20;
-              if (panel4Max > 100 && panel4Max <= 2000) step = 500;
-              else if (panel4Max > 2000 && panel4Max <= 20000) step = 5000;
-              else if (panel4Max > 20000 && panel4Max <= 100000) step = 25000;
-              else if (panel4Max > 100000 && panel4Max <= 500000) step = 100000;
-              else if (panel4Max > 500000 && panel4Max <= 1000000) step = 250000;
-              else if (panel4Max > 1000000) step = 500000;
-
+              const step = panel4Max <= 50 ? 10 : panel4Max <= 200000 ? 50000 : panel4Max <= 1000000 ? 250000 : 500000;
               const ticks = [];
               for (let t = 0; t <= panel4Max; t += step) {
                 ticks.push(t);
               }
               return ticks.map((tick) => {
                 const yPos = plotHeight - (tick / panel4Max) * plotHeight;
+                const label = tick >= 1000000 ? `${(tick / 1000000).toFixed(1)}M` : tick >= 1000 ? `${(tick / 1000).toFixed(0)}k` : `${tick}`;
                 return (
                   <g key={`p4-grid-${tick}`}>
                     <line x1={0} y1={yPos} x2={panelWidth} y2={yPos} stroke={gridLineColor} strokeDasharray="3 3" strokeWidth="1" />
-                    <text x={-6} y={yPos + 3.5} textAnchor="end" fill={subtextColor} fontSize="8.5" fontWeight="500">
-                      {tick >= 1000000 ? `${(tick / 1000000).toFixed(1)}M` : tick >= 1000 ? `${Math.round(tick / 1000)}k` : tick}
+                    <text x={-6} y={yPos + 3.5} textAnchor="end" fill={subtextColor} fontSize="8" fontWeight="500">
+                      {label}
                     </text>
                   </g>
                 );
@@ -632,7 +706,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
             <text x={panelWidth / 2} y={plotHeight + 32} textAnchor="middle" fill={subtextColor} fontSize="10" fontWeight="600">
               Number of Tools
             </text>
-            <text x={-35} y={plotHeight / 2} textAnchor="middle" fill={subtextColor} fontSize="10" fontWeight="600" transform={`rotate(-90, -35, ${plotHeight / 2})`}>
+            <text x={-38} y={plotHeight / 2} textAnchor="middle" fill={subtextColor} fontSize="10" fontWeight="600" transform={`rotate(-90, -38, ${plotHeight / 2})`}>
               Total Tokens
             </text>
 
@@ -669,7 +743,8 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         key={`p4-pt-${traj.modelId}-${p.numTools}`}
                         className="cursor-pointer"
                         onMouseEnter={() => setHoveredState({
-                          modelId: traj.modelId,
+                          seriesId: traj.modelId,
+                          seriesName: traj.modelName,
                           numTools: p.numTools,
                           accuracy: p.accuracy,
                           meanLatency: p.meanLatencyMs,
@@ -681,16 +756,7 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
                         })}
                         onMouseLeave={() => setHoveredState(null)}
                       >
-                        {/* Cross/Square Marker */}
-                        <rect
-                          x={x - 3.5}
-                          y={y - 3.5}
-                          width={7}
-                          height={7}
-                          fill={traj.color}
-                          stroke={bgFill}
-                          strokeWidth="1.2"
-                        />
+                        {renderPointMarker(traj.modelId, x, y, traj.color, isFocused)}
                         {(isSingleModel || focusedModelId === traj.modelId) && (
                           <text x={x} y={y - 8} textAnchor="middle" fill={textColor} fontSize="7.5" fontWeight="700">
                             {labelTxt}
@@ -705,40 +771,52 @@ export const RouterScalabilityLineChart: React.FC<RouterScalabilityLineChartProp
           </g>
         </svg>
 
-        {/* Floating Tooltip for Interactive Inspection */}
-        {hoveredState && (
-          <div
-            className="absolute z-30 pointer-events-none rounded-xl p-3 shadow-2xl border text-xs flex flex-col gap-1 transition-all duration-150 backdrop-blur-xl"
-            style={{
-              left: `${Math.min(hoveredState.xPos + 15, viewBoxWidth - 220)}px`,
-              top: `${hoveredState.yPos - 20}px`,
-              backgroundColor: isDarkMode ? 'rgba(10, 14, 23, 0.96)' : 'rgba(255, 255, 255, 0.98)',
-              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)',
-              color: isDarkMode ? '#f8fafc' : '#0f172a'
-            }}
-          >
-            <div className="font-bold flex items-center justify-between gap-3 border-b pb-1 border-white/10">
-              <span>{hoveredState.modelId}</span>
-              <span className="font-mono text-cyan-400">{hoveredState.numTools} Tools</span>
+        {/* Floating Tooltip for Interactive Inspection (anchors inward from edges to eliminate overflow jitter) */}
+        {hoveredState && (() => {
+          const isRightHalf = hoveredState.xPos > viewBoxWidth * 0.52;
+          const leftPercent = (hoveredState.xPos / viewBoxWidth) * 100;
+          const topPercent = (hoveredState.yPos / totalSvgHeight) * 100;
+
+          return (
+            <div
+              className="absolute z-30 pointer-events-none rounded-xl p-3 shadow-2xl border text-xs flex flex-col gap-1 backdrop-blur-xl select-none"
+              style={{
+                left: `${leftPercent}%`,
+                top: `${topPercent}%`,
+                transform: isRightHalf ? 'translate(calc(-100% - 14px), -50%)' : 'translate(14px, -50%)',
+                backgroundColor: isDarkMode ? 'rgba(10, 14, 23, 0.96)' : 'rgba(255, 255, 255, 0.98)',
+                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)',
+                color: isDarkMode ? '#f8fafc' : '#0f172a',
+                minWidth: '200px'
+              }}
+            >
+              <div className="font-bold flex items-center justify-between gap-3 border-b pb-1 border-white/10">
+                <span className="truncate">{hoveredState.seriesName}</span>
+                <span className="font-mono text-cyan-400 flex-none">{hoveredState.numTools} Tools</span>
+              </div>
+              {isPhaseMode && comparedModelName && (
+                <div className="text-[10px] text-slate-400 font-mono -mt-0.5">
+                  Model: <span className={isDarkMode ? 'text-white font-semibold' : 'text-slate-900 font-semibold'}>{comparedModelName}</span>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] pt-1 font-mono">
+                <span className="text-slate-400">Accuracy:</span>
+                <span className="font-bold text-emerald-400 text-right">{hoveredState.accuracy}%</span>
+                <span className="text-slate-400">Mean Latency:</span>
+                <span className="font-bold text-right">{Math.round(hoveredState.meanLatency)}ms</span>
+                <span className="text-slate-400">P50 Latency:</span>
+                <span className="font-bold text-right">{Math.round(hoveredState.p50Latency)}ms</span>
+                <span className="text-slate-400">Tokens/Call:</span>
+                <span className="font-bold text-right">{hoveredState.tokensPerCall > 0 ? Math.round(hoveredState.tokensPerCall) : '0 (LAYA)'}</span>
+                <span className="text-slate-400">Total Tokens:</span>
+                <span className="font-bold text-purple-400 text-right">{hoveredState.totalTokens.toLocaleString()}</span>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] pt-0.5 font-mono">
-              <span className="text-slate-400">Accuracy:</span>
-              <span className="font-bold text-emerald-400 text-right">{hoveredState.accuracy}%</span>
-              <span className="text-slate-400">Mean Latency:</span>
-              <span className="font-bold text-right">{Math.round(hoveredState.meanLatency)}ms</span>
-              <span className="text-slate-400">P50 Latency:</span>
-              <span className="font-bold text-right">{Math.round(hoveredState.p50Latency)}ms</span>
-              <span className="text-slate-400">Tokens/Call:</span>
-              <span className="font-bold text-right">{hoveredState.tokensPerCall > 0 ? Math.round(hoveredState.tokensPerCall) : '0 (LAYA)'}</span>
-              <span className="text-slate-400">Total Tokens:</span>
-              <span className="font-bold text-purple-400 text-right">{hoveredState.totalTokens.toLocaleString()}</span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );
 };
 
 export default RouterScalabilityLineChart;
-

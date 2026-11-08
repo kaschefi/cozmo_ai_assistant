@@ -10,8 +10,10 @@ import {
   type PhaseId,
   type ToolCount,
   MODEL_DISPLAY_ORDER,
+  MODEL_METADATA,
   getFilteredBenchmarkRecords,
-  getModelScalabilityTrajectories
+  getModelScalabilityTrajectories,
+  getCrossPhaseTrajectories
 } from '../data/routerBenchmarkData';
 import { RouterBarChart } from './RouterBarChart';
 import { BenchmarkControlBar } from './BenchmarkControlBar';
@@ -81,9 +83,16 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
   const [lineChartLatencyMetric, setLineChartLatencyMetric] = useState<'mean' | 'p50'>('mean');
   const [isLineChartDarkMode, setIsLineChartDarkMode] = useState<boolean>(false);
 
+  // Cross-Phase Comparison State (comparing 1 model across Phase 1 vs Phase 2 vs Phase 3)
+  const [isCrossPhaseMode, setIsCrossPhaseMode] = useState<boolean>(false);
+  const [crossPhaseModel, setCrossPhaseModel] = useState<string>('2-L-Laya-TopK');
+
   const scalabilityTrajectories = useMemo(() => {
+    if (isCrossPhaseMode) {
+      return getCrossPhaseTrajectories(crossPhaseModel);
+    }
     return getModelScalabilityTrajectories(lineChartPhase, lineChartActiveModels);
-  }, [lineChartPhase, lineChartActiveModels]);
+  }, [isCrossPhaseMode, crossPhaseModel, lineChartPhase, lineChartActiveModels]);
 
   const handleToggleLineModel = (modelId: string) => {
     setLineChartActiveModels((prev) => {
@@ -290,7 +299,9 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
               </h2>
             </div>
             <span className="text-xs font-mono text-purple-400/90">
-              Comparing {scalabilityTrajectories.length} Model Trajectories (20 → 100 Tools)
+              {isCrossPhaseMode
+                ? `Comparing ${MODEL_METADATA[crossPhaseModel]?.label || crossPhaseModel} (Phase 1 vs 2 vs 3)`
+                : `Comparing ${scalabilityTrajectories.length} Model Trajectories (20 → 100 Tools)`}
             </span>
           </div>
 
@@ -300,6 +311,9 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
             phase={lineChartPhase}
             latencyMetric={lineChartLatencyMetric}
             isDarkMode={isLineChartDarkMode}
+            comparisonMode={isCrossPhaseMode ? 'phases' : 'models'}
+            comparedModelId={crossPhaseModel}
+            comparedModelName={MODEL_METADATA[crossPhaseModel]?.label || crossPhaseModel}
           />
 
           {/* Interactive Controls Bar for Line Chart */}
@@ -314,6 +328,10 @@ export const BachelorThesisPage: React.FC<BachelorThesisPageProps> = () => {
             onSelectLatencyMetric={setLineChartLatencyMetric}
             isDarkMode={isLineChartDarkMode}
             onToggleDarkMode={() => setIsLineChartDarkMode(!isLineChartDarkMode)}
+            isCrossPhaseMode={isCrossPhaseMode}
+            onToggleCrossPhaseMode={() => setIsCrossPhaseMode(!isCrossPhaseMode)}
+            crossPhaseModel={crossPhaseModel}
+            onSelectCrossPhaseModel={setCrossPhaseModel}
           />
         </section>
 

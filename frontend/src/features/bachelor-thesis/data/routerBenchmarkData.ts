@@ -88,6 +88,38 @@ export const MODEL_DISPLAY_ORDER: string[] = [
   "Baseline-LLM"
 ];
 
+export interface PhaseMetadata {
+  id: PhaseId;
+  label: string;
+  shortLabel: string;
+  color: string;
+  description: string;
+}
+
+export const PHASE_METADATA: Record<PhaseId, PhaseMetadata> = {
+  phase1: {
+    id: 'phase1',
+    label: 'Phase 1 (Baseline)',
+    shortLabel: 'Phase 1',
+    color: '#38BDF8', // Sky Blue
+    description: 'Baseline prompt formulation & initial router configurations'
+  },
+  phase2: {
+    id: 'phase2',
+    label: 'Phase 2 (Refined)',
+    shortLabel: 'Phase 2',
+    color: '#F59E0B', // Amber / Gold
+    description: 'Refined tool descriptions & optimized FastEmbed thresholds'
+  },
+  phase3: {
+    id: 'phase3',
+    label: 'Phase 3 (Top-K Production)',
+    shortLabel: 'Phase 3',
+    color: '#10B981', // Emerald Green
+    description: 'Final production configurations with Top-k semantic clustering'
+  }
+};
+
 export const AVAILABLE_PHASES: { id: PhaseId; label: string; description: string }[] = [
   { id: 'phase1', label: 'Phase 1', description: 'Baseline prompt formulation & initial router configurations' },
   { id: 'phase2', label: 'Phase 2', description: 'Refined tool descriptions & optimized FastEmbed thresholds' },
@@ -1674,6 +1706,40 @@ export function getModelScalabilityTrajectories(
       modelId,
       modelName: meta?.label || modelId,
       color: meta?.color || '#3b82f6',
+      category: meta?.category || 'Model',
+      isLaya: modelId.toLowerCase().includes('laya'),
+      points: records.map((r) => ({
+        numTools: r.numTools,
+        accuracy: r.accuracy,
+        p50LatencyMs: r.p50LatencyMs,
+        meanLatencyMs: r.meanLatencyMs,
+        avgTokensPerCall: r.avgTokensPerCall,
+        totalTokens: r.totalTokens,
+        correctCount: r.correctCount,
+        totalCount: r.totalCount,
+      }))
+    };
+  });
+}
+
+/**
+ * Helper to retrieve scalability trajectories across all 3 phases (Phase 1, Phase 2, Phase 3)
+ * for a single model, comparing progression across tool scales (20, 30, 50, 100).
+ */
+export function getCrossPhaseTrajectories(modelId: string): ModelTrajectory[] {
+  const meta = MODEL_METADATA[modelId];
+  const phaseList: PhaseId[] = ['phase1', 'phase2', 'phase3'];
+
+  return phaseList.map((phaseKey) => {
+    const pMeta = PHASE_METADATA[phaseKey];
+    const records = ROUTER_BENCHMARK_DATA.filter(
+      (r) => r.phase === phaseKey && r.modelId === modelId
+    ).sort((a, b) => a.numTools - b.numTools);
+
+    return {
+      modelId: phaseKey,
+      modelName: pMeta.label,
+      color: pMeta.color,
       category: meta?.category || 'Model',
       isLaya: modelId.toLowerCase().includes('laya'),
       points: records.map((r) => ({

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import {
   type PhaseId,
   AVAILABLE_PHASES,
@@ -17,16 +17,21 @@ export interface ScalabilityControlBarProps {
   onSelectLatencyMetric: (metric: 'mean' | 'p50') => void;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  // Cross-Phase Comparison Mode Props
+  isCrossPhaseMode: boolean;
+  onToggleCrossPhaseMode: () => void;
+  crossPhaseModel: string;
+  onSelectCrossPhaseModel: (modelId: string) => void;
 }
 
 /**
  * ScalabilityControlBar Component
  *
  * Dedicated interactive controls directly below the 4-panel Scalability Line Chart:
- * 1. Phase Selector (Phase 1, 2, 3)
- * 2. Multi-Model Toggle Dropdown & Quick Chips
- * 3. Latency Metric Selector (Mean vs P50)
- * 4. Publication Light vs Dark Studio Mode Toggle
+ * 1. Phase Selector (Phase 1, 2, 3) - exits 3-phase mode when a single phase is clicked
+ * 2. Latency Metric Selector (Mean vs P50)
+ * 3. 3-Phase Comparison Toggle Button & Publication Light/Dark Studio Mode Toggle
+ * 4. Model Selection Chips (multi-select in standard mode, single-model picker in 3-phase comparison mode)
  */
 export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
   selectedPhase,
@@ -39,25 +44,11 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
   onSelectLatencyMetric,
   isDarkMode,
   onToggleDarkMode,
+  isCrossPhaseMode,
+  onToggleCrossPhaseMode,
+  crossPhaseModel,
+  onSelectCrossPhaseModel,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    if (dropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [dropdownOpen]);
-
   const activeCount = activeModels.size;
   const totalModels = MODEL_DISPLAY_ORDER.length;
 
@@ -68,24 +59,39 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
         
         {/* 1. Phase Selector (col 1-4) */}
         <div className="md:col-span-4 flex flex-col gap-2">
-          <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <span>Evaluation Phase</span>
-            <span className="text-[10px] text-cyan-400 font-mono">({selectedPhase})</span>
+          <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <span>Evaluation Phase</span>
+              {isCrossPhaseMode ? (
+                <span className="text-[10px] text-amber-400 font-mono font-bold">
+                  (Phases 1, 2, 3 Active)
+                </span>
+              ) : (
+                <span className="text-[10px] text-cyan-400 font-mono">({selectedPhase})</span>
+              )}
+            </span>
           </label>
           <div className="flex rounded-xl bg-black/50 border border-white/[0.08] p-1 gap-1">
             {AVAILABLE_PHASES.map((p) => {
-              const isActive = selectedPhase === p.id;
+              const isActive = !isCrossPhaseMode && selectedPhase === p.id;
               return (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => onSelectPhase(p.id)}
+                  onClick={() => {
+                    if (isCrossPhaseMode) {
+                      onToggleCrossPhaseMode();
+                    }
+                    onSelectPhase(p.id);
+                  }}
                   className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                     isActive
                       ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/20'
+                      : isCrossPhaseMode
+                      ? 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
                   }`}
-                  title={p.description}
+                  title={isCrossPhaseMode ? `Exit 3-Phase mode and switch to ${p.label}` : p.description}
                 >
                   {p.label}
                 </button>
@@ -97,7 +103,7 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
         {/* 2. Latency Metric Toggle (col 5-8) */}
         <div className="md:col-span-4 flex flex-col gap-2">
           <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-            <span>Latency Metric Comparison</span>
+            <span>Latency Metric</span>
             <span className="text-[10px] text-emerald-400 font-mono">
               ({latencyMetric === 'mean' ? 'Mean Latency' : 'P50 Median'})
             </span>
@@ -128,114 +134,38 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
           </div>
         </div>
 
-        {/* 3. Models Dropdown & Publication Theme Toggle (col 9-12) */}
+        {/* 3. Cross-Phase Toggle & Publication Theme Toggle (col 9-12) */}
         <div className="md:col-span-4 flex flex-col gap-2">
           <label className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-            <span>Active Model Trajectories</span>
-            <span className="text-[10px] text-purple-400 font-mono">
-              {activeCount} of {totalModels} Plotted
+            <span>Analysis Mode</span>
+            <span className={`text-[10px] font-mono ${isCrossPhaseMode ? 'text-amber-400 font-semibold' : 'text-purple-400'}`}>
+              {isCrossPhaseMode ? 'All 3 Phases' : `${activeCount}/${totalModels} Models`}
             </span>
           </label>
 
           <div className="flex items-center gap-2">
-            {/* Dropdown Trigger */}
-            <div className="relative flex-1" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full flex items-center justify-between py-2 px-3.5 rounded-xl bg-black/50 border border-white/[0.08] hover:border-white/[0.2] text-xs font-semibold text-slate-200 transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                  <span>Models ({activeCount}/{totalModels})</span>
-                </div>
-                <svg
-                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-
-              {/* Dropdown Menu Modal */}
-              {dropdownOpen && (
-                <div className="absolute right-0 bottom-full mb-2 w-72 md:w-80 rounded-xl bg-[#090d16] border border-white/[0.15] shadow-2xl p-3 z-50 flex flex-col gap-2.5 backdrop-blur-2xl">
-                  {/* Dropdown header with quick action buttons */}
-                  <div className="flex items-center justify-between pb-2 border-b border-white/[0.08] text-xs">
-                    <span className="font-semibold text-white">Compare Models</span>
-                    <div className="flex items-center gap-2 font-mono">
-                      <button
-                        type="button"
-                        onClick={onSelectAllModels}
-                        className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
-                      >
-                        All
-                      </button>
-                      <span className="text-slate-600">•</span>
-                      <button
-                        type="button"
-                        onClick={onDeselectAllModels}
-                        className="text-[11px] text-rose-400 hover:underline cursor-pointer"
-                      >
-                        None
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* List of Models with On/Off switches */}
-                  <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
-                    {MODEL_DISPLAY_ORDER.map((modelId) => {
-                      const meta = MODEL_METADATA[modelId];
-                      const isChecked = activeModels.has(modelId);
-
-                      return (
-                        <div
-                          key={modelId}
-                          onClick={() => onToggleModel(modelId)}
-                          className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
-                            isChecked
-                              ? 'bg-white/[0.04] hover:bg-white/[0.08]'
-                              : 'opacity-50 hover:opacity-80 hover:bg-white/[0.02]'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {/* Color indicator pip */}
-                            <span
-                              className="w-3 h-3 rounded-sm flex-none shadow-sm"
-                              style={{ backgroundColor: meta?.color || '#3b82f6' }}
-                            />
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-bold text-white truncate">
-                                {meta?.label || modelId}
-                              </span>
-                              <span className="text-[10px] text-slate-400 truncate">
-                                {meta?.category || 'Model'}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Accessible Toggle Switch */}
-                          <div
-                            className={`w-8 h-4.5 rounded-full p-0.5 transition-colors duration-200 flex items-center ${
-                              isChecked ? 'bg-purple-500 justify-end' : 'bg-slate-700 justify-start'
-                            }`}
-                          >
-                            <div className="w-3.5 h-3.5 rounded-full bg-white shadow-md transform transition-transform" />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Compare All 3 Phases Button */}
+            <button
+              type="button"
+              onClick={onToggleCrossPhaseMode}
+              className={`flex-1 py-2 px-3.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                isCrossPhaseMode
+                  ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 border-amber-400/50 text-white shadow-lg shadow-purple-500/25 ring-2 ring-purple-500/30 font-bold'
+                  : 'bg-black/50 border-white/[0.08] hover:border-purple-500/40 hover:bg-white/[0.05] text-slate-200'
+              }`}
+              title="Compare the selected model across all 3 evaluation phases simultaneously on the line chart"
+            >
+              <svg className="w-3.5 h-3.5 flex-none" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+              </svg>
+              <span>{isCrossPhaseMode ? 'Comparing 3 Phases' : 'Compare All 3 Phases'}</span>
+            </button>
 
             {/* Publication White vs Dark Studio Toggle */}
             <button
               type="button"
               onClick={onToggleDarkMode}
-              className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer flex-none ${
                 isDarkMode
                   ? 'bg-white/[0.05] border-white/[0.1] text-slate-300 hover:text-white'
                   : 'bg-white text-slate-900 border-slate-300 shadow-md font-bold'
@@ -264,38 +194,73 @@ export const ScalabilityControlBar: React.FC<ScalabilityControlBarProps> = ({
 
       {/* Quick Model Toggle Chips Bar */}
       <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-white/[0.06]">
-        <span className="text-[11px] font-mono text-slate-400 mr-1">Active Trajectories:</span>
+        <span className="text-[11px] font-mono text-slate-400 mr-1">
+          {isCrossPhaseMode ? 'Select Model (Compare 3 Phases):' : 'Active Trajectories:'}
+        </span>
         {MODEL_DISPLAY_ORDER.map((modelId) => {
           const meta = MODEL_METADATA[modelId];
-          const isChecked = activeModels.has(modelId);
+          const isSelected = isCrossPhaseMode
+            ? crossPhaseModel === modelId
+            : activeModels.has(modelId);
 
           return (
             <button
               key={modelId}
               type="button"
-              onClick={() => onToggleModel(modelId)}
+              onClick={() => {
+                if (isCrossPhaseMode) {
+                  onSelectCrossPhaseModel(modelId);
+                } else {
+                  onToggleModel(modelId);
+                }
+              }}
               className={`inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-                isChecked
-                  ? 'border-white/[0.15] text-white shadow-sm'
-                  : 'border-white/[0.04] text-slate-500 bg-transparent line-through opacity-50'
+                isSelected
+                  ? 'border-white/[0.2] text-white shadow-sm ring-1 ring-white/20'
+                  : 'border-white/[0.04] text-slate-500 bg-transparent opacity-50 hover:opacity-80'
               }`}
               style={{
-                backgroundColor: isChecked ? (meta?.badgeBg || 'rgba(255,255,255,0.06)') : 'transparent',
-                borderColor: isChecked ? (meta?.badgeBorder || 'rgba(255,255,255,0.2)') : 'transparent'
+                backgroundColor: isSelected ? (meta?.badgeBg || 'rgba(255,255,255,0.06)') : 'transparent',
+                borderColor: isSelected ? (meta?.badgeBorder || 'rgba(255,255,255,0.2)') : 'transparent'
               }}
             >
               <span
-                className="w-2 h-2 rounded-full"
+                className={`w-2 h-2 rounded-full ${isSelected && isCrossPhaseMode ? 'animate-pulse' : ''}`}
                 style={{ backgroundColor: meta?.color || '#3b82f6' }}
               />
               <span>{meta?.label || modelId}</span>
+              {isCrossPhaseMode && isSelected && (
+                <span className="text-[9px] uppercase tracking-wider font-mono px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 ml-1">
+                  Active
+                </span>
+              )}
             </button>
           );
         })}
+
+        {/* Quick All / None action links when in standard multi-model mode */}
+        {!isCrossPhaseMode && (
+          <div className="flex items-center gap-2 ml-auto text-xs font-mono">
+            <button
+              type="button"
+              onClick={onSelectAllModels}
+              className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
+            >
+              All
+            </button>
+            <span className="text-slate-600">•</span>
+            <button
+              type="button"
+              onClick={onDeselectAllModels}
+              className="text-[11px] text-rose-400 hover:underline cursor-pointer"
+            >
+              None
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default ScalabilityControlBar;
-
