@@ -56,7 +56,7 @@ interface ThemeColorConfig {
 /**
  * Returns theme-specific palette parameters:
  * - Royal: 24k Gold particles
- * - IT: Cyber Neon Green particles
+ * - IT: Phthalo Green particles (matching home page ParticleCanvas)
  * - Black Ice / Default: Glacial Cyan particles
  */
 const getThemeColorConfig = (theme: string): ThemeColorConfig => {
@@ -69,7 +69,7 @@ const getThemeColorConfig = (theme: string): ThemeColorConfig => {
 
   if (theme === 'it') {
     return {
-      rgb: '0, 255, 102', // Cyber Neon Green (#00ff66)
+      rgb: '18, 165, 116', // Phthalo Green (same as home page ParticleCanvas)
       ring: 'focus-visible:ring-emerald-400/50',
     };
   }
@@ -204,281 +204,274 @@ export const HeaderParticleLogo: React.FC<HeaderParticleLogoProps> = ({
     const eyeData = eyeImgData.data;
     const eyeTargets: { x: number; y: number }[] = [];
 
-        for (let y = 0; y < eyeCanvasH; y += eyeStepY) {
-          for (let x = 0; x < eyeCanvasW; x += eyeStepX) {
-            const idx = (y * eyeCanvasW + x) * 4;
-            if (eyeData[idx] > 128) {
-              eyeTargets.push({ x, y });
-            }
+    for (let y = 0; y < eyeCanvasH; y += eyeStepY) {
+      for (let x = 0; x < eyeCanvasW; x += eyeStepX) {
+        const idx = (y * eyeCanvasW + x) * 4;
+        if (eyeData[idx] > 128) {
+          eyeTargets.push({ x, y });
+        }
+      }
+    }
+
+    // --- 2. Generate MOKA Logo Text Pixel Targets ---
+    // Change mokaStepX / mokaStepY to adjust MOKA letter particle density
+    const tempCanvasMoka = document.createElement('canvas');
+    tempCanvasMoka.width = eyeCanvasW;
+    tempCanvasMoka.height = eyeCanvasH;
+    const tempCtxMoka = tempCanvasMoka.getContext('2d');
+    const mokaTargets: { x: number; y: number }[] = [];
+
+    let mokaBoundsWidth = 300;
+    let mokaBoundsHeight = 75;
+
+    if (tempCtxMoka) {
+      tempCtxMoka.fillStyle = '#000000';
+      tempCtxMoka.fillRect(0, 0, eyeCanvasW, eyeCanvasH);
+      tempCtxMoka.fillStyle = '#ffffff';
+      tempCtxMoka.font = 'bold 100px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      tempCtxMoka.textAlign = 'left';
+      tempCtxMoka.textBaseline = 'top';
+      tempCtxMoka.fillText('MOKA', 0, 0);
+
+      const mokaImgData = tempCtxMoka.getImageData(0, 0, eyeCanvasW, eyeCanvasH);
+      const mokaData = mokaImgData.data;
+
+      let minX = eyeCanvasW, maxX = 0, minY = eyeCanvasH, maxY = 0;
+
+      for (let y = 0; y < eyeCanvasH; y += mokaStepY) {
+        for (let x = 0; x < eyeCanvasW; x += mokaStepX) {
+          const idx = (y * eyeCanvasW + x) * 4;
+          if (mokaData[idx] > 128) {
+            mokaTargets.push({ x, y });
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
           }
         }
+      }
 
-        // --- 2. Generate MOKA Logo Text Pixel Targets ---
-        // Change mokaStepX / mokaStepY to adjust MOKA letter particle density
-        const tempCanvasMoka = document.createElement('canvas');
-        tempCanvasMoka.width = eyeCanvasW;
-        tempCanvasMoka.height = eyeCanvasH;
-        const tempCtxMoka = tempCanvasMoka.getContext('2d');
-        const mokaTargets: { x: number; y: number }[] = [];
-
-        let mokaBoundsWidth = 300;
-        let mokaBoundsHeight = 75;
-
-        if (tempCtxMoka) {
-          tempCtxMoka.fillStyle = '#000000';
-          tempCtxMoka.fillRect(0, 0, eyeCanvasW, eyeCanvasH);
-          tempCtxMoka.fillStyle = '#ffffff';
-          tempCtxMoka.font = 'bold 100px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-          tempCtxMoka.textAlign = 'left';
-          tempCtxMoka.textBaseline = 'top';
-          tempCtxMoka.fillText('MOKA', 0, 0);
-
-          const mokaImgData = tempCtxMoka.getImageData(0, 0, eyeCanvasW, eyeCanvasH);
-          const mokaData = mokaImgData.data;
-
-          let minX = eyeCanvasW, maxX = 0, minY = eyeCanvasH, maxY = 0;
-
-              for (let y = 0; y < eyeCanvasH; y += mokaStepY) {
-                for (let x = 0; x < eyeCanvasW; x += mokaStepX) {
-                  const idx = (y * eyeCanvasW + x) * 4;
-                  if (mokaData[idx] > 128) {
-                    mokaTargets.push({ x, y });
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                  }
-                }
-              }
-
-              if (maxX > minX) mokaBoundsWidth = maxX - minX;
-              if (maxY > minY) mokaBoundsHeight = maxY - minY;
-            }
-
-            const shuffledMoka = [...mokaTargets].sort(() => Math.random() - 0.5);
-
-                // --- 3. Initialize Particle Ensembles (Clean 1:1 Morphing) ---
-                const totalParticles = Math.max(eyeTargets.length, shuffledMoka.length);
-                const particles: LogoParticle[] = [];
-
-                for(let i = 0; i<totalParticles; i++) {
-                  const eyeT = eyeTargets[i % eyeTargets.length];
-            const mokaT = shuffledMoka.length > 0 ? shuffledMoka[i % shuffledMoka.length] : { x: 0, y: 0 };
-            particles.push({
-              x: (eyeT.x - 600) * 0.16 + logicalW / 2 + (Math.random() - 0.5) * 6,
-              y: (eyeT.y - 300) * 0.16 + logicalH / 2 + (Math.random() - 0.5) * 6,
-              eyeX: eyeT.x,
-              eyeY: eyeT.y,
-              mokaX: mokaT.x,
-              mokaY: mokaT.y,
-              size: Math.random() * 0.6 + 1.8,
-              alpha: 1.0,
-              mokaAlpha: 1.0,
-              seed: Math.random() * 100,
-              speedOffset: Math.random(),
-});
+      if (maxX > minX) mokaBoundsWidth = maxX - minX;
+      if (maxY > minY) mokaBoundsHeight = maxY - minY;
     }
 
-let time = 0;
-let blinkTimer = 0;
-let blinkFactor = 1.0;
-let lastTimestamp = performance.now();
+    const shuffledMoka = [...mokaTargets].sort(() => Math.random() - 0.5);
 
-// High-DPI physical scale setup
-const dpr = Math.min(window.devicePixelRatio || 1, 2);
-canvas.width = logicalW * dpr;
-canvas.height = logicalH * dpr;
+    // --- 3. Initialize Particle Ensembles (Clean 1:1 Morphing) ---
+    const totalParticles = Math.max(eyeTargets.length, shuffledMoka.length);
+    const particles: LogoParticle[] = [];
 
-// --- 4. Animation Render Loop ---
-const render = (now: number = performance.now()) => {
-  const rawDelta = (now - lastTimestamp) / 1000;
-  lastTimestamp = now;
-  const delta = Math.min(Math.max(rawDelta, 0.001), 0.05);
-  const dt = delta * 60;
-  time += dt;
-
-  ctx.save();
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, logicalW, logicalH);
-
-  // Dynamically resolve theme color: Gold for royal, Neon Green for IT, Cyan for black-ice/default
-  const activeTheme = themeRef.current;
-  let rgb = '0, 243, 255';
-  if (activeTheme === 'royal') {
-    rgb = '234, 179, 8'; // Gold
-  } else if (activeTheme === 'it') {
-    rgb = '0, 255, 102'; // Neon green
-  } else {
-    const cssColor = getComputedStyle(document.documentElement).getPropertyValue('--particle-rgb').trim();
-    rgb = cssColor || '0, 243, 255';
-  }
-
-  // Periodic natural blinking
-  if (blinkTimer > 0) {
-    blinkTimer -= dt;
-    if (blinkTimer > 8) {
-      blinkFactor = Math.max(0, (blinkTimer - 8) / 8);
-    } else {
-      blinkFactor = Math.min(1, (8 - blinkTimer) / 8);
-    }
-  } else {
-    blinkFactor = 1.0;
-    if (Math.random() < 0.007 * dt) {
-      blinkTimer = 16;
-    }
-  }
-
-  // Smooth mouse lerp
-  mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * Math.min(0.2 * dt, 1);
-  mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * Math.min(0.2 * dt, 1);
-
-  const currentMode = modeRef.current;
-  const logoScale = 0.38;
-  const mokaOffsetX = Math.max(0, (logicalW - mokaBoundsWidth * logoScale) / 2);
-  const mokaOffsetY = Math.max(0, (logicalH - mokaBoundsHeight * logoScale) / 2);
-
-  const miniScale = 0.16;
-  const headerCenterX = logicalW / 2;
-  const headerCenterY = logicalH / 2;
-
-  for (let i = 0; i < particles.length; i++) {
-    const p = particles[i];
-    let targetX = 0;
-    let targetY = 0;
-
-    if (currentMode === 'moka') {
-      // MOKA logo text shape
-      targetX = mokaOffsetX + p.mokaX * logoScale;
-      targetY = mokaOffsetY + p.mokaY * logoScale;
-    } else {
-      // Miniature interactive eyes shape
-      const cx = p.eyeX < 600 ? 400 : 800;
-      const cy = 300;
-
-      const dx_eye = p.eyeX - cx;
-      const dy_eye = p.eyeY - cy;
-
-      const isLeftEye = p.eyeX < 600;
-      const eyeScale = isLeftEye
-        ? (1.0 - mouseRef.current.x * 0.14)
-        : (1.0 + mouseRef.current.x * 0.14);
-
-      const scaledX = cx + dx_eye * eyeScale;
-      const scaledY = cy + dy_eye * eyeScale * blinkFactor;
-
-      const maxShift = 4;
-      const shiftX = mouseRef.current.x * maxShift;
-      const shiftY = mouseRef.current.y * maxShift;
-
-      const idleX = Math.sin(time * 0.07 + p.seed * 5) * 0.25;
-      const idleY = Math.cos(time * 0.07 + p.seed * 5) * 0.2;
-
-      const relativeX = (scaledX - 600) * miniScale;
-      const relativeY = (scaledY - 300) * miniScale;
-
-      targetX = headerCenterX + relativeX + shiftX + idleX;
-      targetY = headerCenterY + relativeY + shiftY + idleY;
+    for (let i = 0; i < totalParticles; i++) {
+      const eyeT = eyeTargets[i % eyeTargets.length];
+      const mokaT = shuffledMoka.length > 0 ? shuffledMoka[i % shuffledMoka.length] : { x: 0, y: 0 };
+      particles.push({
+        x: (eyeT.x - 600) * 0.16 + logicalW / 2 + (Math.random() - 0.5) * 6,
+        y: (eyeT.y - 300) * 0.16 + logicalH / 2 + (Math.random() - 0.5) * 6,
+        eyeX: eyeT.x,
+        eyeY: eyeT.y,
+        mokaX: mokaT.x,
+        mokaY: mokaT.y,
+        size: Math.random() * 0.6 + 1.8,
+        alpha: 1.0,
+        mokaAlpha: 1.0,
+        seed: Math.random() * 100,
+        speedOffset: Math.random(),
+      });
     }
 
-    // Local mouse hover repelling effect
-    const dxMouse = targetX - mousePosLocalRef.current.x;
-    const dyMouse = targetY - mousePosLocalRef.current.y;
-    const distMouse = Math.hypot(dxMouse, dyMouse);
-    const avoidanceRadius = 32;
+    let time = 0;
+    let blinkTimer = 0;
+    let blinkFactor = 1.0;
+    let lastTimestamp = performance.now();
 
-    if (distMouse < avoidanceRadius && distMouse > 0) {
-      const force = (avoidanceRadius - distMouse) / avoidanceRadius;
-      const strength = force * 16;
-      targetX += (dxMouse / distMouse) * strength;
-      targetY += (dyMouse / distMouse) * strength;
-    }
+    // High-DPI physical scale setup
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = logicalW * dpr;
+    canvas.height = logicalH * dpr;
 
-    // Dynamic easing for fluid flight between MOKA and eyes
-    const dxDist = targetX - p.x;
-    const dyDist = targetY - p.y;
-    const dist = Math.hypot(dxDist, dyDist);
-    const ease = dist > 35 ? (0.13 + p.speedOffset * 0.04) : (0.12 + p.speedOffset * 0.08);
-    const effectiveEase = Math.min(1 - Math.pow(Math.max(0, 1 - ease), dt), 1);
+    // --- 4. Animation Render Loop ---
+    const render = (now: number = performance.now()) => {
+      const rawDelta = (now - lastTimestamp) / 1000;
+      lastTimestamp = now;
+      const delta = Math.min(Math.max(rawDelta, 0.001), 0.05);
+      const dt = delta * 60;
+      time += dt;
 
-    p.x += (targetX - p.x) * effectiveEase;
-    p.y += (targetY - p.y) * effectiveEase;
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, logicalW, logicalH);
 
-      const currentSize = p.size * 0.62; // Crisp dot size (~1.1px - 1.5px radius)
+      // Dynamically resolve theme color from index.css or active theme (matches home page ParticleCanvas)
+      const cssColor = getComputedStyle(document.documentElement).getPropertyValue('--particle-rgb').trim();
+      const activeTheme = themeRef.current;
+      const rgb = cssColor || (activeTheme === 'royal' ? '234, 179, 8' : activeTheme === 'it' ? '18, 165, 116' : '0, 243, 255');
 
-    // Clean particle dot
-    ctx.fillStyle = `rgba(${rgb}, ${p.alpha})`;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
-    ctx.fill();
-  }
+      // Periodic natural blinking
+      if (blinkTimer > 0) {
+        blinkTimer -= dt;
+        if (blinkTimer > 8) {
+          blinkFactor = Math.max(0, (blinkTimer - 8) / 8);
+        } else {
+          blinkFactor = Math.min(1, (8 - blinkTimer) / 8);
+        }
+      } else {
+        blinkFactor = 1.0;
+        if (Math.random() < 0.007 * dt) {
+          blinkTimer = 16;
+        }
+      }
 
-  ctx.restore();
-  animationFrameId.current = requestAnimationFrame(render);
-};
+      // Smooth mouse lerp
+      mouseRef.current.x += (mouseTargetRef.current.x - mouseRef.current.x) * Math.min(0.2 * dt, 1);
+      mouseRef.current.y += (mouseTargetRef.current.y - mouseRef.current.y) * Math.min(0.2 * dt, 1);
 
-render();
+      const currentMode = modeRef.current;
+      const logoScale = 0.38;
+      const mokaOffsetX = Math.max(0, (logicalW - mokaBoundsWidth * logoScale) / 2);
+      const mokaOffsetY = Math.max(0, (logicalH - mokaBoundsHeight * logoScale) / 2);
 
-// Mouse movement listener (Window gaze + Local canvas hover)
-const handleMouseMove = (e: MouseEvent) => {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-  mouseTargetRef.current = {
-    x: Math.max(-1, Math.min(1, (e.clientX - cx) / cx)),
-    y: Math.max(-1, Math.min(1, (e.clientY - cy) / cy)),
-  };
+      const miniScale = 0.16;
+      const headerCenterX = logicalW / 2;
+      const headerCenterY = logicalH / 2;
 
-  if (containerRef.current) {
-    const rect = containerRef.current.getBoundingClientRect();
-    mousePosLocalRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        let targetX = 0;
+        let targetY = 0;
+
+        if (currentMode === 'moka') {
+          // MOKA logo text shape
+          targetX = mokaOffsetX + p.mokaX * logoScale;
+          targetY = mokaOffsetY + p.mokaY * logoScale;
+        } else {
+          // Miniature interactive eyes shape
+          const cx = p.eyeX < 600 ? 400 : 800;
+          const cy = 300;
+
+          const dx_eye = p.eyeX - cx;
+          const dy_eye = p.eyeY - cy;
+
+          const isLeftEye = p.eyeX < 600;
+          const eyeScale = isLeftEye
+            ? (1.0 - mouseRef.current.x * 0.14)
+            : (1.0 + mouseRef.current.x * 0.14);
+
+          const scaledX = cx + dx_eye * eyeScale;
+          const scaledY = cy + dy_eye * eyeScale * blinkFactor;
+
+          const maxShift = 4;
+          const shiftX = mouseRef.current.x * maxShift;
+          const shiftY = mouseRef.current.y * maxShift;
+
+          const idleX = Math.sin(time * 0.07 + p.seed * 5) * 0.25;
+          const idleY = Math.cos(time * 0.07 + p.seed * 5) * 0.2;
+
+          const relativeX = (scaledX - 600) * miniScale;
+          const relativeY = (scaledY - 300) * miniScale;
+
+          targetX = headerCenterX + relativeX + shiftX + idleX;
+          targetY = headerCenterY + relativeY + shiftY + idleY;
+        }
+
+        // Local mouse hover repelling effect
+        const dxMouse = targetX - mousePosLocalRef.current.x;
+        const dyMouse = targetY - mousePosLocalRef.current.y;
+        const distMouse = Math.hypot(dxMouse, dyMouse);
+        const avoidanceRadius = 32;
+
+        if (distMouse < avoidanceRadius && distMouse > 0) {
+          const force = (avoidanceRadius - distMouse) / avoidanceRadius;
+          const strength = force * 16;
+          targetX += (dxMouse / distMouse) * strength;
+          targetY += (dyMouse / distMouse) * strength;
+        }
+
+        // Dynamic easing for fluid flight between MOKA and eyes
+        const dxDist = targetX - p.x;
+        const dyDist = targetY - p.y;
+        const dist = Math.hypot(dxDist, dyDist);
+        const ease = dist > 35 ? (0.13 + p.speedOffset * 0.04) : (0.12 + p.speedOffset * 0.08);
+        const effectiveEase = Math.min(1 - Math.pow(Math.max(0, 1 - ease), dt), 1);
+
+        p.x += (targetX - p.x) * effectiveEase;
+        p.y += (targetY - p.y) * effectiveEase;
+
+        const currentSize = p.size * 0.62; // Crisp dot size (~1.1px - 1.5px radius)
+
+        // Clean particle dot
+        ctx.fillStyle = `rgba(${rgb}, ${p.alpha})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, currentSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+      animationFrameId.current = requestAnimationFrame(render);
     };
-  }
-};
 
-const handleMouseLeave = () => {
-  mousePosLocalRef.current = { x: -9999, y: -9999 };
-};
+    render();
 
-window.addEventListener('mousemove', handleMouseMove);
-const container = containerRef.current;
-if (container) {
-  container.addEventListener('mouseleave', handleMouseLeave);
-}
+    // Mouse movement listener (Window gaze + Local canvas hover)
+    const handleMouseMove = (e: MouseEvent) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      mouseTargetRef.current = {
+        x: Math.max(-1, Math.min(1, (e.clientX - cx) / cx)),
+        y: Math.max(-1, Math.min(1, (e.clientY - cy) / cy)),
+      };
 
-return () => {
-  window.removeEventListener('mousemove', handleMouseMove);
-  if (container) {
-    container.removeEventListener('mouseleave', handleMouseLeave);
-  }
-  if (animationFrameId.current) {
-    cancelAnimationFrame(animationFrameId.current);
-  }
-};
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        mousePosLocalRef.current = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        };
+      }
+    };
+
+    const handleMouseLeave = () => {
+      mousePosLocalRef.current = { x: -9999, y: -9999 };
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('mouseleave', handleMouseLeave);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (container) {
+        container.removeEventListener('mouseleave', handleMouseLeave);
+      }
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
   }, [eyeStepX, eyeStepY, mokaStepX, mokaStepY]);
 
-return (
-  <div
-    ref={containerRef}
-    onClick={handleClick}
-    onKeyDown={handleKeyDown}
-    role="button"
-    tabIndex={0}
-    title="MoKa Home"
-    aria-label="MoKa Home Navigation"
-    data-header-mode={mode}
-    className={`relative h-11 w-36 sm:w-40 flex items-center justify-center cursor-pointer select-none rounded-xl transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] focus:outline-none focus-visible:ring-1 ${themeConfig.ring} ${className}`}
-  >
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: '144px',
-        height: '44px',
-      }}
-      className="block pointer-events-none"
-    />
-  </div>
-);
+  return (
+    <div
+      ref={containerRef}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
+      title="MoKa Home"
+      aria-label="MoKa Home Navigation"
+      data-header-mode={mode}
+      className={`relative h-11 w-36 sm:w-40 flex items-center justify-center cursor-pointer select-none rounded-xl transition-all duration-200 hover:scale-[1.03] active:scale-[0.98] focus:outline-none focus-visible:ring-1 ${themeConfig.ring} ${className}`}
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          width: '144px',
+          height: '44px',
+        }}
+        className="block pointer-events-none"
+      />
+    </div>
+  );
 };
 
 export default HeaderParticleLogo;

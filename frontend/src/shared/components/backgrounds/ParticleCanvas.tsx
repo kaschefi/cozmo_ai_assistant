@@ -325,6 +325,8 @@ export const ParticleCanvas: React.FC = () => {
           const cozmoRect = cachedCozmoTitle.getBoundingClientRect();
           // As soon as the title reaches/crosses into the viewport
           isCozmoInScreen = cozmoRect.top < window.innerHeight;
+          isCozmoInScreen = cozmoRect.top < window.innerHeight * 0.55;
+
         }
 
         if (cachedButton && !isCozmoInScreen) {
