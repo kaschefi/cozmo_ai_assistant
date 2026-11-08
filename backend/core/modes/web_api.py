@@ -30,12 +30,13 @@ from core.routing.brain import process_user_intent
 async def _background_warmup():
     """
     Non-blocking background task that pre-warms AI/ML models (FastEmbed, Semantic Router,
-    Kokoro ONNX) while the web server is already live and responding to health probes.
+    LAYA Typed Decision Router forward pass, Mem0 vector memory, and Chat LLM)
+    while the web server is already live and responding to health probes.
     """
     try:
         print("[MoKa Warmup] Starting background model pre-warming...")
         loop = asyncio.get_running_loop()
-        
+
         # 1. Warm up shared encoder
         from core.routing.encoder import get_shared_encoder
         await loop.run_in_executor(None, get_shared_encoder)
@@ -44,15 +45,52 @@ async def _background_warmup():
         from core.routing.layer1.semantic_layer import initialize_router
         await loop.run_in_executor(None, initialize_router)
 
-        # 3. Warm up LAYA Typed Decision Router
-        from core.routing.layer2.graph_nodes import get_laya_agent
-        await loop.run_in_executor(None, get_laya_agent)
+        # 3. Warm up LAYA Typed Decision Router (loads weights AND runs forward pass)
+        def _warmup_laya():
+            try:
+                from core.routing.layer2.graph_nodes import get_laya_agent
+                agent = get_laya_agent()
+                sample_questions = {
+                    "tool_selection": {
+                        "type": "choice",
+                        "instructions": "Warmup pass",
+                        "criteria": {"none": "Casual chat", "weather_node": "Weather"},
+                    }
+                }
+                agent.predict("warmup", sample_questions)
+            except Exception as err:
+                print(f"[MoKa Warmup] LAYA forward-pass warmup notice: {err}")
 
-        # 4. Warm up Kokoro ONNX speaker model
+        await loop.run_in_executor(None, _warmup_laya)
+
+        # 4. Warm up Long-Term Memory (Mem0 & pgvector pool)
+        def _warmup_memory():
+            try:
+                from schemas.memory_db import long_term_memory
+                _ = long_term_memory.client
+                _ = long_term_memory.retrieve_relevant_memories("warmup", user_id="cozmo_owner", limit=1)
+            except Exception as err:
+                print(f"[MoKa Warmup] Memory warmup notice: {err}")
+
+        await loop.run_in_executor(None, _warmup_memory)
+
+        # 5. Warm up Local Chat LLM (pre-loads model weights into memory on startup)
+        def _warmup_chat_llm():
+            try:
+                from core.routing.llm_factory import get_chat_companion_llm
+                llm = get_chat_companion_llm(mode="local")
+                if hasattr(llm, "invoke"):
+                    llm.invoke("warmup")
+            except Exception as err:
+                print(f"[MoKa Warmup] Chat LLM warmup notice: {err}")
+
+        await loop.run_in_executor(None, _warmup_chat_llm)
+
+        # 6. Warm up Kokoro ONNX speaker model
         from actions.physical.speak import speaker
         await loop.run_in_executor(None, speaker.warmup)
 
-        print("[MoKa Warmup] All cognitive models pre-warmed & active in RAM!")
+        print("[MoKa Warmup] All cognitive models (LAYA, Chat LLM, Mem0, TTS) pre-warmed & active in RAM!")
     except Exception as e:
         print(f"[MoKa Warmup] Notice during background pre-warming: {e}")
 
