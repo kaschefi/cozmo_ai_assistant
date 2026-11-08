@@ -50,7 +50,7 @@ def run_100_tools_experiment(
     selected_model: str = "all",
     project_name: str = "MoKa-Router-Benchmark",
     force_refresh: bool = False,
-    phase: str = "phase2"
+    phase: str = "phase3"
 ) -> List[Dict[str, Any]]:
     """
     Runs the 100 Tools benchmark in LangSmith against MoKa_Router_Benchmark_100_Tools.
@@ -84,8 +84,8 @@ def run_100_tools_experiment(
             "id": "2-L-Laya-TopK",
             "name": f"{NUM_TOOLS}-Tools-2-L-Laya-TopK",
             "group": "laya_topk",
-            "description": f"Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-3 Tool RAG with LAYA ({NUM_TOOLS} tools).",
-            "get_predictor": lambda: get_two_layer_laya_topk_predictor(num_tools=NUM_TOOLS, k=3),
+            "description": f"Two-Layer Router: Layer 1 FastEmbed Reflexes + Layer 2 Top-5 Tool RAG with LAYA ({NUM_TOOLS} tools).",
+            "get_predictor": lambda: get_two_layer_laya_topk_predictor(num_tools=NUM_TOOLS, k=5),
         },
         {
             "id": "1-L-Laya-TopK",
@@ -178,8 +178,8 @@ if __name__ == "__main__":
         "--phase",
         "-ph",
         type=str,
-        default="phase2",
-        help="Target experiment results phase directory (default: 'phase2')"
+        default="phase3",
+        help="Target experiment results phase directory (default: 'phase3')"
     )
     args = parser.parse_args()
 

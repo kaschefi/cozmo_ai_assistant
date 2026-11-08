@@ -24,7 +24,8 @@ def on_camera_image(cli, image):
 @reflex_registry.reflex(
     "dock_with_charger",
     [
-        "go to sleep",
+        "robot go to sleep",
+        "cozmo go to sleep",
         "go to your charger",
         "dock yourself",
         "your battery is low",
@@ -35,7 +36,7 @@ def on_camera_image(cli, image):
         "head back to base",
         "dock with charger",
     ],
-    score_threshold=0.80
+    score_threshold=0.82
 )
 async def dock_with_charger():
     cli = cozmo_manager.get_robot()

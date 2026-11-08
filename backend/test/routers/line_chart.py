@@ -29,7 +29,7 @@ if backend_path not in sys.path:
 from test.routers.saver import load_all_results_for_phase
 
 
-def get_model_charts_dir(phase: str = "phase2") -> str:
+def get_model_charts_dir(phase: str = "phase3") -> str:
     """Returns directory in `docs/charts/<phase>/models`."""
     charts_dir = os.path.join(project_root, "docs", "charts", phase, "models")
     os.makedirs(charts_dir, exist_ok=True)
@@ -68,7 +68,7 @@ def normalize_model_key(exp_name: str) -> str:
 def generate_line_chart_for_model(
     model_name: str,
     model_records: List[Dict[str, Any]],
-    phase: str = "phase2"
+    phase: str = "phase3"
 ) -> Optional[str]:
     """
     Generates a 4-panel line chart for a single model tracking its trajectory across scales:
@@ -161,7 +161,7 @@ def generate_line_chart_for_model(
     return out_path
 
 
-def generate_all_model_line_charts(phase: str = "phase2") -> List[str]:
+def generate_all_model_line_charts(phase: str = "phase3") -> List[str]:
     """
     Groups all stored results in the phase by model architecture and generates one line chart per model.
     """
@@ -190,7 +190,7 @@ def generate_all_model_line_charts(phase: str = "phase2") -> List[str]:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate scalability line charts per model across all experiments")
-    parser.add_argument("--phase", "-p", type=str, default="phase2", help="Experiment phase (default: phase2)")
+    parser.add_argument("--phase", "-p", type=str, default="phase3", help="Experiment phase (default: phase3)")
     args = parser.parse_args()
 
     generate_all_model_line_charts(phase=args.phase)

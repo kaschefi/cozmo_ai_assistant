@@ -42,67 +42,70 @@ DESKTOP_BASE_TOOLS: Dict[str, str] = {
 DESKTOP_EXTRA_TOOLS: Dict[str, str] = {
     # --- Audio & Display ---
     "set_system_volume": (
-        "Sets the laptop's master speaker volume to a level or raises or lowers it. "
-        "Use when user says turn the computer volume up, down, or set laptop volume to a percentage."
+        "Adjusts the computer or laptop master OS audio speaker volume level up or down. "
+        "Use when user says make the PC louder, turn the computer volume up, lower laptop volume, or set laptop volume to a percentage."
     ),
     "mute_system_audio": (
-        "Mutes or unmutes all sound output on the laptop. "
-        "Use when user says mute the computer, silence the laptop, or unmute the sound."
+        "Mutes or unmutes all audio sound output on the laptop or PC. "
+        "Use when user says mute the computer audio, silence laptop sound output, unmute the PC speakers, or toggle audio mute on the computer."
     ),
     "adjust_screen_brightness": (
-        "Raises or lowers the laptop screen brightness. "
-        "Use when user says the screen is too bright, too dark, dim the display, or set brightness."
+        "Adjusts the computer monitor display screen brightness level. "
+        "Use when user says the screen is too bright or dark, dim the laptop screen or display, brighten the monitor, or change display brightness. "
+        "Controls computer screen backlight, not physical room lights."
     ),
     "toggle_dark_mode": (
-        "Switches the operating system between dark theme and light theme. "
-        "Use when user wants dark mode, light mode, or to change the system theme."
+        "Switches operating system desktop appearance theme between dark mode and light mode for Windows and application windows. "
+        "Use when user wants dark mode, light theme, or to toggle dark and light system appearance."
     ),
     "take_screenshot": (
-        "Captures a screenshot of the laptop screen and saves it to the pictures folder. "
-        "Use when user says take a screenshot, capture the screen, or screen grab."
+        "Captures a digital screenshot or screen grab of the desktop monitor display or active window and saves the image to files. "
+        "Use when user says take a screenshot, capture the desktop display, grab a screen capture, or save screen image. "
+        "Captures the computer PC display, not a robot camera photo."
     ),
     # --- Power & Session ---
     "lock_screen": (
-        "Locks the laptop session so a password is required to continue. "
-        "Use when user says lock the computer, lock my screen, or I'm stepping away."
+        "Locks the computer desktop workstation session requiring a password or PIN to continue. "
+        "Use when user says lock my computer screen, lock the laptop session for security, lock the PC, or stepping away from desk."
     ),
     "put_computer_to_sleep": (
-        "Puts the laptop into sleep or suspend mode. "
-        "Use when user says sleep the computer, suspend the laptop, or hibernate."
+        "Puts the laptop or desktop computer into operating system sleep, standby, or suspend mode. "
+        "Use when user says put the laptop to sleep, suspend the computer, put the PC into sleep mode, or sleep the computer. "
+        "Controls computer OS power state, not physical robot docking."
     ),
     "shutdown_computer": (
-        "Shuts down or restarts the laptop after confirmation. "
-        "Use when user says shut down the computer, power off the laptop, or restart the PC."
+        "Powers off, shuts down, or restarts the laptop or desktop computer operating system. "
+        "Use when user says shut down my laptop completely, power off the computer, restart the PC, or reboot workstation."
     ),
     # --- Apps ---
     "open_application": (
-        "Launches a named desktop application such as Spotify, Chrome, VS Code, Notepad, or Calculator. "
-        "Use when user says open, launch, or start a specific program."
+        "Launches or opens a specific desktop software application or program on the laptop (such as Calculator, Google Chrome, Notepad text editor). "
+        "Use when user says open, launch, or start a specific desktop program."
     ),
     "close_application": (
-        "Closes or force quits a running desktop application by name. "
-        "Use when user says close, quit, exit, or kill a specific program."
+        "Closes, quits, or force terminates a running desktop application window or program on the PC (such as closing Chrome, quitting Spotify, or force quitting Calculator). "
+        "Use when user says close, quit, exit, or kill a specific desktop application."
     ),
     # --- Connectivity & Focus ---
     "toggle_wifi": (
-        "Turns the laptop Wi-Fi adapter on or off. "
-        "Use when user says enable wifi, disable wifi, or turn off the wireless connection."
+        "Turns the laptop Wi-Fi wireless network adapter connection on or off. "
+        "Use when user says turn off Wi-Fi on laptop, enable wireless network, or disconnect from Wi-Fi on this PC."
     ),
     "toggle_bluetooth": (
-        "Turns the laptop Bluetooth adapter on or off. "
-        "Use when user says turn Bluetooth on, turn Bluetooth off, or enable Bluetooth."
+        "Turns the computer Bluetooth radio adapter on or off. "
+        "Use when user says turn on Bluetooth, enable Bluetooth to connect headphones, or disable laptop Bluetooth."
     ),
     "toggle_do_not_disturb": (
-        "Enables or disables the operating system Do Not Disturb or Focus Assist mode to silence notifications. "
-        "Use when user says do not disturb, mute notifications, or focus mode on the computer."
+        "Enables or disables operating system Focus Assist or Do Not Disturb notification mode on the laptop. "
+        "Use when user says turn on Do Not Disturb mode on laptop, mute Windows desktop notifications to focus, or disable Focus Assist."
     ),
     # --- Diagnostics & Presets ---
     "get_system_stats": (
-        "Reports laptop CPU usage, RAM usage, disk space, and laptop battery percentage. "
-        "Use when user asks how the computer is performing, how much memory is free, or laptop battery level."
+        "Reports computer hardware performance diagnostics including CPU utilization, RAM memory usage, free disk storage, and laptop battery percentage. "
+        "Use when user asks how much RAM/CPU is used, checks disk space, or asks laptop battery level."
     ),
     "setup_meeting": (
-        "Prepares the workstation for a video call by opening the meeting app, muting notifications, and checking webcam and microphone. "
+        "Prepares workstation for a video conference call by launching meeting software (Zoom, Teams, Google Meet), muting background desktop alerts, and verifying webcam and microphone. "
         "Use when user says set up for a meeting, prepare for a call, or meeting mode."
     ),
 }

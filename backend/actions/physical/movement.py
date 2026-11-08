@@ -312,17 +312,16 @@ def _register_reflex(name, utterances, score_threshold=0.80, speech=""):
     [
         "scan area",
         "sweep arc",
-        "look around",
+        "survey the room",
         "observe surroundings",
         "scan the surrounding area",
         "sweep arc and observe the room",
         "look around your surroundings",
         "look around the area",
         "pan your camera across the room and look around",
-        "pan your camera",
-        "pan the camera and look around",
+        "pan the camera and survey the room",
     ],
-    score_threshold=0.80
+    score_threshold=0.84
 )
 async def arc_sweep(angle_range_deg: float = 60.0, head_tilt_deg: float = 10.0):
     return _arc_sweep(angle_range_deg=angle_range_deg, head_tilt_deg=head_tilt_deg)

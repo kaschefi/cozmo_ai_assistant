@@ -11,44 +11,44 @@ SMART_HOME_NAMESPACE = "smart_home"
 
 SMART_HOME_TOOLS: Dict[str, str] = {
     "lights_on": (
-        "Turns on the room lights through Philips Hue. "
-        "Use when user says turn on the lights, lights on, or light up the room."
+        "Switches on power to smart room lights. "
+        "Use when user says turn on the lights, lights on, or light up the room. Power switch on only."
     ),
     "lights_off": (
-        "Turns off the room lights through Philips Hue. "
-        "Use when user says turn off the lights, lights out, or kill the lights."
+        "Switches off the power to room lights. "
+        "Use when user says turn off the lights, lights out, or kill the lights. Power switch off only."
     ),
     "set_light_brightness": (
-        "Dims or brightens the room lights to a percentage level. "
-        "Use when user says dim the lights, make the lights brighter, or set lights to 50 percent."
+        "Makes the lights brighter, dims the room lights down, or sets brightness level. "
+        "Use when user says make the lights brighter, brighten, dim the room lights down, or change illumination brightness."
     ),
     "set_light_color": (
-        "Changes the color or color temperature of the smart bulbs. "
-        "Use when user says make the lights blue, warm white, cool white, or change the bulb color."
+        "Changes the RGB color hue or color temperature of smart light bulbs. "
+        "Use when user specifies a color or color tone: warm orange, cool daylight white, deep purple, blue, green, red, yellow, or changing bulb colors."
     ),
     "activate_light_scene": (
-        "Activates a saved lighting scene such as movie, reading, relax, or party. "
-        "Use when user says set the movie scene, reading lights, or party lighting."
+        "Activates a named ambient lighting scene, mood preset, or profile. "
+        "Use when user asks for a preset or scene mode: reading light preset, relax mode, movie scene, party lighting, or ambient lighting profiles."
     ),
     "set_thermostat": (
-        "Sets the home thermostat target temperature in Celsius. "
-        "Use when user says make it warmer, set the heating to 22 degrees, or turn the AC down."
+        "Controls climate control, AC, and heating setpoint in Celsius degrees. "
+        "Use when user says turn down the AC, crank up the heating, make it warmer or cooler, or set thermostat temperature to degrees (e.g. 20 degrees, 22 degrees)."
     ),
     "get_indoor_temperature": (
-        "Reports the current temperature and humidity inside the house from the thermostat sensor. "
-        "Use when user asks how warm it is inside, room temperature, or indoor humidity."
+        "Queries and reports current indoor temperature, indoor humidity, or thermostat sensor readings. "
+        "Use when user asks what the temperature inside is, how warm it is in the house, or to read indoor humidity and room temp sensor."
     ),
     "turn_on_smart_plug": (
-        "Switches on a smart plug and the appliance connected to it, such as a lamp, fan, or coffee machine. "
-        "Use when user says turn on the fan, power on the coffee machine, or plug on."
+        "Powers on an electrical smart plug socket or wall outlet connected to appliances. "
+        "Use when user wants to power up an outlet, switch on a wall plug socket, turn on the fan outlet, start floor heater via plug, or power on the coffee maker socket."
     ),
     "turn_off_smart_plug": (
-        "Switches off a smart plug and the appliance connected to it. "
-        "Use when user says turn off the fan, power off the heater, or plug off."
+        "Cuts power to an electrical smart plug socket or wall outlet. "
+        "Use when user says cut power to desk fan outlet, switch off wall plug socket completely, turn off smart plug connected to heater, or power down an electrical socket."
     ),
     "lock_door": (
-        "Locks the smart front door lock. "
-        "Use when user says lock the door, secure the house, or did I lock up."
+        "Locks the smart physical front door lock. "
+        "Use when user says lock the front door, secure the house and make sure the door is locked, or lock up."
     ),
     "unlock_door": (
         "Unlocks the smart front door lock after confirmation. "

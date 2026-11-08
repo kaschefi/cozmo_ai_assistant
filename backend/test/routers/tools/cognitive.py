@@ -77,8 +77,8 @@ CODE_EXECUTOR_DIMENSIONS: Dict[str, str] = {
 COGNITIVE_BASE_TOOLS: Dict[str, str] = {
     "calendar_node": (
         "Manages Google Calendar operations, schedules, and appointments. "
-        "Use when user wants to view, check, create, schedule, sync, reschedule, move, change, or delete meetings, "
-        "appointments, team standups, calendar events, or check agenda."
+        "Use when user wants to view, check, create, schedule a sync, reschedule, move, change, or delete meetings, "
+        "appointments, team standups, calendar events, or check agenda (distinct from clock alarms or countdown timers)."
     ),
     "weather_node": (
         "Provides real-time weather conditions, forecasts, and temperatures (Celsius) for any specified city. "
@@ -100,7 +100,7 @@ COGNITIVE_BASE_TOOLS: Dict[str, str] = {
     "todolist_node": (
         "Manages Todoist tasks, to-do lists, and personal checklists. "
         "Use when user wants to add, create, or schedule a task, check off, mark done, finish or complete a task, "
-        "delete or remove a task, list active or pending tasks, view items left on checklist, or organize project to-dos."
+        "delete or remove a task, list active or pending tasks, view items left on checklist, or organize project to-dos (distinct from quick personal notes)."
     ),
 }
 

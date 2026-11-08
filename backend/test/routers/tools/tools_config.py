@@ -203,6 +203,13 @@ TOOL_NAMESPACES: Dict[str, Dict[str, str]] = {
     PRODUCTIVITY_NAMESPACE: PRODUCTIVITY_TOOLS,
 }
 
+# Reverse lookup map: tool_name -> domain namespace
+TOOL_TO_DOMAIN: Dict[str, str] = {
+    tool_name: domain
+    for domain, tool_dict in TOOL_NAMESPACES.items()
+    for tool_name in tool_dict.keys()
+}
+
 # -----------------------------------------------------------------------------
 # Layer 1 Tool RAG Indexing Specifications (Multi-Document Registry)
 # Gathers all 104 raw documents for FAISS indexing across all namespaces.

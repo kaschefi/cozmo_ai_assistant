@@ -30,7 +30,7 @@ if backend_path not in sys.path:
 from test.routers.saver import load_results_for_tools, load_all_results_for_phase
 
 
-def get_charts_dir(phase: str = "phase2") -> str:
+def get_charts_dir(phase: str = "phase3") -> str:
     """Returns directory in `docs/charts/<phase>`."""
     charts_dir = os.path.join(project_root, "docs", "charts", phase)
     os.makedirs(charts_dir, exist_ok=True)
@@ -40,7 +40,7 @@ def get_charts_dir(phase: str = "phase2") -> str:
 def generate_bar_chart_for_results(
     results: List[Dict[str, Any]],
     num_tools: int,
-    phase: str = "phase2",
+    phase: str = "phase3",
     output_filename: Optional[str] = None
 ) -> Optional[str]:
     """
@@ -153,7 +153,7 @@ def generate_bar_chart_for_results(
     return out_path
 
 
-def generate_bar_chart_for_tools(num_tools: int, phase: str = "phase2") -> Optional[str]:
+def generate_bar_chart_for_tools(num_tools: int, phase: str = "phase3") -> Optional[str]:
     """Loads saved results from disk and generates the horizontal bar chart."""
     results = load_results_for_tools(num_tools, phase=phase)
     return generate_bar_chart_for_results(results, num_tools=num_tools, phase=phase)
@@ -162,7 +162,7 @@ def generate_bar_chart_for_tools(num_tools: int, phase: str = "phase2") -> Optio
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate benchmark horizontal bar charts for an experiment scale")
     parser.add_argument("--tools", "-t", type=int, default=50, help="Number of tools (20, 30, 50, 100)")
-    parser.add_argument("--phase", "-p", type=str, default="phase2", help="Experiment phase (default: phase2)")
+    parser.add_argument("--phase", "-p", type=str, default="phase3", help="Experiment phase (default: phase3)")
     args = parser.parse_args()
 
     generate_bar_chart_for_tools(args.tools, phase=args.phase)

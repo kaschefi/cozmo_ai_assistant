@@ -36,7 +36,7 @@ def clean_model_filename(raw_name: str) -> str:
     return cleaned
 
 
-def get_results_dir(phase: str = "phase2", num_tools: Optional[int] = None) -> str:
+def get_results_dir(phase: str = "phase3", num_tools: Optional[int] = None) -> str:
     """
     Returns the absolute path to:
     - `backend/data/router results/<phase>/<num_tools>_tools` if num_tools is provided
@@ -54,7 +54,7 @@ def get_results_dir(phase: str = "phase2", num_tools: Optional[int] = None) -> s
 def save_experiment_result(
     result_data: Dict[str, Any],
     num_tools: int,
-    phase: str = "phase2",
+    phase: str = "phase3",
     custom_filename: Optional[str] = None
 ) -> str:
     """
@@ -87,7 +87,7 @@ def save_experiment_result(
     return file_path
 
 
-def load_all_results_for_phase(phase: str = "phase2") -> List[Dict[str, Any]]:
+def load_all_results_for_phase(phase: str = "phase3") -> List[Dict[str, Any]]:
     """
     Recursively loads all JSON benchmark result files from `backend/data/router results/<phase>`.
     Walks through all experiment subfolders (e.g. `20_tools`, `30_tools`, `50_tools`, `100_tools`).
@@ -111,7 +111,7 @@ def load_all_results_for_phase(phase: str = "phase2") -> List[Dict[str, Any]]:
     return results
 
 
-def load_results_for_tools(num_tools: int, phase: str = "phase2") -> List[Dict[str, Any]]:
+def load_results_for_tools(num_tools: int, phase: str = "phase3") -> List[Dict[str, Any]]:
     """
     Loads all results for a specific tools scale (e.g. 20, 30, 50, 100) from:
     `backend/data/router results/<phase>/<num_tools>_tools/` or matching phase files.

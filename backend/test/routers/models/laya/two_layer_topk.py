@@ -30,6 +30,7 @@ from test.routers.tools import (
     build_laya_questions,
     get_tools_preset,
     create_scoped_tool_rag_registry,
+    TOOL_TO_DOMAIN,
 )
 from test.routers.harness import evaluate_router_on_wp2, evaluate_router_on_benchmark
 
@@ -64,6 +65,47 @@ def ensure_two_layer_laya_topk_ready(model_id: str = "convaiinnovations/laya-typ
     return _LAYA_AGENT
 
 
+def validate_layer_1_reflex(layer_1_route: Optional[str], query: str) -> Optional[str]:
+    """
+    Guards Layer 1 FastEmbed reflexes against cross-namespace false triggers:
+    1. Prevents robot docking reflexes from stealing desktop OS power commands (laptop/PC sleep).
+    2. Prevents robot panoramic arc sweeps from stealing vertical head tilts (look up/down).
+    3. Prevents chassis kinematic movement from stealing smart home lighting/climate commands.
+    4. Prevents clock time/date reflexes from stealing calendar appointments or countdown timers.
+    """
+    if not layer_1_route:
+        return None
+
+    query_lower = query.lower()
+    q_words = set(query_lower.split())
+
+    # Guard 1: dock_with_charger vs desktop OS sleep
+    if layer_1_route == "dock_with_charger":
+        desktop_cues = {"laptop", "pc", "computer", "mac", "desktop", "windows", "monitor", "screen", "suspend", "hibernate"}
+        if q_words & desktop_cues:
+            return None
+
+    # Guard 2: arc_sweep vs vertical head tilt
+    if layer_1_route == "arc_sweep":
+        vertical_cues = {"up", "upward", "upwards", "down", "downward", "downwards", "ceiling", "desk", "floor", "tracks"}
+        if q_words & vertical_cues:
+            return None
+
+    # Guard 3: Physical chassis kinematics vs Smart Home
+    if layer_1_route in {"move_forward", "move_backward", "turn_left", "turn_right", "turn_around", "stop_movement"}:
+        smart_home_cues = {"light", "lights", "lamp", "hue", "dim", "brightness", "color", "colour", "plug", "socket", "thermostat", "temperature"}
+        if q_words & smart_home_cues:
+            return None
+
+    # Guard 4: tell_time / get_date vs alarms & calendar
+    if layer_1_route in {"tell_time", "get_date"}:
+        time_event_cues = {"timer", "countdown", "alarm", "standup", "meeting", "sync", "schedule", "reschedule", "appointment", "pomodoro"}
+        if q_words & time_event_cues:
+            return None
+
+    return layer_1_route
+
+
 def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 384) -> dict:
     """
     Evaluates a user query through Two-Layer Router with Top-K LAYA (15 tools default).
@@ -73,7 +115,7 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 
     start_time = time.perf_counter()
 
     # Step 1: Check Layer 1 Semantic Reflexes (~6ms deterministic match)
-    layer_1_route = check_layer_1(query)
+    layer_1_route = validate_layer_1_reflex(check_layer_1(query), query)
     if layer_1_route:
         latency_ms = (time.perf_counter() - start_time) * 1000
         return {
@@ -83,8 +125,9 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 
             "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
         }
 
-    # Step 2: Fall back to Layer 2 Tool RAG + LAYA Decision Model (dedicated WP2 index)
-    matched_tools = _WP2_LAYA_RAG.search_relevant_tools(query, k=k, distance_threshold=1.10)
+    # Step 2: Fall back to Layer 2 Tool RAG + Hierarchical Domain Selection + LAYA
+    probe_k = max(k * 2, 8)
+    matched_tools = _WP2_LAYA_RAG.search_relevant_tools(query, k=probe_k, distance_threshold=1.15)
 
     if not matched_tools or (matched_tools and matched_tools[0].get("score", 0.0) > 1.10):
         latency_ms = (time.perf_counter() - start_time) * 1000
@@ -99,14 +142,30 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 
         }
 
     top_score = matched_tools[0].get("score", 0.0)
-    # Adaptive candidate filtering: keep candidates within distance delta of top match
-    # to avoid diluting ModernBERT's cross-encoder softmax with poor distance outliers
+    top_tool = matched_tools[0]["name"]
+    primary_domain = TOOL_TO_DOMAIN.get(top_tool)
+
+    # Hierarchical Domain Selection (pruning cross-namespace lexical distractors):
+    top3_domains = [TOOL_TO_DOMAIN.get(m["name"]) for m in matched_tools[:3]]
+    if top_score <= 0.60 or top3_domains.count(primary_domain) >= 2:
+        allowed_domains = {primary_domain}
+    else:
+        allowed_domains = {primary_domain}
+        for m in matched_tools[1:4]:
+            if m.get("score", 0.0) <= top_score + 0.12:
+                d = TOOL_TO_DOMAIN.get(m["name"])
+                if d:
+                    allowed_domains.add(d)
+
     active_tools = [
         t for t in matched_tools
-        if t.get("score", 0.0) <= 1.05 and t.get("score", 0.0) <= top_score + 0.25
+        if (TOOL_TO_DOMAIN.get(t["name"]) in allowed_domains or not allowed_domains)
+        and t.get("score", 0.0) <= top_score + 0.16
     ]
     if not active_tools:
         active_tools = [matched_tools[0]]
+
+    active_tools = active_tools[:4]
 
     candidate_dict = {tool["name"]: tool["description"] for tool in active_tools}
     candidate_dict["none"] = TOOLS_15["none"]
@@ -118,6 +177,18 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 
 
     selected_route = decision.get("choice", "none")
     confidence = decision.get("confidence", 0.0)
+
+    # Confidence Gating for "none":
+    # If "none" is chosen with low confidence (< 0.12) but FAISS retrieved an extremely strong
+    # domain match (top_score <= 0.65), override "none" with the highest-probability tool candidate.
+    if selected_route == "none" and confidence < 0.12 and top_score <= 0.65:
+        probs = decision.get("probabilities", {})
+        tool_probs = {k: v for k, v in probs.items() if k != "none"}
+        if tool_probs:
+            best_tool = max(tool_probs, key=tool_probs.get)
+            if tool_probs[best_tool] >= 0.25:
+                selected_route = best_tool
+
     latency_ms = (time.perf_counter() - start_time) * 1000
 
     return {
@@ -159,7 +230,7 @@ def get_two_layer_laya_topk_predictor(
         start_time = time.perf_counter()
 
         # Step 1: Check Layer 1 Semantic Reflexes
-        layer_1_route = check_layer_1(query)
+        layer_1_route = validate_layer_1_reflex(check_layer_1(query), query)
         if layer_1_route and (layer_1_route in tools_dict or layer_1_route == "none"):
             latency_ms = (time.perf_counter() - start_time) * 1000
             return {
@@ -169,8 +240,9 @@ def get_two_layer_laya_topk_predictor(
                 "pipeline": "Two-Layer (Tier 1 FastEmbed Reflex)"
             }
 
-        # Step 2: Fall back to Layer 2 Tool RAG + LAYA Decision Model (dedicated index)
-        matched_tools = local_rag.search_relevant_tools(query, k=k, distance_threshold=1.10)
+        # Step 2: Fall back to Layer 2 Tool RAG + Hierarchical Domain Selection + LAYA
+        probe_k = max(k * 2, 8)
+        matched_tools = local_rag.search_relevant_tools(query, k=probe_k, distance_threshold=1.15)
 
         if not matched_tools or (matched_tools and matched_tools[0].get("score", 0.0) > 1.10):
             latency_ms = (time.perf_counter() - start_time) * 1000
@@ -185,12 +257,32 @@ def get_two_layer_laya_topk_predictor(
             }
 
         top_score = matched_tools[0].get("score", 0.0)
+        top_tool = matched_tools[0]["name"]
+        primary_domain = TOOL_TO_DOMAIN.get(top_tool)
+
+        # Hierarchical Domain Selection (pruning cross-namespace lexical distractors):
+        top3_domains = [TOOL_TO_DOMAIN.get(m["name"]) for m in matched_tools[:3]]
+        if top_score <= 0.60 or top3_domains.count(primary_domain) >= 2:
+            allowed_domains = {primary_domain}
+        else:
+            allowed_domains = {primary_domain}
+            for m in matched_tools[1:4]:
+                if m.get("score", 0.0) <= top_score + 0.12:
+                    d = TOOL_TO_DOMAIN.get(m["name"])
+                    if d:
+                        allowed_domains.add(d)
+
+        # Retain candidate tools from allowed domains within distance delta
         active_tools = [
             t for t in matched_tools
-            if t.get("score", 0.0) <= 1.05 and t.get("score", 0.0) <= top_score + 0.25
+            if (TOOL_TO_DOMAIN.get(t["name"]) in allowed_domains or not allowed_domains)
+            and t.get("score", 0.0) <= top_score + 0.16
         ]
         if not active_tools:
             active_tools = [matched_tools[0]]
+
+        # Bound candidates to at most 4 tools to prevent ModernBERT softmax logit collapse
+        active_tools = active_tools[:4]
 
         candidate_dict = {tool["name"]: tool["description"] for tool in active_tools}
         candidate_dict["none"] = tools_dict["none"]
@@ -202,6 +294,18 @@ def get_two_layer_laya_topk_predictor(
 
         selected_route = decision.get("choice", "none")
         confidence = decision.get("confidence", 0.0)
+
+        # Confidence Gating for "none":
+        # If "none" is chosen with low confidence (< 0.12) but FAISS retrieved an extremely strong
+        # domain match (top_score <= 0.65), override "none" with the highest-probability tool candidate.
+        if selected_route == "none" and confidence < 0.12 and top_score <= 0.65:
+            probs = decision.get("probabilities", {})
+            tool_probs = {k: v for k, v in probs.items() if k != "none"}
+            if tool_probs:
+                best_tool = max(tool_probs, key=tool_probs.get)
+                if tool_probs[best_tool] >= 0.25:
+                    selected_route = best_tool
+
         latency_ms = (time.perf_counter() - start_time) * 1000
 
         return {

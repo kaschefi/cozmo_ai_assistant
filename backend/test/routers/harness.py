@@ -61,7 +61,7 @@ def _run_local_evaluation_pipeline(
     dataset_name: str,
     num_tools: int,
     description: str = "",
-    phase: str = "phase2",
+    phase: str = "phase3",
     auto_save: bool = True,
     auto_chart: bool = True,
 ) -> Dict[str, Any]:
@@ -203,7 +203,7 @@ def evaluate_router_on_wp2(
     predictor: Callable[[dict], dict],
     description: str = "",
     force_refresh: bool = False,
-    phase: str = "phase2",
+    phase: str = "phase3",
 ) -> Dict[str, Any]:
     """Backward-compatible runner for WP2 15-tool benchmark."""
     print("=" * 80)
@@ -232,7 +232,7 @@ def evaluate_router_on_benchmark(
     description: str = "",
     force_refresh: bool = False,
     project_name: Optional[str] = None,
-    phase: str = "phase2",
+    phase: str = "phase3",
     auto_save: bool = True,
     auto_chart: bool = True,
 ) -> Dict[str, Any]:

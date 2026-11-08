@@ -39,12 +39,14 @@ ROBOT_BASE_TOOLS: Dict[str, str] = {
         "Use when user commands the robot to stop, halt, freeze, stand still, or brake."
     ),
     "dock_with_charger": (
-        "Initiates autonomous physical docking onto the charging base. "
-        "Use when user tells the robot to dock, go to charger, go to sleep, battery is low, or return to base."
+        "Commands the physical Cozmo robot to navigate onto its charging base station cradle to recharge. "
+        "Use when user tells the robot to dock, head back to charging cradle, battery is low dock yourself, or return to home base and charge up. "
+        "Controls physical robot docking on charging station, not computer or laptop sleep."
     ),
     "arc_sweep": (
-        "Executes a physical and visual scanning sweep of the surrounding area with camera and head tilt. "
-        "Use when user commands the robot to scan the area, sweep arc, survey the room, or look around."
+        "Executes a horizontal panoramic scanning sweep of the surrounding room with camera and tracks. "
+        "Use when user commands the robot to perform a visual scan of the surrounding area, pan camera across the room and look around, or execute a sweeping survey arc. "
+        "For horizontal room surveys, not vertical camera tilt up or down."
     ),
 }
 
@@ -63,8 +65,8 @@ ROBOT_EXTRA_TOOLS: Dict[str, str] = {
         "Use when user tells the robot to say, speak, announce, or repeat a sentence out loud."
     ),
     "set_robot_volume": (
-        "Adjusts the volume of the Cozmo robot's own speaker, not the laptop. "
-        "Use when user says robot talk louder, quieter, speak softer, or set Cozmo's volume."
+        "Adjusts the Cozmo robot's own internal hardware speaker audio volume. "
+        "Use when user says make Cozmo speak quieter, turn up Cozmo robot speaker volume, speak softer, or adjust robot audio level."
     ),
     "show_oled_face_expression": (
         "Displays an expression on the Cozmo robot's OLED eye screen, such as happy, angry, sleepy, or surprised eyes. "
@@ -80,17 +82,17 @@ ROBOT_EXTRA_TOOLS: Dict[str, str] = {
         "Use when user commands the robot to lower its arm, put the lift down, or drop the forklift."
     ),
     "tilt_head_up": (
-        "Tilts the Cozmo robot's head and camera upward. "
-        "Use when user commands the robot to look up, raise its head, or tilt the camera up."
+        "Tilts the Cozmo robot head and camera vertically upwards towards the ceiling or user's face. "
+        "Use when user commands the robot to tilt head and camera up towards ceiling, look upwards with camera, or angle robot head up to see my face."
     ),
     "tilt_head_down": (
-        "Tilts the Cozmo robot's head and camera downward. "
-        "Use when user commands the robot to look down, lower its head, or tilt the camera down."
+        "Tilts the Cozmo robot head and camera vertically downwards towards the desk or tracks. "
+        "Use when user commands the robot to tilt head down to look at the desk, look downward with front camera, or angle camera down towards tracks."
     ),
     # --- Cube Manipulation ---
     "find_cube": (
-        "Looks around and drives up to the nearest visible light cube without lifting it. "
-        "Use when user says find your cube, go to the block, or where is your cube."
+        "Navigates towards the nearest visible light cube block without lifting it. "
+        "Use when user says find your cube, go to the block, locate the cube, or where is your cube."
     ),
     "pick_up_cube": (
         "Drives to a Cozmo light cube and lifts it with its forklift arm. "
@@ -122,8 +124,8 @@ ROBOT_EXTRA_TOOLS: Dict[str, str] = {
         "Use when user says turn on your headlight, night vision, or light up the front."
     ),
     "take_photo": (
-        "Captures a still image from the Cozmo robot's front camera and saves it to the laptop. "
-        "Use when user says take a picture with the robot, snap a photo, or what does the robot see."
+        "Captures a still photographic image from the Cozmo robot's physical onboard front camera and saves it. "
+        "Use when user says take a picture with robot camera, snap a photo of what Cozmo sees, or capture an image from front camera (distinct from PC screenshot)."
     ),
     "find_face": (
         "Rotates in place scanning for human faces and greets a recognized person by name. "

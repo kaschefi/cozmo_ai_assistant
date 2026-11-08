@@ -50,7 +50,7 @@ def run_20_tools_experiment(
     selected_model: str = "all",
     project_name: str = "MoKa-Router-Benchmark",
     force_refresh: bool = False,
-    phase: str = "phase2"
+    phase: str = "phase3"
 ) -> List[Dict[str, Any]]:
     """
     Runs the 20 Tools benchmark in LangSmith against MoKa_Router_Benchmark_20_Tools.
@@ -179,8 +179,8 @@ if __name__ == "__main__":
         "--phase",
         "-ph",
         type=str,
-        default="phase2",
-        help="Target experiment results phase directory (default: 'phase2')"
+        default="phase3",
+        help="Target experiment results phase directory (default: 'phase3')"
     )
     args = parser.parse_args()
 

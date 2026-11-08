@@ -21,6 +21,7 @@ from test.routers.tools.tools_config import (
     TOOLS_ALL,
     FALLBACK_ROUTE,
     TOOL_NAMESPACES,
+    TOOL_TO_DOMAIN,
     TOOL_RAG_REGISTRY_SPECS,
     CODE_EXECUTOR_DIMENSIONS,
     build_laya_questions,
