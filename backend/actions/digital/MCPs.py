@@ -1,10 +1,9 @@
-# actions/digital/mcp_tavily.py
+# actions/digital/MCPs.py
 import os
 import asyncio
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
 
+from core.routing.layer2.mcp_manager import mcp_manager
 
 # Load variables from your local .env file
 load_dotenv()
@@ -12,46 +11,24 @@ load_dotenv()
 
 async def fetch_tavily_search(query: str) -> str:
     """
-    Connects to Tavily's official MCP server using npx and triggers
-    a highly optimized AI web search.
+    Connects to Tavily's official MCP server and executes an AI web search
+    via the unified MCPClientManager.
     """
-    # Configure the official Tavily MCP package parameters
-    env_vars = os.environ.copy()
-    server_params = StdioServerParameters(
-        command="npx",
-        args=["-y", "tavily-mcp@latest"],
-        env=env_vars,
-        extra_spawn_args={"shell": True}
-    )
-
+    pack_id = "mcp_pack_tavily"
     try:
-        # Establish the stdio pipe connection
-        async with stdio_client(server_params) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
-                # Initialize protocol handshake
-                await session.initialize()
+        if not mcp_manager.is_server_connected(pack_id):
+            mcp_manager.connect_server_sync(pack_id)
 
-                # Execute Tavily's native web search tool
-                response = await session.call_tool(
-                    name="tavily_search",
-                    arguments={
-                        "query": query,
-                        "search_depth": "advanced",  # or "advanced"
-                        "max_results": 5
-                    }
-                )
-
-                # Extract text payloads from the server response
-                text_contents = [
-                    content.text for content in response.content
-                    if hasattr(content, 'text')
-                ]
-
-                return "\n".join(text_contents) if text_contents else "No search data returned."
-
+        return mcp_manager.call_mcp_tool_sync(
+            pack_id=pack_id,
+            tool_name="tavily_search",
+            arguments={
+                "query": query,
+                "search_depth": "advanced",
+                "max_results": 5
+            }
+        )
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         print(f"Error executing Tavily MCP Search: {e}")
         return f"I had an issue searching via Tavily MCP: {e}"
 

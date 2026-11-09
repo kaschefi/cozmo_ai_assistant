@@ -29,6 +29,7 @@ import {
   setTabActiveSessionId
 } from '../services/chatHistory';
 import ChatHistoryDrawer from './ChatHistoryDrawer';
+import McpToolsDrawer, { type McpStatusTelemetry } from './McpToolsDrawer';
 import ChatLeftRail from './ChatLeftRail';
 import { CognitiveTelemetryCard, type TelemetryData } from './CognitiveTelemetryCard';
 import { CompletedTelemetryBadge } from './CompletedTelemetryBadge';
@@ -68,6 +69,72 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
   const isSessionLoadingRef = useRef(false);
+
+  // MCP Tools Drawer State & Telemetry
+  const [isMcpToolsOpen, setIsMcpToolsOpen] = useState(false);
+  const [mcpTelemetry, setMcpTelemetry] = useState<McpStatusTelemetry | null>(null);
+  const [isMcpLoading, setIsMcpLoading] = useState(false);
+
+  const fetchMcpStatus = useCallback(async () => {
+    try {
+      setIsMcpLoading(true);
+      const res = await fetch(`${getApiBaseUrl()}/api/mcp/status`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.telemetry) {
+          setMcpTelemetry(data.telemetry);
+        }
+      }
+    } catch (e) {
+      console.warn('[MCP Telemetry] Failed to fetch status:', e);
+    } finally {
+      setIsMcpLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchMcpStatus();
+  }, [fetchMcpStatus]);
+
+  useEffect(() => {
+    if (isMcpToolsOpen) {
+      fetchMcpStatus();
+    }
+  }, [isMcpToolsOpen, fetchMcpStatus]);
+
+  const handleDisconnectMcpServer = useCallback(async (packId: string) => {
+    const res = await fetch(`${getApiBaseUrl()}/api/mcp/disconnect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ pack_id: packId })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.detail || `Failed to disconnect ${packId}`);
+    }
+    await fetchMcpStatus();
+  }, [token, fetchMcpStatus]);
+
+  const handleConnectMcpServer = useCallback(async (packId: string) => {
+    const res = await fetch(`${getApiBaseUrl()}/api/mcp/connect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ pack_id: packId })
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData?.detail || `Failed to connect ${packId}`);
+    }
+    await fetchMcpStatus();
+  }, [token, fetchMcpStatus]);
 
   const [sessionId, setSessionId] = useState<string>(() => {
     const restoreId = getSessionToRestoreOnMount();
@@ -110,6 +177,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const [isMokaTyping, setIsMokaTyping] = useState(false);
   const [isMokaThinking, setIsMokaThinking] = useState(false);
   const [pendingQueue, setPendingQueue] = useState<{ id: string; text: string; timestamp: string }[]>([]);
+
+  // Human-In-The-Loop MCP Tool Addition State
+  const [pendingInterrupt, setPendingInterrupt] = useState<{
+    interrupt_type?: string;
+    server_pack_id?: string;
+    tool_name?: string;
+    display_name?: string;
+    description?: string;
+    message?: string;
+    proposed_args?: Record<string, any>;
+  } | null>(null);
+  const [isResuming, setIsResuming] = useState(false);
 
   // Real-time Cognitive Telemetry State
   const [cognitiveTelemetry, setCognitiveTelemetry] = useState<TelemetryData>({
@@ -1233,7 +1312,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
             try {
               const data = JSON.parse(payloadStr);
 
-              if (data.type === 'status') {
+              if (data.type === 'hitl_interrupt') {
+                setIsMokaThinking(false);
+                setIsMokaTyping(false);
+                setPendingInterrupt(data.payload);
+                break;
+              } else if (data.type === 'status') {
                 if (data.tool) finalTool = data.tool;
                 setCognitiveTelemetry(prev => ({
                   ...prev,
@@ -1275,6 +1359,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       } else {
         // Fallback for non-streaming response
         const data = await response.json();
+        if (data.status === 'interrupt') {
+          setIsMokaThinking(false);
+          setIsMokaTyping(false);
+          setPendingInterrupt(data.interrupt);
+          return;
+        }
         accumulatedText = data.response !== undefined ? data.response : (data.message !== undefined ? data.message : JSON.stringify(data));
         setIsMokaThinking(false);
       }
@@ -1346,6 +1436,143 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       }
     }
   }, [token, sessionId, isMuted, isCozmoConnected, modelMode, triggerMockMokaResponse]);
+
+  const handleResolveInterrupt = async (approved: boolean) => {
+    if (!pendingInterrupt) return;
+    setIsResuming(true);
+    const currentInterrupt = pendingInterrupt;
+    setPendingInterrupt(null);
+
+    const mokaMsgId = Math.random().toString();
+    const mokaTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let accumulatedText = '';
+    let finalTool = currentInterrupt.server_pack_id || '';
+
+    if (approved) {
+      setIsMokaThinking(true);
+      setCognitiveTelemetry(prev => ({
+        ...prev,
+        stage: 'hitl_gate',
+        title: 'ACTIVATING MCP TOOL',
+        text: `Connecting ${currentInterrupt.display_name || 'tool'} and ingesting actions...`,
+        step: 2,
+      }));
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['X-Moka-Token'] = token;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/api/chat/resume/stream`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          session_id: sessionId,
+          approved,
+          provider: modelMode,
+          mute: isCozmoConnected ? false : isMuted
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed.startsWith('data: ')) continue;
+            const payloadStr = trimmed.slice(6).trim();
+            if (payloadStr === '[DONE]') continue;
+
+            try {
+              const data = JSON.parse(payloadStr);
+
+              if (data.type === 'hitl_interrupt') {
+                setIsMokaThinking(false);
+                setIsMokaTyping(false);
+                setPendingInterrupt(data.payload);
+                break;
+              } else if (data.type === 'status') {
+                if (data.tool) finalTool = data.tool;
+                setCognitiveTelemetry(prev => ({
+                  ...prev,
+                  stage: data.stage || prev.stage,
+                  title: data.title || prev.title,
+                  text: data.text || prev.text,
+                  step: data.step !== undefined ? data.step : prev.step,
+                  tool: data.tool || prev.tool,
+                }));
+              } else if (data.type === 'token' || data.token !== undefined) {
+                const tokenStr = data.token !== undefined ? data.token : '';
+                accumulatedText += tokenStr;
+                setIsMokaThinking(false);
+
+                setMessages(prev => {
+                  const exists = prev.some(m => m.id === mokaMsgId);
+                  if (!exists) {
+                    return [
+                      ...prev,
+                      {
+                        id: mokaMsgId,
+                        sender: 'moka',
+                        text: accumulatedText,
+                        timestamp: mokaTimestamp
+                      }
+                    ];
+                  }
+                  return prev.map(m => m.id === mokaMsgId ? { ...m, text: accumulatedText } : m);
+                });
+              }
+            } catch {
+              // Ignore partial JSON
+            }
+          }
+        }
+      }
+
+      // Finalize with telemetry
+      if (accumulatedText) {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === mokaMsgId
+              ? {
+                  ...msg,
+                  telemetry: {
+                    elapsedSeconds: 1.5,
+                    tool: finalTool,
+                    provider: modelMode,
+                    steps: ['Approval Gate', 'Tool Ingestion', finalTool || 'Execution', 'Synthesis']
+                  }
+                }
+              : msg
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to resume interrupted turn:", err);
+    } finally {
+      setIsResuming(false);
+      setIsMokaThinking(false);
+      setIsMokaTyping(false);
+    }
+  };
 
   // Submit handler
   const handleSendMessage = async (textToSend?: string) => {
@@ -1444,6 +1671,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         onNewChat={handleNewChat}
         onToggleHistory={() => {
           setAutoFocusSearch(false);
+          setIsMcpToolsOpen(false);
           setIsHistoryOpen(prev => !prev);
         }}
         isHistoryOpen={isHistoryOpen}
@@ -1452,6 +1680,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         isCozmoConnecting={isCozmoConnecting}
         cozmoError={cozmoError}
         onToggleCozmo={handleToggleCozmo}
+        onToggleMcpTools={() => {
+          setIsHistoryOpen(false);
+          setIsMcpToolsOpen(prev => !prev);
+        }}
+        isMcpToolsOpen={isMcpToolsOpen}
+        activeMcpCount={mcpTelemetry?.total_active_servers ?? 0}
       />
 
       {/* Cozmo Connection Error Floating Banner Toast */}
@@ -1530,6 +1764,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         isSyncingLangSmith={isSyncingLangSmith}
         syncNotice={syncNotice}
         autoFocusSearch={autoFocusSearch}
+      />
+
+      {/* Slide-out Left-side MCP Tools Drawer */}
+      <McpToolsDrawer
+        isOpen={isMcpToolsOpen}
+        onClose={() => setIsMcpToolsOpen(false)}
+        telemetry={mcpTelemetry}
+        isLoading={isMcpLoading}
+        onRefresh={fetchMcpStatus}
+        onDisconnectServer={handleDisconnectMcpServer}
+        onConnectServer={handleConnectMcpServer}
       />
 
       {/* Sticky Top Navigation Header */}
@@ -1684,6 +1929,119 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                 <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
               </div>
             ))}
+
+            {/* Human-in-the-Loop Approval Card (Capability Addition OR Mutating Tool Execution) */}
+            {pendingInterrupt && (
+              <div className="flex flex-col self-start items-start max-w-[95%] sm:max-w-[85%] w-full my-2 animate-fadeIn">
+                <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider mb-1.5 px-1 flex items-center gap-1.5 ${
+                  pendingInterrupt.interrupt_type === 'mutating_tool' ? 'text-amber-400' : 'text-indigo-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                    pendingInterrupt.interrupt_type === 'mutating_tool' ? 'bg-amber-400' : 'bg-indigo-400'
+                  }`} />
+                  {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Mutating Action Gate' : 'MoKa Capability Gate'}
+                </span>
+                <div
+                  className={`w-full p-5 rounded-2xl border text-slate-100 flex flex-col gap-3.5 shadow-2xl backdrop-blur-xl ${
+                    pendingInterrupt.interrupt_type === 'mutating_tool'
+                      ? 'border-amber-500/40'
+                      : 'border-indigo-500/40'
+                  }`}
+                  style={{
+                    background: pendingInterrupt.interrupt_type === 'mutating_tool'
+                      ? 'linear-gradient(135deg, rgba(35, 20, 10, 0.75) 0%, rgba(15, 12, 10, 0.85) 100%)'
+                      : 'linear-gradient(135deg, rgba(20, 20, 40, 0.7) 0%, rgba(10, 15, 25, 0.85) 100%)',
+                    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6)'
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        pendingInterrupt.interrupt_type === 'mutating_tool'
+                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
+                          : 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-400'
+                      }`}>
+                        {pendingInterrupt.interrupt_type === 'mutating_tool' ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                          </svg>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-white tracking-wide font-mono">
+                          {pendingInterrupt.interrupt_type === 'mutating_tool'
+                            ? `Execute: ${pendingInterrupt.tool_name || pendingInterrupt.display_name}`
+                            : (pendingInterrupt.display_name || 'External MCP Tool')}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 font-sans leading-tight">
+                          {pendingInterrupt.description || (pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Mutating operation on external resource/file' : 'Extension capability required to answer query')}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-medium ${
+                      pendingInterrupt.interrupt_type === 'mutating_tool'
+                        ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
+                        : 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300'
+                    }`}>
+                      {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Mutating Action' : 'Approval Required'}
+                    </span>
+                  </div>
+
+                  {/* Proposed Parameters Preview for Mutating Tools */}
+                  {pendingInterrupt.interrupt_type === 'mutating_tool' && pendingInterrupt.proposed_args && Object.keys(pendingInterrupt.proposed_args).length > 0 && (
+                    <div className="rounded-xl bg-black/50 border border-white/[0.08] p-3 text-xs font-mono space-y-1">
+                      <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
+                        Proposed Parameters
+                      </div>
+                      <pre className="text-emerald-300 text-[11px] overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-36">
+                        {JSON.stringify(pendingInterrupt.proposed_args, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
+                  <p className="text-sm text-slate-200 leading-relaxed font-sans border-t border-white/[0.08] pt-2.5">
+                    {pendingInterrupt.message || 'MoKa needs permission to proceed with this request.'}
+                  </p>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-1">
+                    <button
+                      onClick={() => handleResolveInterrupt(false)}
+                      disabled={isResuming}
+                      className="px-3.5 py-1.5 rounded-xl border border-white/[0.1] hover:border-white/[0.2] bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white transition-all text-xs font-medium cursor-pointer"
+                    >
+                      {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Decline Action' : 'Cancel'}
+                    </button>
+                    <button
+                      onClick={() => handleResolveInterrupt(true)}
+                      disabled={isResuming}
+                      className={`px-4 py-1.5 rounded-xl font-semibold text-xs font-mono tracking-wide transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50 ${
+                        pendingInterrupt.interrupt_type === 'mutating_tool'
+                          ? 'bg-amber-400 hover:bg-amber-300 text-black shadow-[0_0_16px_rgba(245,158,11,0.35)]'
+                          : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-[0_0_15px_rgba(52,211,153,0.35)]'
+                      }`}
+                    >
+                      {isResuming ? (
+                        <>
+                          <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          Executing...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Approve & Execute' : 'Add Tool & Continue'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Thinking indicator bubble with cognitive telemetry (only shown during routing/thinking phase before text tokens) */}
             {isMokaThinking && (

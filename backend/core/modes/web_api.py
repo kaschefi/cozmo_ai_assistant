@@ -1,4 +1,5 @@
 import os
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
 import sys
 
 # Ensure both workspace root and backend directory are in the Python search path
@@ -22,9 +23,16 @@ import uvicorn
 
 # Import request models and unified brain router
 from pydantic import BaseModel
-from schemas.request_models import ChatRequest
+from schemas.request_models import ChatRequest, ResumeChatRequest, MCPRegisterRequest, MCPDisconnectRequest, MCPConnectRequest
 from schemas.chat_history_db import chat_history_db
-from core.routing.brain import process_user_intent
+from core.routing.brain import (
+    process_user_intent,
+    stream_user_intent,
+    resume_user_intent,
+    stream_resume_user_intent
+)
+from core.routing.layer2.mcp_manager import mcp_manager
+from core.routing.layer2.tool_vector_db import tool_rag_registry
 
 
 async def _background_warmup():
@@ -326,18 +334,27 @@ async def chat_endpoint(req: ChatRequest):
             provider=active_provider
         )
 
-        # 3. Persist AI response to database
+        # 3. Check if cognitive router paused on a Human-In-The-Loop interrupt
+        if isinstance(response_text, dict) and response_text.get("__interrupt__"):
+            return {
+                "status": "interrupt",
+                "interrupt": response_text.get("payload", {}),
+                "session_id": req.session_id,
+                "provider": active_provider
+            }
+
+        # 4. Persist AI response to database
         if response_text:
             chat_history_db.add_message(
                 session_id=req.session_id,
                 sender="moka",
-                text=response_text,
+                text=str(response_text),
                 model_mode=active_provider
             )
 
         if not req.mute and response_text:
             from actions.physical.speak import respond
-            asyncio.create_task(respond(response_text, mute=False))
+            asyncio.create_task(respond(str(response_text), mute=False))
 
         return {
             "status": "success",
@@ -402,6 +419,198 @@ async def chat_stream_endpoint(req: ChatRequest):
         stream_and_record(),
         media_type="text/event-stream"
     )
+
+
+@app.post("/api/chat/resume", dependencies=[Depends(verify_moka_token)])
+async def chat_resume_endpoint(req: ResumeChatRequest):
+    """
+    Resumes an interrupted LangGraph session with the user's approval response.
+    """
+    try:
+        active_provider = (req.provider or _CURRENT_MODEL_MODE).lower().strip()
+        resume_payload = {
+            "approved": req.approved,
+            "modified_args": req.modified_args
+        }
+
+        result = await resume_user_intent(
+            resume_value=resume_payload,
+            session_id=req.session_id,
+            mute=req.mute
+        )
+
+        if isinstance(result, dict) and result.get("__interrupt__"):
+            return {
+                "status": "interrupt",
+                "interrupt": result.get("payload", {}),
+                "session_id": req.session_id,
+                "provider": active_provider
+            }
+
+        # Persist resumed AI response to database
+        if result:
+            chat_history_db.add_message(
+                session_id=req.session_id,
+                sender="moka",
+                text=str(result),
+                model_mode=active_provider
+            )
+
+        return {
+            "status": "success",
+            "response": result,
+            "provider": active_provider
+        }
+    except Exception as e:
+        print(f"[Web API Error] Failed to resume chat: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while resuming the cognitive layer: {str(e)}"
+        )
+
+
+@app.post("/api/chat/resume/stream", dependencies=[Depends(verify_moka_token)])
+async def chat_resume_stream_endpoint(req: ResumeChatRequest):
+    """
+    Resumes an interrupted LangGraph session and streams completion tokens via SSE.
+    """
+    active_provider = (req.provider or _CURRENT_MODEL_MODE).lower().strip()
+    resume_payload = {
+        "approved": req.approved,
+        "modified_args": req.modified_args
+    }
+
+    async def stream_and_record():
+        accumulated_chunks = []
+        async for chunk in stream_resume_user_intent(
+            resume_value=resume_payload,
+            session_id=req.session_id,
+            mute=req.mute,
+            provider=active_provider
+        ):
+            if chunk.startswith("data: ") and not chunk.startswith("data: [DONE]"):
+                try:
+                    payload = json.loads(chunk[6:].strip())
+                    if "token" in payload:
+                        accumulated_chunks.append(payload["token"])
+                except Exception:
+                    pass
+            yield chunk
+
+        full_reply = "".join(accumulated_chunks).strip()
+        if full_reply:
+            chat_history_db.add_message(
+                session_id=req.session_id,
+                sender="moka",
+                text=full_reply,
+                model_mode=active_provider
+            )
+
+    return StreamingResponse(
+        stream_and_record(),
+        media_type="text/event-stream"
+    )
+
+
+@app.get("/api/mcp/status", dependencies=[Depends(verify_moka_token)])
+async def get_mcp_status_endpoint():
+    """
+    Returns telemetry for active MCP servers, registered dormant stubs, and total tools.
+    """
+    return {
+        "status": "success",
+        "telemetry": mcp_manager.get_status()
+    }
+
+
+@app.post("/api/mcp/register", dependencies=[Depends(verify_moka_token)])
+async def register_mcp_server_endpoint(req: MCPRegisterRequest):
+    """
+    Hot-registers a new external MCP server configuration into the live manifest and FAISS index.
+    """
+    try:
+        catalog_path = mcp_manager._catalog_path
+        catalog_data = {"catalog_version": "1.0.0", "servers": {}}
+        if os.path.exists(catalog_path):
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                catalog_data = json.load(f)
+
+        servers = catalog_data.setdefault("servers", {})
+        servers[req.pack_id] = {
+            "pack_id": req.pack_id,
+            "display_name": req.display_name,
+            "description": req.description,
+            "transport": "stdio",
+            "command": req.command,
+            "args": req.args,
+            "env_vars": req.env_vars,
+            "default_destructive_tools": req.default_destructive_tools,
+            "destructive_regex": req.destructive_regex or "^(create_|delete_|update_|write_)"
+        }
+
+        with open(catalog_path, "w", encoding="utf-8") as f:
+            json.dump(catalog_data, f, indent=2)
+
+        # Register dormant stub into active vector registry
+        tool_rag_registry.register_tool_schema(
+            name=req.pack_id,
+            description=req.description,
+            source_type="mcp_dormant",
+            server_pack_id=req.pack_id,
+            input_schema={},
+            is_mutating=False
+        )
+        tool_rag_registry.build_index()
+
+        return {
+            "status": "success",
+            "message": f"MCP server '{req.display_name}' registered successfully as dormant capability.",
+            "pack_id": req.pack_id
+        }
+    except Exception as e:
+        print(f"[Web API Error] Failed to register MCP server: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/mcp/disconnect", dependencies=[Depends(verify_moka_token)])
+async def disconnect_mcp_server_endpoint(req: MCPDisconnectRequest):
+    """
+    Disconnects an active MCP server process, terminates its stdio session,
+    removes its tools from the FAISS vector index, and re-instates the dormant stub.
+    """
+    try:
+        success = mcp_manager.disconnect_server_sync(req.pack_id)
+        if not success:
+            return {
+                "status": "not_found",
+                "message": f"Server '{req.pack_id}' was not actively connected."
+            }
+        return {
+            "status": "success",
+            "message": f"MCP server '{req.pack_id}' disconnected successfully and its tools were retired.",
+            "pack_id": req.pack_id
+        }
+    except Exception as e:
+        print(f"[Web API Error] Failed to disconnect MCP server: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/mcp/connect", dependencies=[Depends(verify_moka_token)])
+async def connect_mcp_server_endpoint(req: MCPConnectRequest):
+    """
+    Manually activates and connects an MCP server from the catalog.
+    """
+    try:
+        res = mcp_manager.connect_server_sync(req.pack_id)
+        return {
+            "status": "success",
+            "message": f"MCP server '{req.pack_id}' connected successfully.",
+            "data": res
+        }
+    except Exception as e:
+        print(f"[Web API Error] Failed to connect MCP server: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/mute", dependencies=[Depends(verify_moka_token)])
 async def mute_endpoint():

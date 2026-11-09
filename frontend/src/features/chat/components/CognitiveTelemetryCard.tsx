@@ -2,13 +2,15 @@ import React from 'react';
 import { ThinkingOrb, type OrbState } from 'thinking-orbs';
 
 export interface TelemetryData {
-  stage: 'intent' | 'reflex' | 'memory' | 'memory_done' | 'tools_rag' | 'tools_matched' | 'routed' | 'executing' | 'synthesizing' | 'idle';
+  stage: 'intent' | 'reflex' | 'memory' | 'memory_done' | 'tools_rag' | 'tools_matched' | 'mcp_discovery' | 'hitl_gate' | 'routed' | 'executing' | 'synthesizing' | 'idle';
   title: string;
   text: string;
   step: number; // 1: Memory & Context, 2: Intent & Routing, 3: Action / Tool Execution, 4: Synthesis
   tool?: string;
   provider?: string;
   elapsedSeconds: number;
+  totalTools?: number;
+  activeMcps?: number;
 }
 
 interface CognitiveTelemetryCardProps {
@@ -23,13 +25,15 @@ export const CognitiveTelemetryCard: React.FC<CognitiveTelemetryCardProps> = ({ 
       case 'memory_done':
       case 'tools_rag':
       case 'tools_matched':
+      case 'mcp_discovery':
         return 'searching';
-      case 'intent':
-      case 'routed':
-        return 'solving';
+      case 'hitl_gate':
       case 'executing':
       case 'reflex':
         return 'connecting';
+      case 'intent':
+      case 'routed':
+        return 'solving';
       case 'synthesizing':
         return 'composing';
       default:
@@ -46,6 +50,11 @@ export const CognitiveTelemetryCard: React.FC<CognitiveTelemetryCardProps> = ({ 
     if (tool.includes('todo')) return 'To-Do List Agent';
     if (tool.includes('date')) return 'System Clock';
     if (tool.includes('joke')) return 'Reflex Engine';
+    if (tool.includes('github')) return 'GitHub MCP';
+    if (tool.includes('postgres')) return 'Postgres MCP';
+    if (tool.includes('sqlite')) return 'SQLite MCP';
+    if (tool.includes('filesystem')) return 'Filesystem MCP';
+    if (tool.includes('tavily')) return 'Tavily Search MCP';
     return tool.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 

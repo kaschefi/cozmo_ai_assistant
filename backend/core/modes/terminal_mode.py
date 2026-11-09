@@ -139,19 +139,45 @@ async def terminal_chat():
 
         # Check layer 1 for animation decision
         layer_1_route = check_layer_1(command)
+        res = None
         if layer_1_route:
-            await process_user_intent(command, session_id=session_thread_id)
+            res = await process_user_intent(command, session_id=session_thread_id)
         else:
             done_event = threading.Event()
             # run the animation in a separate thread
             loading_thread = threading.Thread(target=animate_loading, args=(done_event,))
             loading_thread.start()
             try:
-                await process_user_intent(command, session_id=session_thread_id)
+                res = await process_user_intent(command, session_id=session_thread_id)
             finally:
                 done_event.set()
                 if loading_thread.is_alive():
                     loading_thread.join()
+
+        # Handle Human-in-the-Loop interrupt if tool addition was requested
+        if isinstance(res, dict) and res.get("__interrupt__"):
+            from core.routing.brain import resume_user_intent
+            interrupt_payload = res.get("payload", {})
+            display_name = interrupt_payload.get("display_name", "New Tool")
+            prompt_message = interrupt_payload.get("message", f"Allow MoKa to add '{display_name}'?")
+            print(f"\n{BLUE}[HUMAN-IN-THE-LOOP APPROVAL REQUIRED]{RESET}")
+            print(f"{prompt_message}")
+            decision_raw = input(f"{GREEN}Approve adding tool? (y/n): {RESET}").strip().lower()
+            approved = decision_raw in ("y", "yes", "1")
+
+            resume_done = threading.Event()
+            resume_loader = threading.Thread(target=animate_loading, args=(resume_done,))
+            resume_loader.start()
+            try:
+                final_res = await resume_user_intent({"approved": approved}, session_id=session_thread_id)
+                if isinstance(final_res, str):
+                    print(f"\n{final_res}")
+            finally:
+                resume_done.set()
+                if resume_loader.is_alive():
+                    resume_loader.join()
+        elif isinstance(res, str) and res:
+            print(f"\n{res}")
 
         print(f"{GRAY}---------------------------------------{RESET}\n")
 

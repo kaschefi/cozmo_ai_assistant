@@ -1,4 +1,6 @@
 # backend/core/routing/encoder.py
+import os
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
 import threading
 from semantic_router.encoders import FastEmbedEncoder
 

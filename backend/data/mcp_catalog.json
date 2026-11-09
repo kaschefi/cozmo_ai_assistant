@@ -1,0 +1,72 @@
+{
+  "catalog_version": "1.0.0",
+  "servers": {
+    "mcp_pack_github": {
+      "pack_id": "mcp_pack_github",
+      "display_name": "GitHub Integration",
+      "description": "Manage GitHub repositories, pull requests, issues, commit history, branch exploration, and code reviews.",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env_vars": ["GITHUB_PERSONAL_ACCESS_TOKEN"],
+      "default_destructive_tools": [
+        "create_issue",
+        "create_pull_request",
+        "update_issue",
+        "push_files",
+        "fork_repository"
+      ],
+      "destructive_regex": "^(create_|delete_|update_|write_|push_|fork_)"
+    },
+    "mcp_pack_postgres": {
+      "pack_id": "mcp_pack_postgres",
+      "display_name": "PostgreSQL Database Engine",
+      "description": "Query database schemas, inspect tables, run analytical read queries, or execute database updates on Postgres.",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env_vars": ["DATABASE_URL"],
+      "default_destructive_tools": ["execute_query"],
+      "destructive_regex": "(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)"
+    },
+    "mcp_pack_filesystem": {
+      "pack_id": "mcp_pack_filesystem",
+      "display_name": "Project Workspace Filesystem",
+      "description": "Read, search, inspect files, logs, documents, and code strictly inside MoKa's project folder (moka_ai_assistant). Does not access external folders on the system.",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+      "env_vars": [],
+      "default_destructive_tools": [
+        "write_file",
+        "edit_file",
+        "delete_file",
+        "move_file"
+      ],
+      "destructive_regex": "^(write_|edit_|delete_|move_|create_)"
+    },
+    "mcp_pack_sqlite": {
+      "pack_id": "mcp_pack_sqlite",
+      "display_name": "SQLite Database Inspector",
+      "description": "Inspect and query local SQLite database tables, run queries, and verify relational state records.",
+      "transport": "stdio",
+      "command": "uvx",
+      "args": ["mcp-server-sqlite", "--db-path", "backend/data/chat_history.db"],
+      "env_vars": [],
+      "default_destructive_tools": ["execute_query"],
+      "destructive_regex": "(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|TRUNCATE)"
+    },
+    "mcp_pack_tavily": {
+      "pack_id": "mcp_pack_tavily",
+      "display_name": "Tavily Real-Time Web Search",
+      "description": "Search current news, deep research, stock prices, live documentation, and real-time facts on the web.",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "tavily-mcp@latest"],
+      "env_vars": ["TAVILY_API_KEY"],
+      "default_destructive_tools": [],
+      "destructive_regex": "^$"
+    }
+  }
+}
+

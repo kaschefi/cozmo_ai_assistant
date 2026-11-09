@@ -11,6 +11,9 @@ interface ChatLeftRailProps {
   isCozmoConnecting?: boolean;
   cozmoError?: string | null;
   onToggleCozmo?: () => void;
+  onToggleMcpTools?: () => void;
+  isMcpToolsOpen?: boolean;
+  activeMcpCount?: number;
 }
 
 export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
@@ -22,9 +25,13 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
   isCozmoConnecting = false,
   cozmoError = null,
   onToggleCozmo,
+  onToggleMcpTools,
+  isMcpToolsOpen = false,
+  activeMcpCount = 0,
 }) => {
   const rootRef = useRef<HTMLElement>(null);
   const [justClickedNewChat, setJustClickedNewChat] = useState(false);
+  const isDrawerOpen = isHistoryOpen || isMcpToolsOpen;
 
   useEffect(() => {
     const root = rootRef.current;
@@ -45,13 +52,13 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
       id="chat-left-rail"
       aria-label="Chat quick tools"
       className={`fixed top-20 md:top-24 bottom-0 left-0 w-14 sm:w-16 z-30 flex flex-col items-start py-4 pl-2 sm:pl-3 bg-transparent border-none pointer-events-none transition-all duration-300 ease-out overflow-visible ${
-        isHistoryOpen ? 'opacity-0 -translate-x-12 pointer-events-none' : 'opacity-100 translate-x-0'
+        isDrawerOpen ? 'opacity-0 -translate-x-12 pointer-events-none' : 'opacity-100 translate-x-0'
       }`}
     >
       <nav
         ref={rootRef}
         className={`animated-vertical-dock__nav overflow-visible transition-all duration-200 ${
-          isHistoryOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
+          isDrawerOpen ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100'
         }`}
         aria-label="Vertical navigation dock"
         data-dock-state="idle"
@@ -181,6 +188,61 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
           <span className="animated-vertical-dock__label" data-dock-label>
             <span className={cozmoError && !isCozmoConnected && !isCozmoConnecting ? 'text-rose-400 font-semibold tracking-wider' : ''}>
               {isCozmoConnected ? 'COZMO ON' : isCozmoConnecting ? 'CONNECTING...' : cozmoError ? 'RETRY COZMO' : 'COZMO'}
+            </span>
+          </span>
+        </button>
+
+        {/* Item 4: MCP Tools */}
+        <button
+          id="rail-mcp-tools-toggle-btn"
+          className={`animated-vertical-dock__item !px-1.5 transition-all duration-300 ${
+            isMcpToolsOpen
+              ? '!border-indigo-500/70 !text-indigo-400 !bg-[#101018] shadow-[0_0_18px_rgba(99,102,241,0.3)]'
+              : activeMcpCount > 0
+              ? '!border-emerald-500/50 !text-emerald-400 !bg-[#0d1411]'
+              : ''
+          }`}
+          data-dock-item
+          type="button"
+          aria-pressed={isMcpToolsOpen}
+          onClick={onToggleMcpTools}
+          title={
+            activeMcpCount > 0
+              ? `MCP Tools (${activeMcpCount} active) - View and manage tools`
+              : 'MCP Tools - View added tools & capabilities'
+          }
+          aria-label="MCP Tools"
+        >
+          <span className="animated-vertical-dock__icon !w-[26px] !h-[26px] relative flex items-center justify-center shrink-0" aria-hidden="true">
+            <svg
+              className={`w-[20px] h-[20px] transition-all duration-300 ${
+                isMcpToolsOpen
+                  ? 'text-indigo-400 scale-110 drop-shadow-[0_0_8px_rgba(129,140,248,0.8)]'
+                  : activeMcpCount > 0
+                  ? 'text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]'
+                  : 'text-slate-400 group-hover:text-white'
+              }`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+            >
+              <rect x="3" y="4" width="18" height="6" rx="2" strokeWidth={1.8} />
+              <rect x="3" y="14" width="18" height="6" rx="2" strokeWidth={1.8} />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 17h.01M17 7h.01M17 17h.01" strokeWidth={2.5} />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v4" strokeWidth={1.8} />
+            </svg>
+
+            {/* Glowing active tools count badge */}
+            {activeMcpCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-emerald-400 ring-2 ring-emerald-950 shadow-[0_0_8px_rgba(52,211,153,1)] flex items-center justify-center text-[9px] font-bold text-black leading-none font-mono">
+                {activeMcpCount}
+              </span>
+            )}
+          </span>
+          <span className="animated-vertical-dock__label" data-dock-label>
+            <span className={activeMcpCount > 0 ? 'text-emerald-400 font-semibold tracking-wider' : ''}>
+              {activeMcpCount > 0 ? `MCP TOOLS (${activeMcpCount})` : 'MCP TOOLS'}
             </span>
           </span>
         </button>

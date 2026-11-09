@@ -13,6 +13,7 @@ BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEM0_DIR = os.path.join(BACKEND_DIR, "data", ".mem0")
 os.environ["MEM0_DIR"] = MEM0_DIR
 os.environ["MEM0_TELEMETRY"] = "false"
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
 os.makedirs(MEM0_DIR, exist_ok=True)
 
 from mem0 import Memory

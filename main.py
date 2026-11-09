@@ -1,4 +1,5 @@
 import os
+os.environ["LITELLM_LOCAL_MODEL_COST_MAP"] = "True"
 import sys
 import uvicorn
 # Ensure backend directory is in the Python search path

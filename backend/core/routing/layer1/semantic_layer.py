@@ -54,6 +54,7 @@ def initialize_router():
 
     # Build Layer 2 Tool RAG index exactly once after all actions are registered
     from core.routing.layer2.tool_vector_db import tool_rag_registry
+    tool_rag_registry.load_dormant_catalog()
     tool_rag_registry.build_index()
 
 async def execute_reflex(route_name: str, mute: bool = False) -> tuple[bool, str]:

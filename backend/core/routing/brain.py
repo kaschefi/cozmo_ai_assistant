@@ -1,6 +1,7 @@
 import time
 from datetime import datetime
 import asyncio
+from typing import Any, Dict, Optional
 
 async def process_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False, provider: str = "local") -> str:
     """
@@ -50,6 +51,12 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
     print(f" [Union Brain] Tier 2 Triggered (LangGraph Router) for: '{command_clean}'")
     try:
         final_answer = await asyncio.to_thread(run_cozmo_agent, command_clean, session_id, provider)
+        if isinstance(final_answer, dict) and final_answer.get("__interrupt__"):
+            prompt_msg = final_answer.get("payload", {}).get("message", "Permission required.")
+            if not mute:
+                await respond(prompt_msg, mute=mute)
+            return final_answer
+
         await respond(final_answer, mute=mute)
         return final_answer
     except Exception as e:
@@ -174,6 +181,9 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'CHAT ROUTE', 'text': 'Direct conversational synthesis selected', 'step': 2, 'tool': 'none'})}\n\n"
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'synthesizing', 'title': 'RESPONSE SYNTHESIS', 'text': 'Formulating natural response...', 'step': 3})}\n\n"
 
+                        elif node_name == "mcp_discovery_node":
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'mcp_discovery', 'title': 'CAPABILITY DISCOVERY', 'text': 'Evaluating external MCP tool requirements...', 'step': 2})}\n\n"
+
                         elif node_name in ("execute_tool_node", "weather_node", "calendar_node", "web_search_node", "todolist_node", "code_executor_node"):
                             yield f"data: {json.dumps({'type': 'status', 'stage': 'tool_complete', 'title': 'TOOL FINISHED', 'text': 'Tool execution complete, preparing answer...', 'step': 3})}\n\n"
 
@@ -201,6 +211,16 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
         err_msg = f"Oops! I encountered an error: {e}"
         yield f"data: {json.dumps({'type': 'token', 'token': err_msg})}\n\n"
 
+    # Check if the graph paused on a Human-in-the-Loop interrupt
+    state_snapshot = cozmo_graph.get_state(config)
+    if state_snapshot.next:
+        for task in state_snapshot.tasks:
+            if getattr(task, "interrupts", None):
+                interrupt_val = task.interrupts[0].value
+                yield f"data: {json.dumps({'type': 'hitl_interrupt', 'stage': 'hitl_gate', 'payload': interrupt_val})}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+
     full_response = "".join(accumulated)
     if full_response and not mute:
         try:
@@ -209,3 +229,107 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
             print(f"[Brain Stream Speech Error]: {e}")
 
     yield "data: [DONE]\n\n"
+
+
+async def resume_user_intent(resume_value: Any, session_id: str = "cozmo_default_session", mute: bool = False) -> Any:
+    """
+    Resumes an interrupted LangGraph execution with the user's HITL response.
+    """
+    from core.routing.layer2.router import resume_cozmo_agent
+    from actions.physical.speak import respond
+
+    result = await asyncio.to_thread(resume_cozmo_agent, resume_value, session_id)
+    if isinstance(result, dict) and result.get("__interrupt__"):
+        prompt_msg = result.get("payload", {}).get("message", "Permission required.")
+        if not mute:
+            await respond(prompt_msg, mute=mute)
+        return result
+
+    if isinstance(result, str) and result and not mute:
+        await respond(result, mute=mute)
+    return result
+
+
+async def stream_resume_user_intent(resume_value: Any, session_id: str = "cozmo_default_session", mute: bool = False, provider: str = "local"):
+    """
+    Streaming generator that resumes an interrupted graph and pushes SSE tokens to completion.
+    """
+    import json
+    from core.routing.layer2.router import cozmo_graph
+    from actions.physical.speak import respond
+    from langgraph.types import Command
+
+    config = {
+        "configurable": {"thread_id": session_id},
+        "metadata": {
+            "session_id": session_id,
+            "application_mode": "Terminal" if session_id.startswith("terminal") else "Physical_Cozmo"
+        }
+    }
+
+    loop = asyncio.get_running_loop()
+    sentinel = object()
+    accumulated = []
+
+    def get_stream_iterator():
+        return cozmo_graph.stream(Command(resume=resume_value), config=config, stream_mode=["messages", "updates"])
+
+    def safe_next(it):
+        return next(it, sentinel)
+
+    try:
+        iterator = iter(get_stream_iterator())
+        while True:
+            item = await loop.run_in_executor(None, safe_next, iterator)
+            if item is sentinel:
+                break
+
+            if isinstance(item, tuple) and len(item) == 2:
+                stream_type, payload = item
+                if stream_type == "updates" and isinstance(payload, dict):
+                    for node_name, node_data in payload.items():
+                        if node_name == "tool_retrieval_node":
+                            tools = node_data.get("active_tools", [])
+                            tool_names = [t.get("name", "") for t in tools if isinstance(t, dict)]
+                            txt = f"Re-evaluating with added tools: {', '.join(tool_names)}"
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'CAPABILITY ACTIVE', 'text': txt, 'step': 2, 'tools': tool_names})}\n\n"
+                        elif node_name == "route_query":
+                            route = node_data.get("next_route", "none")
+                            friendly = route.replace("_node", "").replace("_agent", "").replace("_", " ").title()
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'DISPATCHING', 'text': f'Executing {friendly}...', 'step': 3, 'tool': route})}\n\n"
+                        elif node_name == "execute_tool_node":
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'tool_complete', 'title': 'TOOL FINISHED', 'text': 'Tool execution complete, formulating final answer...', 'step': 3})}\n\n"
+
+                elif stream_type == "messages":
+                    chunk, meta = payload
+                    if hasattr(chunk, "content") and chunk.content:
+                        node_name = meta.get("langgraph_node", "") if isinstance(meta, dict) else ""
+                        is_chunk = type(chunk).__name__ == "AIMessageChunk"
+                        is_node_msg = type(chunk).__name__ == "AIMessage" and node_name in ("execute_tool_node", "weather_node", "web_search_node", "calendar_node", "code_executor_node", "todolist_node")
+                        if (is_chunk and node_name in ("chat_node", "weather_node")) or is_node_msg:
+                            token_str = str(chunk.content)
+                            accumulated.append(token_str)
+                            yield f"data: {json.dumps({'type': 'token', 'token': token_str})}\n\n"
+
+    except Exception as e:
+        yield f"data: {json.dumps({'type': 'token', 'token': f'Error during resume: {e}'})}\n\n"
+
+    # Check if another interrupt occurred
+    state_snapshot = cozmo_graph.get_state(config)
+    if state_snapshot.next:
+        for task in state_snapshot.tasks:
+            if getattr(task, "interrupts", None):
+                interrupt_val = task.interrupts[0].value
+                yield f"data: {json.dumps({'type': 'hitl_interrupt', 'stage': 'hitl_gate', 'payload': interrupt_val})}\n\n"
+                yield "data: [DONE]\n\n"
+                return
+
+    full_response = "".join(accumulated)
+    if full_response and not mute:
+        try:
+            await respond(full_response, mute=mute)
+        except Exception:
+            pass
+
+    yield "data: [DONE]\n\n"
+

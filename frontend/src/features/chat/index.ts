@@ -5,4 +5,5 @@ export * from './components/ChatLeftRail';
 export * from './components/CognitiveTelemetryCard';
 export * from './components/CompletedTelemetryBadge';
 export * from './components/VoiceWaveform';
+export * from './components/McpToolsDrawer';
 export * from './services/chatHistory';
