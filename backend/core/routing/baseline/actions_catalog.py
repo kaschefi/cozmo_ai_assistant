@@ -67,8 +67,8 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     },
     "setup_coding": {
         "category": "digital_setup",
-        "description": "Prepares the development workspace by opening browser tabs for GitHub and launching PyCharm IDE. Use when the user wants to code, activate coding mode, or prepare for programming.",
-        "examples": ["set it for coding", "set my laptop for coding", "coding mode", "time to code", "prepare for coding", "setups code"],
+        "description": "Workstation IDE launcher: Launches PyCharm IDE and opens browser tabs for GitHub and developer resources. Use ONLY when the user explicitly asks to start coding mode, open PyCharm, prepare programming workstation, or launch the coding environment.",
+        "examples": ["set it for coding", "set my laptop for coding", "coding mode", "time to code", "prepare for coding", "setups code", "open pycharm", "launch coding setup"],
     },
 
     # -------------------------------------------------------------------------

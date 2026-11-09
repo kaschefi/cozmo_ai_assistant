@@ -60,6 +60,29 @@ def is_conversational_query(text: str) -> bool:
     return False
 
 
+def is_file_operation_query(text: str) -> bool:
+    """
+    Detects whether user input is requesting file or directory manipulation
+    (e.g. creating, making, writing, editing, modifying, reading, viewing, deleting files or directories).
+    Used to strictly prevent workstation IDE launchers (setup_coding) from intercepting file operations.
+    """
+    if not text:
+        return False
+    t = text.lower()
+    # Check for file extension with common file manipulation verbs
+    ext_pattern = r'\b(?:make|create|write|edit|modify|update|delete|remove|read|view|touch|append|show|inspect)\b.*?\b[\w\-_\.]+\.(?:md|py|txt|json|csv|js|ts|html|css|yaml|yml|xml|log|sh|bat)\b'
+    if re.search(ext_pattern, t):
+        return True
+    # Check for file / document / script noun with action verbs (accommodates typos like 'fille')
+    file_noun_pattern = r'\b(?:make|create|write|edit|modify|update|delete|remove|read|view|touch|append|inspect|list)\b.*?\b(?:fi+l+e*s?|document|script|directory|folder)\b'
+    if re.search(file_noun_pattern, t):
+        return True
+    # Check for 'file called/named ...'
+    if re.search(r'\bfi+l+e*s?\s+(?:called|named)\b', t):
+        return True
+    return False
+
+
 def tool_retrieval_node(state: AgentState):
     """
     RAG LAYER STEP 1: Programmatically query our tool database vector space
@@ -81,6 +104,31 @@ def tool_retrieval_node(state: AgentState):
 
     # Pull top 5 most matching tools to keep the prompt absolutely razor sharp
     matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=5)
+
+    # If the user is asking for a file operation, guarantee that filesystem tools or dormant pack are present
+    if is_file_operation_query(last_message):
+        has_fs = any(
+            t.get("name") == "mcp_pack_filesystem" or t.get("server_pack_id") == "mcp_pack_filesystem"
+            for t in matched_tools
+        )
+        if not has_fs:
+            fs_doc = next(
+                (d for d in tool_rag_registry._tools_source if d.metadata.get("tool_name") == "mcp_pack_filesystem" or d.metadata.get("server_pack_id") == "mcp_pack_filesystem"),
+                None
+            )
+            if fs_doc:
+                name = fs_doc.metadata["tool_name"]
+                matched_tools.insert(0, {
+                    "name": name,
+                    "description": fs_doc.page_content,
+                    "score": 0.5,
+                    "source_type": fs_doc.metadata.get("source_type", "mcp_dormant"),
+                    "server_pack_id": fs_doc.metadata.get("server_pack_id", "mcp_pack_filesystem"),
+                    "input_schema": fs_doc.metadata.get("input_schema", {}),
+                    "is_mutating": fs_doc.metadata.get("is_mutating", False)
+                })
+                matched_tools = matched_tools[:5]
+
     return {"active_tools": matched_tools}
 
 
@@ -206,6 +254,12 @@ def route_query(state: AgentState):
     if is_conversational_query(last_message) or not active_tools:
         return {"next_route": "none"}
 
+    # Strict rule: If user query is a file operation request, remove setup_coding from options
+    if is_file_operation_query(last_message):
+        active_tools = [t for t in active_tools if t.get("name") != "setup_coding"]
+        if not active_tools:
+            return {"next_route": "mcp_pack_filesystem"}
+
     # Formulate typed choice criteria dictionary from Top-K RAG selection
     tools_dict = {tool["name"]: tool["description"] for tool in active_tools}
     tools_dict["none"] = "Core conversational channel. Select for casual chat, greetings, personal facts, or general discussion."
@@ -231,6 +285,15 @@ def route_query(state: AgentState):
     except Exception as e:
         print(f"[route_query Error] Laya prediction failed: {e}. Falling back to 'none'.")
         selected_route = "none"
+
+    # Strict Guard: If setup_coding was selected despite a file operation intent, redirect to filesystem
+    if selected_route == "setup_coding" and is_file_operation_query(last_message):
+        print(f"[route_query Guard] Blocked setup_coding for file operation query: '{last_message}'. Redirecting to filesystem.")
+        fs_tool = next(
+            (t["name"] for t in active_tools if t.get("name") != "setup_coding" and ("file" in t["name"] or t.get("server_pack_id") == "mcp_pack_filesystem")),
+            "mcp_pack_filesystem"
+        )
+        selected_route = fs_tool
 
     return {"next_route": selected_route}
 

@@ -32,7 +32,7 @@
     "mcp_pack_filesystem": {
       "pack_id": "mcp_pack_filesystem",
       "display_name": "Project Workspace Filesystem",
-      "description": "Read, search, inspect files, logs, documents, and code strictly inside MoKa's project folder (moka_ai_assistant). Does not access external folders on the system.",
+      "description": "File operations inside MoKa's project workspace: create new file, make file, write file, edit file, delete file, list files, search files, read file contents, and inspect files (e.g., .md, .py, .txt, .json). Strictly scoped to MoKa's project folder.",
       "transport": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],

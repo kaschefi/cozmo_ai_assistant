@@ -22,8 +22,8 @@ DESKTOP_BASE_TOOLS: Dict[str, str] = {
         "Use when user says they want to study, activate study mode, or prepare for university homework and coursework."
     ),
     "setup_coding": (
-        "Prepares the development workspace by opening GitHub and launching PyCharm IDE. "
-        "Use when user wants to code, activate coding mode, or prepare for programming."
+        "Workstation IDE launcher: Launches PyCharm IDE and opens browser tabs for GitHub and coding resources. "
+        "Use ONLY when user explicitly asks to start coding mode, open PyCharm, prepare workstation for coding, or launch programming environment."
     ),
     # System Utilities
     "tell_time": (

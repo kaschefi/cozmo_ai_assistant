@@ -16,7 +16,7 @@ tool_rag_registry.register_tool_schema(
 )
 tool_rag_registry.register_tool_schema(
     name="setup_coding",
-    description="Prepares the developer workspace, launching PyCharm IDE, GitHub, and coding resources for writing code or software programming."
+    description="Workstation IDE launcher: Launches PyCharm IDE and opens browser tabs for GitHub and coding resources. Use ONLY when the user explicitly asks to start coding mode, prepare workstation for coding, open PyCharm, or launch the programming environment."
 )
 
 @reflex_registry.reflex(

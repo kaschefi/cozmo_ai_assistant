@@ -365,6 +365,95 @@ def test_mutating_mcp_tool_hitl():
             assert "delete_file" in executed_tools
 
 
+def test_file_operation_vs_setup_coding_routing():
+    """
+    Verifies that:
+    1. is_file_operation_query accurately distinguishes file manipulation from IDE/workstation setup.
+    2. tool_retrieval_node guarantees mcp_pack_filesystem is present for file queries.
+    3. route_query excludes setup_coding on file operations and prevents mistaken IDE launches.
+    4. setup_coding_node safety guard aborts with explanation if invoked on file queries.
+    """
+    from core.routing.layer2.graph_nodes import (
+        is_file_operation_query,
+        tool_retrieval_node,
+        route_query
+    )
+    from core.routing.layer2.worker_nodes import setup_coding_node
+    from langchain_core.messages import HumanMessage
+
+    # 1. Regex & Intent Detection Tests
+    positives = [
+        "can you make a new fille called test.md",
+        "can you make a new file called test.md",
+        "create a file hello.py",
+        "write content into notes.txt",
+        "edit document.md",
+        "delete old.log",
+        "read README.md",
+        "list files in the directory",
+        "touch test.json"
+    ]
+    for q in positives:
+        assert is_file_operation_query(q), f"Query '{q}' should be recognized as file operation!"
+
+    negatives = [
+        "set my laptop for coding",
+        "coding mode",
+        "start coding mode",
+        "open pycharm",
+        "prepare for coding",
+        "coding setup",
+        "what time is it",
+        "how is the weather in Vienna"
+    ]
+    for q in negatives:
+        assert not is_file_operation_query(q), f"Query '{q}' should NOT be recognized as file operation!"
+
+    # 2. Tool Retrieval Node Guarantees Filesystem Inclusion
+    state = {
+        "messages": [HumanMessage(content="can you make a new fille called test.md")],
+        "active_tools": []
+    }
+    ret_res = tool_retrieval_node(state)
+    active = ret_res.get("active_tools", [])
+    has_fs = any(t.get("name") == "mcp_pack_filesystem" or t.get("server_pack_id") == "mcp_pack_filesystem" for t in active)
+    assert has_fs, f"mcp_pack_filesystem must be in active_tools for file operations! Got: {[t['name'] for t in active]}"
+
+    # 3. route_query strips setup_coding on file operations
+    state_with_setup = {
+        "messages": [HumanMessage(content="can you make a new fille called test.md")],
+        "active_tools": [
+            {
+                "name": "setup_coding",
+                "description": "Workstation IDE launcher: Launches PyCharm IDE and opens browser tabs.",
+                "source_type": "native"
+            },
+            {
+                "name": "mcp_pack_filesystem",
+                "description": "File operations inside workspace: create, make, write files.",
+                "source_type": "mcp_dormant",
+                "server_pack_id": "mcp_pack_filesystem"
+            }
+        ]
+    }
+    with patch("core.routing.layer2.graph_nodes.get_laya_agent") as mock_laya:
+        # Simulate router trying to choose setup_coding or filesystem
+        mock_laya.return_value.predict.return_value = {
+            "answers": {"tool_selection": {"choice": "setup_coding"}}
+        }
+        res_route = route_query(state_with_setup)
+        assert res_route["next_route"] != "setup_coding", "route_query must NOT return setup_coding for file operation!"
+        assert res_route["next_route"] == "mcp_pack_filesystem"
+
+    # 4. setup_coding_node failsafe guard
+    file_state = {
+        "messages": [HumanMessage(content="can you make a new fille called test.md")]
+    }
+    node_res = setup_coding_node(file_state)
+    assert "filesystem tools" in node_res["messages"][-1].content
+    assert "Coding setup launched" not in node_res["messages"][-1].content
+
+
 if __name__ == "__main__":
     print("Running MCP Discovery & HITL Verification Suite...", flush=True)
     test_tool_vector_registry_dormant_and_runtime_mutation()
@@ -379,5 +468,7 @@ if __name__ == "__main__":
     print("[TEST 5 PASSED]: test_workspace_sandboxing", flush=True)
     test_mutating_mcp_tool_hitl()
     print("[TEST 6 PASSED]: test_mutating_mcp_tool_hitl", flush=True)
-    print("\n>>> ALL 6 VERIFICATION TESTS PASSED SUCCESSFULLY! <<<", flush=True)
+    test_file_operation_vs_setup_coding_routing()
+    print("[TEST 7 PASSED]: test_file_operation_vs_setup_coding_routing", flush=True)
+    print("\n>>> ALL 7 VERIFICATION TESTS PASSED SUCCESSFULLY! <<<", flush=True)
 

@@ -356,6 +356,16 @@ def setup_study_node(state: AgentState):
 
 
 def setup_coding_node(state: AgentState):
+    last_message = state["messages"][-1].content if state.get("messages") else ""
+    from core.routing.layer2.graph_nodes import is_file_operation_query
+    if is_file_operation_query(last_message):
+        return {
+            "messages": [
+                AIMessage(
+                    content="It looks like you want to create or manage a file rather than launch your coding workstation. Please use the filesystem tools to create or edit files in your workspace."
+                )
+            ]
+        }
     from actions.digital.setups import setup_coding
     try:
         run_sync(setup_coding())
