@@ -197,9 +197,9 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
           id="rail-mcp-tools-toggle-btn"
           className={`animated-vertical-dock__item !px-1.5 transition-all duration-300 ${
             isMcpToolsOpen
-              ? '!border-indigo-500/70 !text-indigo-400 !bg-[#101018] shadow-[0_0_18px_rgba(99,102,241,0.3)]'
+              ? '!border-white/30 !text-white !bg-white/[0.08] shadow-[0_0_18px_rgba(255,255,255,0.15)]'
               : activeMcpCount > 0
-              ? '!border-emerald-500/50 !text-emerald-400 !bg-[#0d1411]'
+              ? '!border-white/20 !text-slate-300 !bg-white/[0.05]'
               : ''
           }`}
           data-dock-item
@@ -217,9 +217,9 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
             <svg
               className={`w-[20px] h-[20px] transition-all duration-300 ${
                 isMcpToolsOpen
-                  ? 'text-indigo-400 scale-110 drop-shadow-[0_0_8px_rgba(129,140,248,0.8)]'
+                  ? 'text-white scale-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]'
                   : activeMcpCount > 0
-                  ? 'text-emerald-400 drop-shadow-[0_0_6px_rgba(52,211,153,0.7)]'
+                  ? 'text-slate-300 drop-shadow-[0_0_4px_rgba(255,255,255,0.2)]'
                   : 'text-slate-400 group-hover:text-white'
               }`}
               viewBox="0 0 24 24"
@@ -233,15 +233,15 @@ export const ChatLeftRail: React.FC<ChatLeftRailProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v4" strokeWidth={1.8} />
             </svg>
 
-            {/* Glowing active tools count badge */}
+            {/* Grey active tools count badge */}
             {activeMcpCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-emerald-400 ring-2 ring-emerald-950 shadow-[0_0_8px_rgba(52,211,153,1)] flex items-center justify-center text-[9px] font-bold text-black leading-none font-mono">
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-1 rounded-full bg-slate-300 ring-2 ring-[#03060a] shadow-[0_0_6px_rgba(255,255,255,0.25)] flex items-center justify-center text-[9px] font-bold text-black leading-none font-mono">
                 {activeMcpCount}
               </span>
             )}
           </span>
           <span className="animated-vertical-dock__label" data-dock-label>
-            <span className={activeMcpCount > 0 ? 'text-emerald-400 font-semibold tracking-wider' : ''}>
+            <span className={activeMcpCount > 0 ? 'text-slate-300 font-semibold tracking-wider' : ''}>
               {activeMcpCount > 0 ? `MCP TOOLS (${activeMcpCount})` : 'MCP TOOLS'}
             </span>
           </span>

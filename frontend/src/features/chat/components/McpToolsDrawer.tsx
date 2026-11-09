@@ -97,8 +97,8 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
     const q = searchQuery.toLowerCase();
     return activeServersList.filter(s => {
       const matchServer = s.display_name.toLowerCase().includes(q) ||
-                          s.description.toLowerCase().includes(q) ||
-                          s.pack_id.toLowerCase().includes(q);
+        s.description.toLowerCase().includes(q) ||
+        s.pack_id.toLowerCase().includes(q);
       const matchTool = s.tools?.some(t =>
         t.name.toLowerCase().includes(q) || (t.description && t.description.toLowerCase().includes(q))
       );
@@ -147,9 +147,8 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
     <>
       {/* Backdrop overlay */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         onClick={onClose}
         aria-hidden="true"
       />
@@ -157,16 +156,15 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
       {/* Flyout Drawer Panel: Clean Frosted Glass */}
       <aside
         id="mcp-tools-sidebar"
-        className={`fixed top-0 bottom-0 left-0 h-full w-[360px] sm:w-[440px] max-w-[90vw] z-50 flex flex-col bg-[#03060a]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-[24px_0_50px_rgba(0,0,0,0.7)] transition-transform duration-300 ease-out select-none ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 bottom-0 left-0 h-full w-[360px] sm:w-[440px] max-w-[90vw] z-50 flex flex-col bg-[#03060a]/95 border-r border-white/[0.08] backdrop-blur-2xl shadow-[24px_0_50px_rgba(0,0,0,0.7)] transition-transform duration-300 ease-out select-none ${isOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         aria-label="MCP Tools Manager"
         aria-hidden={!isOpen}
       >
         {/* Top Header Bar */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-300">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
                 <rect x="3" y="4" width="18" height="6" rx="2" strokeWidth={1.8} />
                 <rect x="3" y="14" width="18" height="6" rx="2" strokeWidth={1.8} />
@@ -177,7 +175,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
             <div>
               <h2 className="text-xs font-semibold text-white tracking-widest uppercase font-mono flex items-center gap-2">
                 MCP Tools
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-normal">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300 font-normal">
                   {activeServersList.length} ACTIVE
                 </span>
               </h2>
@@ -194,7 +192,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                 aria-label="Refresh MCP telemetry"
               >
                 <svg
-                  className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-indigo-400' : ''}`}
+                  className={`w-3.5 h-3.5 text-slate-400 ${isLoading ? 'animate-spin text-white' : 'hover:text-white'}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -224,7 +222,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
             <span>{actionError}</span>
             <button
               onClick={() => setActionError(null)}
-              className="text-rose-400 hover:text-white ml-2 text-sm font-bold"
+              className="text-rose-400 hover:text-white ml-2 text-sm font-bold cursor-pointer"
             >
               &times;
             </button>
@@ -249,12 +247,12 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search tools, servers, capabilities..."
-              className="w-full pl-8 pr-7 py-2 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-indigo-500/40 focus:bg-white/[0.06] rounded-xl text-xs text-white placeholder-slate-500 font-sans outline-none transition-all"
+              className="w-full pl-8 pr-7 py-2 bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.08] focus:border-white/25 focus:bg-white/[0.06] rounded-xl text-xs text-white placeholder-slate-500 font-sans outline-none transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-0.5 cursor-pointer"
                 title="Clear search"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -271,8 +269,8 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
           {/* Section 1: Active MCP Servers & Tools */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 px-1 py-0.5 font-semibold flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
                 Active MCP Tool Packs ({filteredActiveServers.length})
               </span>
             </div>
@@ -298,7 +296,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                   return (
                     <div
                       key={server.pack_id}
-                      className="p-3.5 rounded-xl bg-white/[0.03] border border-emerald-500/25 hover:border-emerald-500/40 transition-all space-y-3 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
+                      className="p-3.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.06] hover:border-white/12 transition-all space-y-3 shadow-[0_4px_20px_rgba(0,0,0,0.3)]"
                     >
                       {/* Server Card Header */}
                       <div className="flex items-start justify-between gap-2">
@@ -307,7 +305,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                             <h3 className="text-xs font-semibold text-white tracking-wide font-mono truncate">
                               {server.display_name}
                             </h3>
-                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 font-medium">
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300 font-medium">
                               CONNECTED
                             </span>
                           </div>
@@ -323,13 +321,13 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                               <button
                                 onClick={() => handleDisconnect(server.pack_id)}
                                 disabled={isDisconnecting}
-                                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/50 text-rose-300 text-[10px] font-mono font-semibold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                                className="px-2.5 py-1 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-[10px] font-mono font-semibold transition-all cursor-pointer active:scale-95 disabled:opacity-50"
                               >
                                 {isDisconnecting ? 'Removing...' : 'Confirm'}
                               </button>
                               <button
                                 onClick={() => setConfirmDisconnectId(null)}
-                                className="px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white text-[10px] font-mono transition-all"
+                                className="px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-slate-300 text-[10px] font-mono transition-all cursor-pointer"
                               >
                                 Cancel
                               </button>
@@ -337,7 +335,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                           ) : (
                             <button
                               onClick={() => setConfirmDisconnectId(server.pack_id)}
-                              className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-rose-500/15 border border-white/[0.08] hover:border-rose-500/30 text-slate-400 hover:text-rose-300 text-[10px] font-mono transition-all cursor-pointer active:scale-95 flex items-center gap-1"
+                              className="px-2.5 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-rose-500/30 text-slate-400 hover:text-rose-300 text-[10px] font-mono transition-all cursor-pointer active:scale-95 flex items-center gap-1"
                               title="Disconnect this server and retire its tools from the AI index"
                             >
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -351,26 +349,26 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
 
                       {/* Granular Tools List */}
                       {server.tools && server.tools.length > 0 && (
-                        <div className="pt-2 border-t border-white/[0.05] space-y-2">
-                          <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+                        <div className="pt-2.5 border-t border-white/[0.05] space-y-2">
+                          <div className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
                             Available Tools ({server.tools.length})
                           </div>
                           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
                             {server.tools.map(tool => (
                               <div
                                 key={tool.name}
-                                className="p-2 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.04] transition-all space-y-1"
+                                className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-all space-y-1"
                               >
                                 <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[11px] font-mono font-medium text-indigo-300 truncate">
+                                  <span className="text-[11px] font-mono font-medium text-white truncate">
                                     {tool.name}
                                   </span>
                                   {tool.is_mutating ? (
-                                    <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+                                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.08] border border-white/[0.14] text-white font-medium shrink-0">
                                       MUTATING
                                     </span>
                                   ) : (
-                                    <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-blue-500/10 border border-blue-500/20 text-blue-300 shrink-0">
+                                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] text-slate-400 shrink-0">
                                       READ-ONLY
                                     </span>
                                   )}
@@ -395,13 +393,13 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
           {/* Section 2: Dormant Capabilities / Catalog */}
           <div className="space-y-3 pt-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 px-1 py-0.5 font-semibold flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
                 Available Capabilities ({filteredDormantServers.length})
               </span>
             </div>
 
-            <p className="text-[11px] text-slate-500 font-sans leading-snug">
+            <p className="text-[11px] text-slate-500 font-sans leading-snug px-1">
               These servers are indexed in MoKa's dormant catalog. When you ask a related query, MoKa will ask for your approval to connect them. You can also connect them manually here.
             </p>
 
@@ -412,7 +410,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                 return (
                   <div
                     key={server.pack_id}
-                    className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.12] transition-all space-y-2"
+                    className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-white/12 transition-all space-y-2"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -420,7 +418,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                           <h4 className="text-xs font-semibold text-slate-200 font-mono truncate">
                             {server.display_name}
                           </h4>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.05] border border-white/[0.08] text-slate-400">
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-slate-400">
                             DORMANT
                           </span>
                         </div>
@@ -433,10 +431,17 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                         <button
                           onClick={() => handleConnect(server.pack_id)}
                           disabled={isConnecting}
-                          className="px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 text-[10px] font-mono font-semibold transition-all cursor-pointer active:scale-95 disabled:opacity-50 shrink-0"
+                          className="px-3 py-1.5 rounded-xl bg-white hover:bg-white/90 text-black text-[10px] font-mono font-semibold uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-[0_2px_10px_rgba(255,255,255,0.12)] active:scale-95 disabled:opacity-40 shrink-0 flex items-center gap-1"
                           title="Manually connect this server and index its tools"
                         >
-                          {isConnecting ? 'Connecting...' : '+ Connect'}
+                          {isConnecting ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                              <span>Connecting...</span>
+                            </>
+                          ) : (
+                            <span>+ Connect</span>
+                          )}
                         </button>
                       )}
                     </div>
@@ -445,7 +450,7 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
                       <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[9px] font-mono text-slate-500">
                         <span>Requires:</span>
                         {server.env_vars.map(v => (
-                          <span key={v} className="px-1 py-0.2 rounded bg-white/[0.03] border border-white/[0.06] text-slate-400">
+                          <span key={v} className="px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] text-slate-400">
                             {v}
                           </span>
                         ))}
@@ -460,10 +465,10 @@ export const McpToolsDrawer: React.FC<McpToolsDrawerProps> = ({
         </div>
 
         {/* Bottom Status Footer */}
-        <div className="px-5 py-3 border-t border-white/[0.06] bg-white/[0.01] flex items-center justify-between text-[10px] font-mono text-slate-500">
+        <div className="px-5 py-3.5 border-t border-white/[0.06] bg-white/[0.02] backdrop-blur-md flex items-center justify-between text-[10px] font-mono text-slate-400">
           <span>Total Indexed Tools: {telemetry?.total_indexed_tools ?? 0}</span>
-          <span className="flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
             Dynamic FAISS Index
           </span>
         </div>

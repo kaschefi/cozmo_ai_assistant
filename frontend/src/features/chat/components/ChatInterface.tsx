@@ -1289,6 +1289,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       }
 
       const contentType = response.headers.get('content-type') || '';
+      let isInterrupted = false;
 
       if (contentType.includes('text/event-stream') && response.body) {
         const reader = response.body.getReader();
@@ -1313,6 +1314,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               const data = JSON.parse(payloadStr);
 
               if (data.type === 'hitl_interrupt') {
+                isInterrupted = true;
                 setIsMokaThinking(false);
                 setIsMokaTyping(false);
                 setPendingInterrupt(data.payload);
@@ -1355,6 +1357,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               // Ignore partial JSON chunks
             }
           }
+
+          if (isInterrupted) {
+            break;
+          }
         }
       } else {
         // Fallback for non-streaming response
@@ -1375,6 +1381,23 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         clearInterval(telemetryTimerRef.current);
         telemetryTimerRef.current = null;
       }
+
+      // If an HITL interrupt occurred, do not finalize an empty message bubble
+      if (isInterrupted) {
+        setMessages(prev => prev.filter(m => m.id !== mokaMsgId || (m.text && m.text.trim().length > 0)));
+        setIsMokaThinking(false);
+        setIsMokaTyping(false);
+        return;
+      }
+
+      // If no text was accumulated, do not create or leave an empty message
+      if (!accumulatedText.trim()) {
+        setMessages(prev => prev.filter(m => m.id !== mokaMsgId));
+        setIsMokaThinking(false);
+        setIsMokaTyping(false);
+        return;
+      }
+
       const totalElapsed = (Date.now() - telemetryStartTimeRef.current) / 1000;
 
       // Finalize message with complete telemetry metadata
@@ -1482,6 +1505,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
+      let isInterrupted = false;
+
       if (response.body) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -1505,6 +1530,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               const data = JSON.parse(payloadStr);
 
               if (data.type === 'hitl_interrupt') {
+                isInterrupted = true;
                 setIsMokaThinking(false);
                 setIsMokaTyping(false);
                 setPendingInterrupt(data.payload);
@@ -1544,11 +1570,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               // Ignore partial JSON
             }
           }
+
+          if (isInterrupted) {
+            break;
+          }
         }
       }
 
-      // Finalize with telemetry
-      if (accumulatedText) {
+      if (isInterrupted) {
+        setMessages(prev => prev.filter(m => m.id !== mokaMsgId || (m.text && m.text.trim().length > 0)));
+        return;
+      }
+
+      // Finalize with telemetry only if actual text exists
+      if (accumulatedText.trim()) {
         setMessages(prev =>
           prev.map(msg =>
             msg.id === mokaMsgId
@@ -1564,6 +1599,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               : msg
           )
         );
+      } else {
+        setMessages(prev => prev.filter(m => m.id !== mokaMsgId));
       }
     } catch (err) {
       console.error("Failed to resume interrupted turn:", err);
@@ -1833,11 +1870,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       {isConversationStarted && (
         <div className="w-full flex-1 overflow-y-auto z-10 transition-all duration-700 pl-14 sm:pl-16">
           <div className="px-6 pt-28 pb-32 max-w-2xl mx-auto w-full flex flex-col gap-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
-              >
+            {messages
+              .filter((msg) => msg.text && msg.text.trim().length > 0)
+              .map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex flex-col max-w-[85%] ${msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'}`}
+                >
                 {/* Sender tag */}
                 <span className="text-[10px] text-slate-400 font-mono font-semibold uppercase tracking-wider mb-1 px-1 flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${msg.sender === 'user' ? 'bg-[var(--brand-primary)]' : 'bg-slate-400'}`} />
@@ -1902,139 +1941,156 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                 key={msg.id}
                 className="flex flex-col max-w-[85%] self-end items-end transition-all duration-300"
               >
-                <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mb-1 px-1">
+                <span className="text-[10px] text-slate-400 font-mono font-semibold uppercase tracking-wider mb-1 px-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
                   You
                 </span>
                 <div
-                  className="p-4 rounded-2xl text-sm md:text-base leading-relaxed bg-[#0a0f24]/50 border border-dashed border-slate-700/60 text-slate-400 rounded-tr-none flex flex-col gap-2 min-w-[220px]"
+                  className="p-4 rounded-2xl text-sm md:text-base leading-relaxed text-slate-200 rounded-tr-none flex flex-col gap-2 min-w-[240px]"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(15, 20, 28, 0.65) 100%)',
+                    backdropFilter: 'blur(32px) saturate(160%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+                    border: '1px dashed rgba(255, 255, 255, 0.16)',
+                    boxShadow: '0 12px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08)'
+                  }}
                 >
-                  <div>{msg.text}</div>
-                  <div className="flex items-center justify-between gap-4 mt-1 pt-1.5 border-t border-slate-800/40">
-                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium font-sans">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                      Queued (On Hold)
+                  <div className="break-words">{msg.text}</div>
+                  <div className="flex items-center justify-between gap-4 mt-1 pt-2 border-t border-white/[0.08]">
+                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/70 animate-pulse" />
+                      <span>Queued (On Hold)</span>
                     </div>
                     <button
                       onClick={() => handleDeletePendingMessage(msg.id)}
-                      className="px-2 py-0.5 rounded border border-red-500/30 hover:border-red-400 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-white transition-all cursor-pointer text-xs flex items-center gap-1 font-semibold"
+                      className="px-2.5 py-1 rounded-lg border border-white/[0.08] hover:border-white/20 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white transition-all cursor-pointer text-[11px] font-mono flex items-center gap-1 font-medium active:scale-95"
                       title="Cancel and delete from queue"
                     >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       Cancel
                     </button>
                   </div>
                 </div>
-                <span className="text-[9px] text-slate-600 mt-1 px-1">{msg.timestamp}</span>
+                <span className="text-[9px] font-mono text-slate-500 mt-1 px-1">{msg.timestamp}</span>
               </div>
             ))}
 
-            {/* Human-in-the-Loop Approval Card (Capability Addition OR Mutating Tool Execution) */}
+            {/* Human-in-the-Loop Approval Card (Black & White styling matching Chat History) */}
             {pendingInterrupt && (
               <div className="flex flex-col self-start items-start max-w-[95%] sm:max-w-[85%] w-full my-2 animate-fadeIn">
-                <span className={`text-[10px] font-mono font-semibold uppercase tracking-wider mb-1.5 px-1 flex items-center gap-1.5 ${
-                  pendingInterrupt.interrupt_type === 'mutating_tool' ? 'text-amber-400' : 'text-indigo-400'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
-                    pendingInterrupt.interrupt_type === 'mutating_tool' ? 'bg-amber-400' : 'bg-indigo-400'
-                  }`} />
-                  {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Mutating Action Gate' : 'MoKa Capability Gate'}
+                <span className="text-[10px] font-mono font-semibold uppercase tracking-widest mb-1.5 px-1 flex items-center gap-1.5 text-slate-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)] animate-pulse" />
+                  <span className="text-white/90">
+                    {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'MUTATING ACTION GATE' : 'MOKA CAPABILITY GATE'}
+                  </span>
                 </span>
                 <div
-                  className={`w-full p-5 rounded-2xl border text-slate-100 flex flex-col gap-3.5 shadow-2xl backdrop-blur-xl ${
-                    pendingInterrupt.interrupt_type === 'mutating_tool'
-                      ? 'border-amber-500/40'
-                      : 'border-indigo-500/40'
-                  }`}
+                  className="w-full p-5 rounded-2xl rounded-tl-none border border-white/[0.08] text-slate-100 flex flex-col gap-3.5 backdrop-blur-2xl transition-all duration-300"
                   style={{
-                    background: pendingInterrupt.interrupt_type === 'mutating_tool'
-                      ? 'linear-gradient(135deg, rgba(35, 20, 10, 0.75) 0%, rgba(15, 12, 10, 0.85) 100%)'
-                      : 'linear-gradient(135deg, rgba(20, 20, 40, 0.7) 0%, rgba(10, 15, 25, 0.85) 100%)',
-                    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6)'
+                    background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(10, 14, 22, 0.85) 100%)',
+                    backdropFilter: 'blur(32px) saturate(160%)',
+                    WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+                    boxShadow: '0 20px 48px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
                   }}
                 >
+                  {/* Card Header: Icon, Titles & Status Badge */}
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        pendingInterrupt.interrupt_type === 'mutating_tool'
-                          ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400'
-                          : 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-400'
-                      }`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-white shrink-0">
                         {pendingInterrupt.interrupt_type === 'mutating_tool' ? (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.03A11.95 11.95 0 0112 2.944a11.95 11.95 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016zM12 15.75h.007v.008H12v-.008z" />
                           </svg>
                         ) : (
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                          <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 16.875h3.375m0 0h3.375m-3.375 0V13.5m0 3.375v3.375M6 10.5h2.25a2.25 2.25 0 002.25-2.25V6a2.25 2.25 0 00-2.25-2.25H6A2.25 2.25 0 003.75 6v2.25A2.25 2.25 0 006 10.5zm0 9.75h2.25A2.25 2.25 0 0010.5 18v-2.25a2.25 2.25 0 00-2.25-2.25H6a2.25 2.25 0 00-2.25 2.25V18A2.25 2.25 0 006 20.25zm9.75-9.75H18a2.25 2.25 0 002.25-2.25V6A2.25 2.25 0 0018 3.75h-2.25A2.25 2.25 0 0013.5 6v2.25a2.25 2.25 0 002.25 2.25z" />
                           </svg>
                         )}
                       </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-white tracking-wide font-mono">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-xs sm:text-sm font-semibold text-white tracking-wide font-mono truncate">
                           {pendingInterrupt.interrupt_type === 'mutating_tool'
                             ? `Execute: ${pendingInterrupt.tool_name || pendingInterrupt.display_name}`
                             : (pendingInterrupt.display_name || 'External MCP Tool')}
                         </h4>
-                        <p className="text-[11px] text-slate-400 font-sans leading-tight">
-                          {pendingInterrupt.description || (pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Mutating operation on external resource/file' : 'Extension capability required to answer query')}
+                        <p className="text-[11px] text-slate-400 font-sans leading-snug mt-0.5 truncate">
+                          {pendingInterrupt.description || (
+                            pendingInterrupt.interrupt_type === 'mutating_tool'
+                              ? 'Mutating operation on external resource/environment'
+                              : 'Extension capability required to answer query'
+                          )}
                         </p>
                       </div>
                     </div>
-                    <span className={`text-[9px] font-mono px-2 py-0.5 rounded font-medium ${
-                      pendingInterrupt.interrupt_type === 'mutating_tool'
-                        ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300'
-                        : 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300'
-                    }`}>
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-slate-300 font-normal shrink-0 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
                       {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Mutating Action' : 'Approval Required'}
                     </span>
                   </div>
 
                   {/* Proposed Parameters Preview for Mutating Tools */}
                   {pendingInterrupt.interrupt_type === 'mutating_tool' && pendingInterrupt.proposed_args && Object.keys(pendingInterrupt.proposed_args).length > 0 && (
-                    <div className="rounded-xl bg-black/50 border border-white/[0.08] p-3 text-xs font-mono space-y-1">
-                      <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                        Proposed Parameters
+                    <div className="rounded-xl bg-black/70 border border-white/[0.08] overflow-hidden text-xs font-mono">
+                      <div className="flex items-center justify-between px-3.5 py-2 bg-white/[0.03] border-b border-white/[0.06] text-[10px] text-slate-400 uppercase tracking-widest font-mono font-semibold">
+                        <span className="flex items-center gap-1.5 text-white/90">
+                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+                          </svg>
+                          Proposed Parameters
+                        </span>
+                        <span className="text-[9px] text-slate-500 lowercase font-mono font-normal">
+                          {Object.keys(pendingInterrupt.proposed_args).length} argument(s)
+                        </span>
                       </div>
-                      <pre className="text-emerald-300 text-[11px] overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-36">
+                      <pre className="p-3.5 text-[11px] font-mono text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-36 selection:bg-white/20">
                         {JSON.stringify(pendingInterrupt.proposed_args, null, 2)}
                       </pre>
                     </div>
                   )}
 
-                  <p className="text-sm text-slate-200 leading-relaxed font-sans border-t border-white/[0.08] pt-2.5">
-                    {pendingInterrupt.message || 'MoKa needs permission to proceed with this request.'}
+                  {/* Clarification prompt message */}
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-sans border-t border-white/[0.06] pt-3">
+                    {pendingInterrupt.message || (
+                      pendingInterrupt.interrupt_type === 'mutating_tool'
+                        ? 'MoKa needs authorization before applying this mutation to ensure data safety.'
+                        : 'MoKa needs permission to proceed with this request.'
+                    )}
                   </p>
 
+                  {/* Action Buttons: Pure Black & White matching Chat History */}
                   <div className="flex items-center justify-end gap-2.5 pt-1">
                     <button
+                      type="button"
                       onClick={() => handleResolveInterrupt(false)}
                       disabled={isResuming}
-                      className="px-3.5 py-1.5 rounded-xl border border-white/[0.1] hover:border-white/[0.2] bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white transition-all text-xs font-medium cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/20 text-slate-300 hover:text-white font-mono text-xs tracking-wider uppercase transition-all cursor-pointer active:scale-95 disabled:opacity-40 flex items-center gap-1.5"
                     >
+                      <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                       {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Decline Action' : 'Cancel'}
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleResolveInterrupt(true)}
                       disabled={isResuming}
-                      className={`px-4 py-1.5 rounded-xl font-semibold text-xs font-mono tracking-wide transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 disabled:opacity-50 ${
-                        pendingInterrupt.interrupt_type === 'mutating_tool'
-                          ? 'bg-amber-400 hover:bg-amber-300 text-black shadow-[0_0_16px_rgba(245,158,11,0.35)]'
-                          : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black shadow-[0_0_15px_rgba(52,211,153,0.35)]'
-                      }`}
+                      className="px-4 py-2 rounded-xl bg-white hover:bg-white/90 text-black font-semibold text-xs tracking-wider uppercase font-mono transition-all duration-200 cursor-pointer shadow-[0_4px_16px_rgba(255,255,255,0.15)] active:scale-[0.98] flex items-center gap-2 disabled:opacity-40"
                     >
                       {isResuming ? (
                         <>
-                          <span className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                          Executing...
+                          <span className="w-3.5 h-3.5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                          <span>Authorizing...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <svg className="w-3.5 h-3.5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                           </svg>
-                          {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Approve & Execute' : 'Add Tool & Continue'}
+                          <span>
+                            {pendingInterrupt.interrupt_type === 'mutating_tool' ? 'Approve & Execute' : 'Add Tool & Continue'}
+                          </span>
                         </>
                       )}
                     </button>

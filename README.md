@@ -14,6 +14,9 @@ An AI-powered assistant built around the **Anki Cozmo** robot. The system uses a
 | **Layer 1 Semantic Router** | Instant intent matching (~50ms) using `semantic-router` + `FastEmbed` for latency-critical commands (bypasses LLM) |
 | **Reflex Safety Guards** | Real-time hardware safety system in `safety.py` providing anti-fall (cliff/freefall detection + autonomous U-turn backup) and anti-dump/stall protection (IMU pitch tilt, impact shock, pose tracking, and OpenCV visual motion stasis) |
 | **Dynamic Layer 2 Tool RAG** | Rather than bloating LLM prompts with static definitions, tools are indexed in an in-memory vector database (**FAISS** + `BAAI/bge-small-en-v1.5` embeddings) and dynamically injected into the router's context based on relevance |
+| **Dynamic MCP Ingestion (FR-C05)** | Runtime discovery and live vector indexing of tools from external **Model Context Protocol (MCP)** servers without application restarts. Supports automated tool description synthesis and instant FAISS injection |
+| **Human-in-the-Loop Confirmation (FR-C03)** | Safe execution gate for state-mutating actions (e.g. file mutations, destructive database writes, non-read-only MCP tools). Halts execution with an `hitl_interrupt` event and awaits explicit user approval in the Web UI |
+| **MCP Tools Drawer & Catalog** | Interactive frontend drawer enabling real-time inspection, one-click connection/disconnection of MCP servers, parameter inspection, and automated discovery of dormant capabilities |
 | **Tavily MCP Integration** | Executes highly optimized, real-time web searches using the official Tavily **Model Context Protocol (MCP)** server spawned via standard `npx` stdio client pipes |
 | **Local Laptop Automation Setups** | Instant laptop routines for **Gaming Mode** (launches Steam, CS2, Discord), **Study Mode** (opens Moodle, Gemini, NotebookLM), and **Coding Mode** (opens PyCharm, GitHub, Gemini) |
 | **Specialized Weather Agent** | A ReAct agent that queries the `wttr.in` API to provide real-time, conversational weather updates |
@@ -103,11 +106,13 @@ For complex, multi-turn, and knowledge-driven requests, the system transitions t
 2.  **Tool Retrieval Node (`tool_vector_db.py` / `tool_retrieval_node`)**:
     *   Maintains an in-memory vector database (`ToolVectorRegistry`) powered by **FAISS** `IndexFlatIP` and `FastEmbed`.
     *   Dynamically embeds and indexes registered tool schemas, querying the user's latest statement to retrieve only the **top-3 most relevant candidate tools**. This eliminates prompt bloat and prevents tool confusion on small local models.
+    *   **Live Dynamic MCP Ingestion**: External tools discovered from Model Context Protocol servers are dynamically injected into the live FAISS index via `register_and_index_tool()` in real time with zero server restarts.
 3.  **Neural Route Query via LAYA (`route_query`)**:
     *   Instead of relying on slow, unconstrained LLM token generation, route selection is performed by the resident **LAYA Typed Decision Model** (`convaiinnovations/laya-typed-decisions`).
     *   Formulates a structured typed-choice decision question comparing the retrieved candidate tools against clear criteria. LAYA evaluates the options in a single forward pass (**~33ms latency**), selecting the winning tool route key or cleanly returning `"none"`.
-4.  **Dynamic Decision Routing (`decide_next_step`)**:
+4.  **Dynamic Decision Routing (`decide_next_step`) & HITL Safety Gate**:
     *   Evaluates the route decision via conditional edge branching:
+        *   **Human-In-The-Loop Safety Gate (`hitl_interrupt`)**: If the selected action is state-mutating (e.g. destructive database updates, file writing, non-read-only MCP tools), execution pauses with an interrupt event sent to the client, requiring explicit approval from the Web UI before proceeding.
         *   **Unified Tool Executor (`execute_tool_node`)**: Resolves the selected route key against a centralized Python `TOOL_REGISTRY` (`worker_nodes.py`), scaling to 100+ tools with zero graph recompilation. Dispatches to:
             *   **Calendar Agent (`calendar_node`)**: Multi-step LangGraph ReAct agent managing Google Calendar schedules and appointments.
             *   **Web Search Node (`web_search_node`)**: Real-time web retrieval via n8n integration.
@@ -336,24 +341,34 @@ tool_rag_registry.register_tool_schema(
 ```
 Upon a user query, the `tool_retrieval_node` matches the query vector with the tool embeddings and passes the select matched tools to the Router LLM.
 
-### 2. Standard Model Context Protocol (MCP) Client
-Using standard `mcp` stdio client parameters, the Tavily search tool operates dynamically:
+### 2. Dynamic MCP Ingestion Without Restarts (FR-C05)
+External capabilities run as modular **Model Context Protocol (MCP)** servers managed by `mcp_manager.py`. Upon connecting an MCP server (via stdio or SSE):
+1. The server performs a handshake and queries `tools/list`.
+2. Tool schemas are dynamically summarized with rich semantic intent descriptions.
+3. Schemas are immediately injected into the live **FAISS** index via `tool_rag_registry.register_and_index_tool()` in under **20 ms**.
+4. Handlers are registered into `TOOL_REGISTRY` in `worker_nodes.py`, making new capabilities immediately routable on the very next query without application restarts:
 ```python
-server_params = StdioServerParameters(
-    command="npx",
-    args=["-y", "tavily-mcp@latest"],
-    env=os.environ.copy(),
-    extra_spawn_args={"shell": True}
+# Discovered MCP tools are injected live into the FAISS index:
+tool_rag_registry.register_and_index_tool(
+    name="mcp__sqlite__read_query",
+    description="Executes a SELECT query on the SQLite database.",
+    metadata={"server_id": "sqlite", "is_mutation": False}
 )
 ```
-This spawns the standard Tavily MCP package, executes a query, and handles communication perfectly, bypassing bulky client frameworks.
 
-### 3. Low-Latency Local Automation Reflexes
+### 3. Human-In-The-Loop (HITL) Confirmation (FR-C03)
+To ensure safety with mutating actions (file alterations, database record deletions, external API writes):
+1. Mutating actions are annotated with `is_mutation=True`.
+2. When routed, the cognitive graph triggers an `hitl_interrupt` event, saving state to memory/PostgreSQL.
+3. The SSE stream emits an interactive approval card to the Web UI displaying the proposed action, parameters, and risk level.
+4. Execution only proceeds when the user clicks **Approve** (calling `POST /api/chat/resume`) or is cleanly cancelled.
+
+### 4. Low-Latency Local Automation Reflexes
 Workstation presets are tied to local shell utilities:
 *   **Gaming**: Executes custom URI protocols (`steam://`) and queries paths to boot update launchers before executing Discord update commands.
 *   **Coding & Study**: Performs multi-tab browser dispatch routines (`webbrowser.open`) and searches registry folders dynamically using glob matching to execute JetBrains IDEs.
 
-### 4. Deterministic Code Execution Sub-Agent
+### 5. Deterministic Code Execution Sub-Agent
 For complex calculations, mathematical formulas, date-time manipulations, or string formatting where reasoning accuracy is paramount, the system routes queries to a dedicated code execution sub-agent powered by the `ornith:9b` model (via local Ollama). It drafts a Python solution, runs it inside an isolated subprocess sandbox using `execute_python_sandbox`, and translates the output back to the user:
 ```python
 # backend/actions/digital/code_executor.py
@@ -365,6 +380,25 @@ def execute_python_sandbox(code_string: str) -> str:
     """
     # Writes, executes, and cleans up the temporary python execution file
     ...
+```
+
+---
+
+## Verification & Automated Test Suites
+
+Run the automated integration suites:
+```bash
+# Verify Dynamic MCP Discovery, Live FAISS Re-Indexing & HITL Interruption:
+python backend/test/digital/test_mcp_discovery_hitl.py
+
+# Verify Router Comparison & Scaling across 20-100 tools:
+python backend/test/routers/compare_routers.py
+
+# Verify Bidirectional A* path planning:
+python backend/test/digital/test_bidirectional_astar.py
+
+# Verify Local/Cloud Provider Toggle:
+python backend/test/digital/test_local_cloud_toggle.py
 ```
 
 ---

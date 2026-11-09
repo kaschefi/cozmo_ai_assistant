@@ -7,7 +7,7 @@
 > **Academic Context:** Bachelor's Thesis (Winter 2026 / Spring 2027)  
 > **Thesis Title:** *Routing-Strukturen für große Tool-Mengen in einem LLM-basierten Desktop-Roboter-Assistenten: Ein Vergleich von Genauigkeit, Token-Verbrauch und Latenz*  
 > **Codebase Root:** [`c:/Users/mkrad/PycharmProjects/moka_ai_assistant`](file:///c:/Users/mkrad/PycharmProjects/moka_ai_assistant)  
-> **Last Updated:** October 2026 (SRS Version 2.0 / Post-WP2 Baseline)
+> **Last Updated:** November 2026 (SRS Version 2.2 / Dynamic MCP Ingestion & HITL Extensions)
 
 ---
 
@@ -29,10 +29,11 @@ In conventional LLM architectures, all available tool descriptions are dumped in
   *(Hypothesis H2: Input tokens drop to $O(k)$ constant complexity, latency for physical commands drops to $<10$ ms, and routing accuracy remains $\ge$ monolithic LLM).*
 * **Sub-Question 3 (FF3):** Where are the failure boundaries of semantic retrieval when tools are highly confusable?  
   *(Hypothesis H3: Pure vector retrieval fails on recall when tools share high lexical/semantic overlap unless paired with cross-attention classification).*
+* **Sub-Question 4 (FF4 - Modern Extensibility):** Can external tools from Model Context Protocol (MCP) servers be ingested dynamically into the vector routing space at runtime without restarting the application or degrading routing latency?
 
 ### 1.3 Dual-Subsystem Scope
 The repository encapsulates two tightly integrated subsystems that run **both on physical Anki Cozmo hardware and 100% hardware-free in simulation**:
-1. **Desktop AI Assistant (MoKa Core):** A local-first, multi-modal conversational companion featuring Silero VAD speech detection, Whisper speech-to-text, Kokoro-ONNX neural voice synthesis, LangGraph cognitive sub-agents, dual-layer PostgreSQL memory, DINOv3 visual memory, and Bidirectional A* path planning.
+1. **Desktop AI Assistant (MoKa Core):** A local-first, multi-modal conversational companion featuring Silero VAD speech detection, Whisper speech-to-text, Kokoro-ONNX neural voice synthesis, LangGraph cognitive sub-agents, dual-layer PostgreSQL memory, Dynamic MCP tool discovery, Human-in-the-Loop execution guards, DINOv3 visual memory, and Bidirectional A* path planning.
 2. **Systematic Tool-Routing Benchmark & Evaluation Suite:** An automated testing harness integrated with LangSmith evaluating router architectures across scaled tool registries (20 real $\rightarrow$ 30, 50, 100 synthetic confusable tools).
 
 ---
@@ -59,16 +60,23 @@ The repository encapsulates two tightly integrated subsystems that run **both on
 │                                │                                       │
 │                                ▼                                       │
 │ TIER 2: Filtered Cognitive Decision Layer                              │
-│ 1. Vector Gating: FAISS Tool Index retrieves Top-k candidates (k=3..5) │
+│ 1. Dynamic Vector Gating: FAISS Index (Static tools + Live MCP Tools)  │
+│    Retrieves Top-k candidates (k=3..5) via FastEmbed cosine similarity │
 │ 2. Decision Classifiers:                                               │
 │    ├── Variant A: Monolithic Qwen2.5:3b (temp=0.0) [Baseline]          │
 │    ├── Variant B: Top-k FAISS RAG + Qwen2.5:3b [2-Layer LLM]           │
 │    └── Variant C: Top-k FAISS RAG + LAYA Decision Model [Production]   │
 │                                │                                       │
 │                ┌───────────────┴───────────────┐                       │
-│                ▼                               ▼                       │
+│                ▼ (Tool Selected)               ▼ (No tool / "none")    │
 │        Target Tool Node                chat_node (Fallback)            │
-│  (Calendar, Weather, Setups, etc.)    (Small talk, Memory Recall)      │
+│  ┌───────────────────────────┐         (Small talk, Memory Recall)     │
+│  │ Mutating Action?          │                                         │
+│  │ ├── Yes ─► HITL Pause     │                                         │
+│  │ │          (Web UI Modal) │                                         │
+│  │ └── No  ─► Execute Handler│                                         │
+│  │            (Python/MCP)   │                                         │
+│  └───────────────────────────┘                                         │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -223,7 +231,29 @@ Designed under the creative north star **"Cybernetic Physical Embodiment & Frost
   - `it`: ASCII Cyber Matrix data network with electric green telemetry.
 * **Key Routes & Features:**
   - `/chat`: Streaming token interface, live Cognitive Telemetry Card (displaying router stage, routing latency, retrieved candidate tools, memory hits), collapsible session drawer, local authentication (`X-Moka-Token`).
+  - **MCP Tools Drawer (`McpToolsDrawer.tsx`)**: Slide-over management panel directly accessible from the chat left rail. Displays live connected MCP servers, tool parameter schemas, dormant capability catalog, one-click connect/disconnect triggers, and real-time FAISS index size telemetry.
+  - **HITL Confirmation Modal (`ChatInterface.tsx`)**: High-contrast, frosted-glass interactive card triggered whenever a mutating action is routed. Details tool parameters, target entity, and danger level, allowing the user to either approve execution (resuming state) or cancel.
   - `/cozmo`: Interactive robotics mission control featuring 20Hz telemetry WebSocket, live MJPEG video stream with DINO heatmap overlay, 2D Semantic Grid Map & 3D WebGL World Map (`Cozmo3DWorldMap.tsx`), interactive draggable obstacles, click-to-teach visual segmentation, and simulated autonomous docking.
+
+---
+
+### 5.6 Dynamic MCP Ingestion Engine & Catalog (`backend/core/routing/layer2/mcp_manager.py`)
+
+Fulfills **FR-C05** (Runtime discovery and vector indexing of external tools without restarts):
+1. **Dynamic Handshake & Discovery:** Connects to external tool servers implementing the Model Context Protocol (MCP) over `stdio` subprocesses (e.g. `npx`, `python`, `uvx`) or remote `SSE` streams. Executes `await session.list_tools()` to discover available tools and input schemas.
+2. **Instant In-Memory FAISS Vector Indexing:** For each discovered tool, synthesizes a high-precision semantic description and injects it live into `tool_rag_registry.register_and_index_tool()`. FastEmbed computes embeddings on local CPU, appending to FAISS in **<20 ms** without restarting the FastAPI backend or Cozmo driver.
+3. **Dynamic Handler Registration:** Dynamically populates `TOOL_REGISTRY` in `worker_nodes.py` with asynchronous adapters mapping LangGraph execution requests to `session.call_tool()`.
+4. **Dormant Capability Catalog (`backend/data/mcp_catalog.json`):** Maintains metadata for dormant servers. When an incoming user query fails local tools but matches a dormant pack (e.g. SQLite, GitHub, Filesystem), MoKa alerts the user and offers to activate it seamlessly.
+
+---
+
+### 5.7 Human-in-the-Loop (HITL) Execution Confirmation (`FR-C03`)
+
+Fulfills **FR-C03** (Safety pause before executing state-mutating actions):
+1. **Mutation Boundary Classification:** Tools are tagged with `is_mutation=True` if they perform irreversible state changes (e.g. SQLite `execute_update_query`, file deletion/overwrites, Google Calendar event deletions, OS file modifications).
+2. **Cognitive Interruption Pause:** When the router selects a mutating action, the LangGraph brain pauses execution before invoking the handler, freezing the checkpoint in PostgreSQL or memory.
+3. **SSE Event Relay:** The streaming `/api/chat/stream` endpoint emits an `hitl_interrupt` payload containing the tool name, arguments, and conversational context to the frontend.
+4. **State Resumption (`POST /api/chat/resume`):** The client displays the action confirmation card. Upon clicking **Approve**, the client sends a resume token back to `/api/chat/resume`, which unfreezes the checkpoint and completes tool execution. If cancelled, the turn completes safely with zero mutations executed.
 
 ---
 
@@ -264,10 +294,22 @@ c:\Users\mkrad\PycharmProjects\moka_ai_assistant\
 │   │       ├── llm_factory.py             # Local (Ollama) vs Cloud (Azure) dynamic toggle
 │   │       ├── layer1/                    # FastEmbed semantic reflexes (sub-10ms)
 │   │       ├── layer2/                    # LangGraph StateGraph, Tool RAG, LAYA classifier
+│   │       │   ├── mcp_manager.py         # Dynamic MCP runtime discovery & live FAISS ingestion
+│   │       │   ├── tool_vector_db.py      # Live FAISS index with dynamic add_documents()
+│   │       │   ├── worker_nodes.py        # Centralized TOOL_REGISTRY & dynamic MCP handlers
+│   │       │   └── graph_nodes.py         # LAYA route query & HITL mutation pause check
 │   │       └── baseline/                  # Monolithic LLM baseline router
+│   ├── data/
+│   │   ├── mcp_catalog.json               # Active & dormant MCP server packs catalog
+│   │   ├── user_profile.md                # Human-readable long-term memory export
+│   │   └── router_results/                # Benchmark JSON traces across 20-100 tools
 │   ├── schemas/                           # Pydantic models, PostgreSQL chat history & memory
 │   └── test/
-│       ├── digital/routers/               # THE BENCHMARK HARNESS (Thesis WP2)
+│       ├── digital/
+│       │   ├── test_mcp_discovery_hitl.py # Verification suite for Dynamic MCP & HITL pause/resume
+│       │   ├── test_calendar_agent.py     # Calendar conflict & operation tests
+│       │   └── test_local_cloud_toggle.py # Ollama vs Azure toggle tests
+│       ├── routers/                       # THE BENCHMARK HARNESS (Thesis WP2)
 │       │   ├── tools/                     # Partitioned domain tool namespaces
 │       │   │   ├── robot.py               # robot.* (physical kinematics, docking, sweep)
 │       │   │   ├── desktop.py             # desktop.* (workstation setups, system clock/date)
@@ -278,7 +320,7 @@ c:\Users\mkrad\PycharmProjects\moka_ai_assistant\
 │       │   ├── models/                    # Modular router model implementations
 │       │   │   ├── llm/                   # LLM router variants (baseline.py, two_layer.py)
 │       │   │   └── laya/                  # LAYA router variants (single/two_layer, topk)
-│       │   ├── benchmark_dataset.py       # 48 curated evaluation cases
+│       │   ├── benchmark_dataset/         # Curated evaluation datasets (20, 30, 50, 100 tools)
 │       │   ├── harness.py                 # LangSmith evaluation executor & metric calculator
 │       │   └── compare_routers.py         # Batch runner generating 6-way comparison matrix
 │       └── physical/                      # Hardware & simulation validation suites
@@ -287,6 +329,8 @@ c:\Users\mkrad\PycharmProjects\moka_ai_assistant\
 │   ├── src/
 │   │   ├── features/
 │   │   │   ├── chat/                      # Chat UI, SSE streaming, cognitive telemetry
+│   │   │   │   ├── components/McpToolsDrawer.tsx # Slide-over MCP server & tools management drawer
+│   │   │   │   └── components/ChatInterface.tsx  # Chat UI & Frosted Glass HITL Confirmation Modal
 │   │   │   └── cozmo/                     # Telemetry dashboard, 2D/3D map, visual teaching
 │   │   └── shared/                        # Multi-theme CSS, ThreeUI shaders, backgrounds
 ├── docs/
@@ -347,6 +391,12 @@ python backend/test/physical/webcam_dinov3_VS_dinov2.py
 
 # Test autonomous docking simulation:
 python backend/test/physical/test_phase5_autonomous_docking.py
+```
+
+### 7.4 Running Dynamic MCP Discovery & HITL Interruption Tests
+```bash
+# Execute integration test verifying dynamic tool discovery, live FAISS index updates, and HITL pause/resume:
+python backend/test/digital/test_mcp_discovery_hitl.py
 ```
 
 ---
