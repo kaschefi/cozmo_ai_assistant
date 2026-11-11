@@ -16,6 +16,7 @@ from core.routing.layer2.graph_nodes import (
     route_query,
     summarize_conversation_node,
     memory_retrieval_node,
+    document_retrieval_node,
     memory_extraction_node,
     decide_next_step,
     mcp_discovery_node,
@@ -29,25 +30,42 @@ load_dotenv()
 builder = StateGraph(AgentState)
 
 # Add nodes
+builder.add_node("memory_retrieval_node", memory_retrieval_node)
+builder.add_node("document_retrieval_node", document_retrieval_node)
 builder.add_node("tool_retrieval_node", tool_retrieval_node)
 builder.add_node("route_query", route_query)
 builder.add_node("summarize_conversation_node", summarize_conversation_node)
 builder.add_node("execute_tool_node", execute_tool_node)
 builder.add_node("chat_node", chat_node)
-builder.add_node("memory_retrieval_node", memory_retrieval_node)
 builder.add_node("memory_extraction_node", memory_extraction_node)
 builder.add_node("mcp_discovery_node", mcp_discovery_node)
 
-# Wire the transitions
+# Wire the transitions: Memory -> Tool Routing -> Action or Document-Grounded Chat
 builder.add_edge(START, "memory_retrieval_node")
 builder.add_edge("memory_retrieval_node", "tool_retrieval_node")
 builder.add_edge("tool_retrieval_node", "route_query")
 
-# Route decision: execute_tool_node, mcp_discovery_node, or chat_node
-builder.add_conditional_edges("route_query", decide_next_step)
+# Route decision: execute_tool_node, mcp_discovery_node, or document_retrieval_node -> chat_node
+builder.add_conditional_edges(
+    "route_query",
+    decide_next_step,
+    {
+        "document_retrieval_node": "document_retrieval_node",
+        "mcp_discovery_node": "mcp_discovery_node",
+        "execute_tool_node": "execute_tool_node",
+    },
+)
+builder.add_edge("document_retrieval_node", "chat_node")
 
 # Cyclic MCP addition loop: if approved, loop back to tool_retrieval_node; if rejected, summarize
-builder.add_conditional_edges("mcp_discovery_node", decide_discovery_step)
+builder.add_conditional_edges(
+    "mcp_discovery_node",
+    decide_discovery_step,
+    {
+        "tool_retrieval_node": "tool_retrieval_node",
+        "summarize_conversation_node": "summarize_conversation_node",
+    },
+)
 
 builder.add_edge("execute_tool_node", "summarize_conversation_node")
 builder.add_edge("chat_node", "summarize_conversation_node")
@@ -118,6 +136,7 @@ def run_cozmo_agent(user_input: str, thread_id: str = "cozmo_default_session", p
     initial_state = {
         "messages": [HumanMessage(content=user_input)],
         "retrieved_memories": [],
+        "retrieved_documents": [],
         "provider": provider
     }
 

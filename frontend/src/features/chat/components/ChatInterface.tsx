@@ -679,6 +679,230 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const mousePosTargetRef = useRef({ x: -9999, y: -9999 });
   const animationFrameId = useRef<number | null>(null);
 
+  // Document RAG Upload & Ingestion State
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const uploadAttemptIdRef = useRef(0);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [activeUpload, setActiveUpload] = useState<{
+    file: File;
+    jobId?: string;
+    status: 'uploading' | 'processing' | 'completed' | 'failed';
+    progress: number;
+    error?: string;
+    result?: any;
+  } | null>(null);
+
+  const clearUploadPolling = useCallback(() => {
+    if (uploadPollIntervalRef.current) {
+      clearInterval(uploadPollIntervalRef.current);
+      uploadPollIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearUploadPolling();
+    };
+  }, [clearUploadPolling]);
+
+  const addSystemDocumentMessage = useCallback((filename: string, result?: any) => {
+    const chunks = result?.chunks_processed || result?.upserted_count;
+    const chunkDetails = chunks ? ` (${chunks} semantic chunks indexed)` : '';
+    const docMessage: Message = {
+      id: `doc-${Date.now()}`,
+      sender: 'moka',
+      text: `📄 **${filename}** has been successfully ingested into your Semantic Knowledge Base${chunkDetails}!\n\nYou can now ask me questions about it (e.g. *"Summarize ${filename}"*, *"What are the core conclusions?"*, or ask about specific sections, formulas, and tables).`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      telemetry: {
+        tool: 'Semantic ETL Hybrid RAG',
+        provider: 'Pinecone + SQLite FTS5 + FlashRank',
+        steps: ['Docling Layout Extraction', 'semchunk Preservation', 'FlashRank Reranking']
+      }
+    };
+    setMessages(prev => [...prev, docMessage]);
+    setIsConversationStarted(true);
+  }, []);
+
+  const handleUploadFile = useCallback(async (file: File) => {
+    const validExtensions = ['.pdf', '.docx', '.doc', '.txt', '.md'];
+    const ext = file.name.includes('.') ? '.' + file.name.split('.').pop()?.toLowerCase() : '';
+    if (!validExtensions.includes(ext)) {
+      setActiveUpload({
+        file,
+        status: 'failed',
+        progress: 0,
+        error: 'Unsupported file type. Please upload a PDF, DOCX, TXT, or Markdown document.',
+      });
+      return;
+    }
+    if (file.size === 0) {
+      setActiveUpload({
+        file,
+        status: 'failed',
+        progress: 0,
+        error: 'The selected document is empty.',
+      });
+      return;
+    }
+
+    clearUploadPolling();
+    const attemptId = ++uploadAttemptIdRef.current;
+
+    setActiveUpload({
+      file,
+      status: 'uploading',
+      progress: 15,
+    });
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('namespace', 'documents');
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['X-Moka-Token'] = token;
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${getApiBaseUrl()}/api/documents/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.detail || err.message || `Upload failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (attemptId !== uploadAttemptIdRef.current) return;
+
+      if (data?.status === 'error' || data?.error) {
+        throw new Error(data.message || data.detail || data.error || 'Document upload failed.');
+      }
+
+      const jobId = data.job_id;
+      if (!jobId) {
+        setActiveUpload({
+          file,
+          status: 'completed',
+          progress: 100,
+          result: data,
+        });
+        addSystemDocumentMessage(file.name, data);
+        return;
+      }
+
+      setActiveUpload({
+        file,
+        jobId,
+        status: 'processing',
+        progress: 25,
+      });
+
+      let consecutiveErrors = 0;
+      let pollCount = 0;
+      const MAX_POLLS = 120; // 3 minutes at 1.5s interval
+
+      uploadPollIntervalRef.current = setInterval(async () => {
+        if (attemptId !== uploadAttemptIdRef.current) {
+          clearUploadPolling();
+          return;
+        }
+        pollCount += 1;
+        if (pollCount > MAX_POLLS) {
+          clearUploadPolling();
+          setActiveUpload({
+            file,
+            jobId,
+            status: 'failed',
+            progress: 100,
+            error: 'Document indexing timed out. Please check the Semantic ETL service.',
+          });
+          return;
+        }
+
+        try {
+          const pollHeaders: Record<string, string> = {};
+          if (token) {
+            pollHeaders['X-Moka-Token'] = token;
+            pollHeaders['Authorization'] = `Bearer ${token}`;
+          }
+          const jobRes = await fetch(`${getApiBaseUrl()}/api/documents/jobs/${jobId}`, {
+            headers: pollHeaders,
+          });
+          if (!jobRes.ok) {
+            consecutiveErrors += 1;
+            const errBody = await jobRes.json().catch(() => ({}));
+            if (jobRes.status >= 400 && jobRes.status < 500 || consecutiveErrors >= 3) {
+              clearUploadPolling();
+              setActiveUpload({
+                file,
+                jobId,
+                status: 'failed',
+                progress: 100,
+                error: errBody.detail || errBody.message || `Job status check failed (HTTP ${jobRes.status})`,
+              });
+            }
+            return;
+          }
+
+          consecutiveErrors = 0;
+          const jobData = await jobRes.json();
+
+          if (jobData.status === 'completed') {
+            clearUploadPolling();
+            setActiveUpload({
+              file,
+              jobId,
+              status: 'completed',
+              progress: 100,
+              result: jobData.result,
+            });
+            addSystemDocumentMessage(file.name, jobData.result);
+          } else if (jobData.status === 'failed' || jobData.status === 'error') {
+            clearUploadPolling();
+            setActiveUpload({
+              file,
+              jobId,
+              status: 'failed',
+              progress: 100,
+              error: jobData.error || jobData.message || 'Document indexing failed',
+            });
+          } else {
+            const prog = Math.max(25, Math.min(95, Math.round(jobData.progress || 35)));
+            setActiveUpload(prev => (prev && prev.jobId === jobId ? { ...prev, progress: prog } : prev));
+          }
+        } catch (pollErr) {
+          consecutiveErrors += 1;
+          console.error('Job polling error:', pollErr);
+          if (consecutiveErrors >= 3) {
+            clearUploadPolling();
+            setActiveUpload({
+              file,
+              jobId,
+              status: 'failed',
+              progress: 100,
+              error: 'Lost connection while tracking document indexing.',
+            });
+          }
+        }
+      }, 1500);
+    } catch (err: any) {
+      if (attemptId !== uploadAttemptIdRef.current) return;
+      console.error('Document upload error:', err);
+      setActiveUpload({
+        file,
+        status: 'failed',
+        progress: 0,
+        error: err.message || 'Failed to upload document. Please ensure Semantic-ETL-Pipeline is running.',
+      });
+    }
+  }, [token, addSystemDocumentMessage, clearUploadPolling]);
+
   // Auto-focus input when entering the chat page
   useEffect(() => {
     inputRef.current?.focus();
@@ -1677,8 +1901,55 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   };
 
   return (
-    <div className={`relative w-screen h-screen ${isBlackIce ? 'bg-[#020407]' : isRoyal ? 'bg-[#030407]' : isIT ? 'bg-[#020503]' : 'bg-[#030407]'
-      } overflow-hidden flex flex-col transition-colors duration-700 font-sans selection:bg-[var(--brand-primary)]/30 selection:text-white`}>
+    <div
+      onDragEnter={(e) => {
+        if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(true);
+      }}
+      onDragOver={(e) => {
+        if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDraggingFile) setIsDraggingFile(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setIsDraggingFile(false);
+        }
+      }}
+      onDrop={(e) => {
+        if (!Array.from(e.dataTransfer?.types || []).includes('Files')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingFile(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+          handleUploadFile(file);
+        }
+      }}
+      className={`relative w-screen h-screen ${isBlackIce ? 'bg-[#020407]' : isRoyal ? 'bg-[#030407]' : isIT ? 'bg-[#020503]' : 'bg-[#030407]'
+      } overflow-hidden flex flex-col transition-colors duration-700 font-sans selection:bg-[var(--brand-primary)]/30 selection:text-white`}
+    >
+      {/* Drag & Drop Visual Overlay */}
+      {isDraggingFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none transition-all duration-300">
+          <div className="border-2 border-dashed border-[var(--brand-primary)] bg-[var(--brand-card-bg)]/95 rounded-3xl p-10 flex flex-col items-center justify-center shadow-2xl max-w-lg mx-6 text-center animate-pulse">
+            <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)]/20 text-[var(--brand-primary)] flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2 font-sans">Drop Document to Index</h3>
+            <p className="text-sm text-slate-300 font-sans">
+              Release to upload and index into MoKa's Grounded Knowledge Base (PDF, DOCX, TXT, MD)
+            </p>
+          </div>
+        </div>
+      )}
 
 
       {/* Dynamic Theme Background Shaders (85% opacity at rest matching home page, 40% when conversation is active) */}
@@ -2122,6 +2393,69 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         }`}
       >
         <div className="relative w-full !overflow-visible">
+          {/* Active Document Upload / Ingestion Status Badge */}
+          {activeUpload && (
+            <div className="mb-3 w-full bg-[var(--brand-card-bg)]/95 border border-[var(--brand-card-border)] backdrop-blur-xl rounded-2xl p-3 shadow-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="w-9 h-9 rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] flex items-center justify-center flex-shrink-0">
+                  {activeUpload.status === 'completed' ? (
+                    <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  ) : activeUpload.status === 'failed' ? (
+                    <svg className="w-5 h-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5 animate-spin text-[var(--brand-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-xs font-semibold text-white truncate font-sans">
+                      {activeUpload.file.name}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400 flex-shrink-0">
+                      {activeUpload.status === 'completed'
+                        ? 'Ready for Q&A'
+                        : activeUpload.status === 'failed'
+                        ? 'Failed'
+                        : `${activeUpload.progress}%`}
+                    </span>
+                  </div>
+                  {activeUpload.status === 'failed' ? (
+                    <p className="text-[11px] text-rose-400 truncate font-sans">
+                      {activeUpload.error || 'Failed to process document'}
+                    </p>
+                  ) : (
+                    <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          activeUpload.status === 'completed'
+                            ? 'bg-emerald-400'
+                            : 'bg-[var(--brand-primary)]'
+                        }`}
+                        style={{ width: `${activeUpload.progress}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveUpload(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+                title="Dismiss"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          )}
+
           <BorderBeam
             size="pulse-inner"
             colorVariant="mono"
@@ -2180,7 +2514,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                     className="absolute top-0 left-0"
                     style={{ position: 'absolute', top: 0, left: 0, pointerEvents: open ? 'auto' : 'none' }}
                   >
-                    <button className="round-btn" type="button" title="Document" aria-label="Document">
+                    <button
+                      className="round-btn"
+                      type="button"
+                      title="Upload Document for Grounded RAG"
+                      aria-label="Upload Document"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                        setOpen(false);
+                      }}
+                    >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                       </svg>
@@ -2235,6 +2579,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                   </svg>
                 )}
               </button>
+
+              {/* Hidden Document File Picker for Grounded RAG */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.docx,.doc,.txt,.md"
+                className="hidden"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleUploadFile(file);
+                    e.target.value = '';
+                  }
+                }}
+              />
 
               <input
                 ref={inputRef}

@@ -133,6 +133,7 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
     initial_state = {
         "messages": [HumanMessage(content=command_clean)],
         "retrieved_memories": [],
+        "retrieved_documents": [],
         "provider": provider
     }
 
@@ -178,8 +179,14 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'TOOL SELECTED', 'text': f'Dispatched to {friendly}', 'step': 2, 'tool': route})}\n\n"
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'executing', 'title': 'EXECUTING AGENT', 'text': f'Calling {friendly}...', 'step': 3, 'tool': route})}\n\n"
                             else:
-                                yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'CHAT ROUTE', 'text': 'Direct conversational synthesis selected', 'step': 2, 'tool': 'none'})}\n\n"
-                                yield f"data: {json.dumps({'type': 'status', 'stage': 'synthesizing', 'title': 'RESPONSE SYNTHESIS', 'text': 'Formulating natural response...', 'step': 3})}\n\n"
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'CHAT ROUTE', 'text': 'Direct conversational & grounded QA route selected', 'step': 2, 'tool': 'none'})}\n\n"
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3})}\n\n"
+
+                        elif node_name == "document_retrieval_node":
+                            docs = node_data.get("retrieved_documents", [])
+                            txt = f"Retrieved {len(docs)} grounded document excerpts" if docs else "Document knowledge base scanned"
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'rag_done', 'title': 'GROUNDED RAG', 'text': txt, 'step': 3, 'docs_count': len(docs)})}\n\n"
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'synthesizing', 'title': 'RESPONSE SYNTHESIS', 'text': 'Formulating natural response...', 'step': 4})}\n\n"
 
                         elif node_name == "mcp_discovery_node":
                             yield f"data: {json.dumps({'type': 'status', 'stage': 'mcp_discovery', 'title': 'CAPABILITY DISCOVERY', 'text': 'Evaluating external MCP tool requirements...', 'step': 2})}\n\n"
@@ -295,8 +302,16 @@ async def stream_resume_user_intent(resume_value: Any, session_id: str = "cozmo_
                             yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'CAPABILITY ACTIVE', 'text': txt, 'step': 2, 'tools': tool_names})}\n\n"
                         elif node_name == "route_query":
                             route = node_data.get("next_route", "none")
-                            friendly = route.replace("_node", "").replace("_agent", "").replace("_", " ").title()
-                            yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'DISPATCHING', 'text': f'Executing {friendly}...', 'step': 3, 'tool': route})}\n\n"
+                            if route and route != "none":
+                                friendly = route.replace("_node", "").replace("_agent", "").replace("_", " ").title()
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'DISPATCHING', 'text': f'Executing {friendly}...', 'step': 3, 'tool': route})}\n\n"
+                            else:
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3, 'tool': 'none'})}\n\n"
+                        elif node_name == "document_retrieval_node":
+                            docs = node_data.get("retrieved_documents", [])
+                            txt = f"Retrieved {len(docs)} grounded document excerpts" if docs else "Document knowledge base scanned"
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'rag_done', 'title': 'GROUNDED RAG', 'text': txt, 'step': 3, 'docs_count': len(docs)})}\n\n"
+                            yield f"data: {json.dumps({'type': 'status', 'stage': 'synthesizing', 'title': 'RESPONSE SYNTHESIS', 'text': 'Formulating natural response...', 'step': 4})}\n\n"
                         elif node_name == "execute_tool_node":
                             yield f"data: {json.dumps({'type': 'status', 'stage': 'tool_complete', 'title': 'TOOL FINISHED', 'text': 'Tool execution complete, formulating final answer...', 'step': 3})}\n\n"
 

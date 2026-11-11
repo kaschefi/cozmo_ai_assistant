@@ -34,6 +34,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@database:5432/${POSTGRES_DB:-cozmo_memory}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - SEMANTIC_ETL_URL=${DOCKER_SEMANTIC_ETL_URL:-http://host.docker.internal:8002}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

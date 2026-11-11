@@ -12,7 +12,7 @@ tool_rag_registry.register_tool_schema(
 )
 tool_rag_registry.register_tool_schema(
     name="setup_study",
-    description="Prepares the workstation for university study by opening browser tabs for Moodle and NotebookLM. Use when user says they want to study, activate study mode, or prepare for university homework and coursework. Do not use for playing study music (use spotify_play_playlist) or marking items on a checklist (use todolist_node)."
+    description="Workstation launcher: Opens browser tabs for Moodle and NotebookLM. Use ONLY when the user explicitly commands to start study mode, prepare laptop for study, open study tabs, or launch study setup. Never use for answering questions or queries about requirements, documents, or knowledge."
 )
 tool_rag_registry.register_tool_schema(
     name="setup_coding",

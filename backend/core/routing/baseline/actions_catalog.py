@@ -62,7 +62,7 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     },
     "setup_study": {
         "category": "digital_setup",
-        "description": "Prepares the workstation for university study by opening browser tabs for Moodle and NotebookLM. Use when the user wants to study, activate study mode, or prepare for university homework and coursework. Do not use for playing study music (use spotify_play_playlist) or marking items on a checklist (use todolist_node).",
+        "description": "Workstation launcher: Opens browser tabs for Moodle and NotebookLM. Use ONLY when the user explicitly commands to start study mode, prepare laptop for study, open study tabs, or launch study setup. Never use for answering questions or queries about requirements, documents, or knowledge.",
         "examples": ["set it for study", "study mode", "time to study", "i want to study", "prepare my laptop for study", "open my study tabs", "study work"],
     },
     "setup_coding": {
@@ -143,13 +143,16 @@ ALL_ACTIONS_CATALOG: Dict[str, Dict[str, Any]] = {
     },
 
     # -------------------------------------------------------------------------
-    # Conversational Fallback
+    # Conversational Fallback & Grounded Q&A
     # -------------------------------------------------------------------------
     "none": {
         "category": "conversational",
-        "description": "Core conversational channel. Use for casual chat, greetings, asking about identity/personality, sharing personal facts or hobbies, jokes, philosophical discussion, or anything not requiring an action or tool above.",
+        "description": "Core conversational channel. Use for casual chat, greetings, answering questions using knowledge base and uploaded documents, asking about identity/personality, sharing personal facts or hobbies, jokes, philosophical discussion, or anything not requiring an external tool or physical action.",
         "examples": [
             "hello, how are you today?",
+            "what are the must requirements?",
+            "summarize the uploaded SRS document",
+            "what does the thesis say about testing?",
             "my name is Alex and I like playing guitar",
             "tell me something interesting",
             "what do you think about AI?",

@@ -194,6 +194,7 @@ def weather_node(state: AgentState):
 def chat_node(state: AgentState):
     existing_summary = state.get("summary", "")
     retrieved_memories = state.get("retrieved_memories", [])
+    retrieved_documents = state.get("retrieved_documents", [])
     messages_payload = []
 
     system_instructions = (
@@ -201,12 +202,12 @@ def chat_node(state: AgentState):
         "Be friendly, highly conversational, and helpful.\n"
         "CONVERSATIONAL HYGIENE RULES:\n"
         "1. Never 'flex' or list all of your memory core facts unsolicited in a single response.\n"
-        "2. Keep your responses short, natural, and highly focused on the user's latest statement (1-2 sentences max).\n"
+        "2. Keep your responses short, natural, and highly focused on the user's latest statement.\n"
         "3. Only mention a fact if it is directly and naturally relevant to the user's latest message. Treat your memories as silent background knowledge.\n"
         "4. WORKSPACE SECURITY BOUNDARY: You are strictly scoped to your own project workspace folder (moka_ai_assistant). You NEVER have access to other folders or files on the system, such as Downloads, Desktop, Documents, or external drive paths. If the user asks for files, directories, or information outside moka_ai_assistant, politely explain that for security and privacy, you are restricted to your own workspace folder and cannot access other folders on their system."
     )
     if existing_summary:
-        system_instructions += f"Summary of the current chat session: {existing_summary} "
+        system_instructions += f"\nSummary of the current chat session: {existing_summary}"
         
     if retrieved_memories:
         facts_str = "\n".join(f"- {fact}" for fact in retrieved_memories)
@@ -217,6 +218,32 @@ def chat_node(state: AgentState):
             f"INSTRUCTIONS:\n"
             f"1. Treat these facts as absolute, undeniable truths from past interactions.\n"
             f"2. Never break character, and never explain technical AI limitations or state that you cannot remember things across sessions."
+        )
+
+    if retrieved_documents:
+        doc_blocks = []
+        for s in retrieved_documents:
+            cid = s.get("citation_id", 1)
+            pages = ", ".join(str(p) for p in s.get("source_pages", [])) if s.get("source_pages") else "N/A"
+            summary = s.get("summary", "")
+            snippet = s.get("text_snippet", "")
+            category = s.get("category", "General")
+            doc_blocks.append(
+                f"--- Context Block [{cid}] (Category: {category} | Pages: {pages}) ---\n"
+                f"Summary: {summary}\n"
+                f"Excerpt: {snippet}"
+            )
+        docs_str = "\n\n".join(doc_blocks)
+        system_instructions += (
+            f"\n\n[UPLOADED DOCUMENT KNOWLEDGE BASE]\n"
+            f"The user has uploaded documents to their knowledge base. The following context excerpts were retrieved from the indexed documents as relevant to their question:\n\n"
+            f"{docs_str}\n\n"
+            f"DOCUMENT GROUNDING & CITATION RULES:\n"
+            f"1. Directly and thoroughly answer the user's question using these document excerpts.\n"
+            f"2. Cite your sources inline using bracketed references like [1], [2] immediately following the facts they support, and mention the page numbers if available.\n"
+            f"3. When answering about requirements, specifications, architecture, or conclusions, be precise, detailed, and directly cite the relevant sections/pages.\n"
+            f"4. If the retrieved context is relevant, prioritize answering the document question over short chat pleasantries.\n"
+            f"5. Only use and cite these excerpts when they are genuinely relevant to the user's question; if the question is unrelated to the uploaded documents, ignore the excerpts and answer normally."
         )
 
     messages_payload.append(SystemMessage(content=system_instructions))

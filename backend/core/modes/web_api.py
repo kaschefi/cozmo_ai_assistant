@@ -16,8 +16,9 @@ if BACKEND_DIR not in sys.path:
 
 import asyncio
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Security, Depends, status, Request
+from fastapi import FastAPI, HTTPException, Security, Depends, status, Request, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 import uvicorn
 
@@ -105,8 +106,11 @@ async def _background_warmup():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from core.services.semantic_etl_launcher import ensure_semantic_etl_started, stop_semantic_etl
+
     # Launch background pre-warming without blocking server boot
     asyncio.create_task(_background_warmup())
+    asyncio.create_task(asyncio.to_thread(ensure_semantic_etl_started))
     
     # Auto-seed history from LangSmith if DB is currently empty
     try:
@@ -117,7 +121,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"[MoKa Startup] Notice during history check: {e}")
 
-    yield
+    try:
+        yield
+    finally:
+        await asyncio.to_thread(stop_semantic_etl)
 
 
 app = FastAPI(
@@ -627,6 +634,113 @@ async def mute_endpoint():
             status_code=500,
             detail=f"An error occurred while interrupting speech: {str(e)}"
         )
+
+
+# ---------------------------------------------------------
+# Semantic ETL & Grounded Document RAG Microservice Endpoints
+# ---------------------------------------------------------
+
+ALLOWED_DOCUMENT_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".md"}
+MAX_DOCUMENT_UPLOAD_MB = int(os.getenv("MAX_DOCUMENT_UPLOAD_MB", "50"))
+
+
+async def _read_bounded_upload(file: UploadFile, max_bytes: int) -> bytes:
+    """Reads an UploadFile in chunks while enforcing a hard size limit."""
+    chunks = []
+    total = 0
+    chunk_size = 1024 * 1024  # 1 MiB
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                detail=f"File exceeds maximum allowed size of {MAX_DOCUMENT_UPLOAD_MB} MB.",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+@app.post("/api/documents/upload", dependencies=[Depends(verify_moka_token)])
+async def upload_document_endpoint(
+    file: UploadFile = File(...),
+    namespace: str = Form("documents")
+):
+    """
+    Directly submits an uploaded PDF/DOCX/TXT/MD file to the Semantic ETL Pipeline
+    background ingestion worker. Returns HTTP 202 tracking info with job_id.
+    """
+    from actions.digital.semantic_etl_client import SemanticETLError, async_upload_document_bytes
+
+    safe_filename = os.path.basename((file.filename or "").strip())
+    if not safe_filename:
+        raise HTTPException(status_code=400, detail="Uploaded file must have a valid filename.")
+
+    ext = os.path.splitext(safe_filename)[1].lower()
+    if ext not in ALLOWED_DOCUMENT_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed types: {', '.join(sorted(ALLOWED_DOCUMENT_EXTENSIONS))}.",
+        )
+
+    max_bytes = MAX_DOCUMENT_UPLOAD_MB * 1024 * 1024
+    content = await _read_bounded_upload(file, max_bytes)
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    clean_namespace = (namespace or "documents").strip() or "documents"
+    try:
+        res = await async_upload_document_bytes(
+            content,
+            safe_filename,
+            namespace=clean_namespace,
+            content_type=file.content_type,
+        )
+        if isinstance(res, dict) and res.get("status") == "error":
+            raise HTTPException(status_code=502, detail=res.get("message") or "Document upload failed.")
+        resp_status = status.HTTP_202_ACCEPTED if isinstance(res, dict) and res.get("job_id") else status.HTTP_200_OK
+        return JSONResponse(status_code=resp_status, content=res)
+    except HTTPException:
+        raise
+    except SemanticETLError as e:
+        print(f"[Web API Error] Document upload relay failed ({e.status_code}): {e.detail}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        print(f"[Web API Error] Document upload relay failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/jobs/{job_id}", dependencies=[Depends(verify_moka_token)])
+async def get_document_job_status_endpoint(job_id: str):
+    """
+    Queries real-time ingestion status and progress for a document job.
+    """
+    from actions.digital.semantic_etl_client import SemanticETLError, async_get_job_status
+    try:
+        res = await async_get_job_status(job_id)
+        if isinstance(res, dict) and res.get("status") == "error":
+            raise HTTPException(status_code=502, detail=res.get("message") or "Job status query failed.")
+        return res
+    except HTTPException:
+        raise
+    except SemanticETLError as e:
+        print(f"[Web API Error] Job status query failed ({e.status_code}): {e.detail}")
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
+    except Exception as e:
+        print(f"[Web API Error] Job status query failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/documents/health", dependencies=[Depends(verify_moka_token)])
+async def get_document_rag_health_endpoint():
+    """
+    Checks operational health and connection state of the Semantic ETL microservice.
+    """
+    from actions.digital.semantic_etl_client import async_get_health_status
+    return await async_get_health_status()
+
 
 # Mount Cozmo Autonomous Vision & Mission Control API
 try:

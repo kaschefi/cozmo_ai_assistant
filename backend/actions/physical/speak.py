@@ -206,11 +206,12 @@ class VoiceSpeaker:
         """
         Dynamic Token Sanitization:
         Strips out raw formatting notation like backticks, clean markdown punctuation,
-        and edge-case characters to prevent reading aloud code syntax.
+        inline citation markers ([1], [1, 2]), and edge-case characters to prevent reading aloud syntax.
         """
         text = re.sub(r'```.*?```', '', text, flags=re.DOTALL)
         text = re.sub(r'`[^`]*`', '', text)
         text = re.sub(r'https?://\S+', '', text)
+        text = re.sub(r'\s*\[\s*\d+(?:\s*,\s*\d+)*\s*\]', '', text)
         text = re.sub(r'[*_~#]', '', text)
         text = re.sub(r'\s+', ' ', text)
         return text.strip()

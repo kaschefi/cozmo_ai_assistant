@@ -9,6 +9,7 @@ class AgentState(TypedDict):
     next_route: str
     active_tools: List[dict]
     retrieved_memories: List[str] # LONG-TERM CONTEXT INJECTION
+    retrieved_documents: List[dict] # GROUNDED DOCUMENT KNOWLEDGE
     summary: str
     provider: str # "local" (Ollama) or "cloud" (Azure GPT-4.1 Nano)
     pending_interrupt: Optional[Dict[str, Any]]

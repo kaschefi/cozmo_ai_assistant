@@ -99,9 +99,11 @@ def animate_loading(done_event):
 async def terminal_chat():
     print(f"\n{GRAY}[Booting Cozmo AI Assistant...]{RESET}")
 
-    # Check and start n8n/Ollama before we allow user input
+    # Check and start n8n/Ollama/Semantic ETL before we allow user input
     ensure_n8n_started()
     ensure_ollama_started()
+    from core.services.semantic_etl_launcher import start_semantic_etl_background
+    start_semantic_etl_background()
 
     await asyncio.sleep(0.1)
 

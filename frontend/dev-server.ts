@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, execFileSync, ChildProcess } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -72,15 +72,27 @@ async function start() {
     shell: true
   });
 
-  // Handle exits
+  // Handle exits cleanly (terminates backend + spawned Semantic ETL + Vite process trees)
+  let isCleaningUp = false;
+  const killProcessTree = (proc: ChildProcess | null) => {
+    if (!proc || proc.killed || !proc.pid) return;
+    if (process.platform === 'win32') {
+      try {
+        execFileSync('taskkill', ['/PID', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+      } catch {
+        // Process already exited
+      }
+      return;
+    }
+    proc.kill();
+  };
+
   const cleanup = () => {
+    if (isCleaningUp) return;
+    isCleaningUp = true;
     console.log('\n\x1b[33m[Dev Manager] Shutting down backend and frontend servers...\x1b[0m');
-    if (backendProcess && !backendProcess.killed) {
-      backendProcess.kill();
-    }
-    if (!frontendProcess.killed) {
-      frontendProcess.kill();
-    }
+    killProcessTree(backendProcess);
+    killProcessTree(frontendProcess);
     process.exit();
   };
 

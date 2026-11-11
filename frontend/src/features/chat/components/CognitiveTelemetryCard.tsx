@@ -2,7 +2,7 @@ import React from 'react';
 import { ThinkingOrb, type OrbState } from 'thinking-orbs';
 
 export interface TelemetryData {
-  stage: 'intent' | 'reflex' | 'memory' | 'memory_done' | 'tools_rag' | 'tools_matched' | 'mcp_discovery' | 'hitl_gate' | 'routed' | 'executing' | 'synthesizing' | 'idle';
+  stage: 'intent' | 'reflex' | 'memory' | 'memory_done' | 'rag' | 'rag_done' | 'tools_rag' | 'tools_matched' | 'mcp_discovery' | 'hitl_gate' | 'routed' | 'executing' | 'synthesizing' | 'idle';
   title: string;
   text: string;
   step: number; // 1: Memory & Context, 2: Intent & Routing, 3: Action / Tool Execution, 4: Synthesis
@@ -23,6 +23,8 @@ export const CognitiveTelemetryCard: React.FC<CognitiveTelemetryCardProps> = ({ 
     switch (telemetry.stage) {
       case 'memory':
       case 'memory_done':
+      case 'rag':
+      case 'rag_done':
       case 'tools_rag':
       case 'tools_matched':
       case 'mcp_discovery':

@@ -66,6 +66,9 @@ def start_console_input_loop(loop: asyncio.AbstractEventLoop):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from core.services.semantic_etl_launcher import start_semantic_etl_background
+    start_semantic_etl_background()
+
     print("Initializing Cozmo connection...")
     cozmo_manager.robot_mode = True
     cozmo_manager.start()
