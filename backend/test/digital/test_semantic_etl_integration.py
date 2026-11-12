@@ -23,9 +23,9 @@ from core.routing.layer2.graph_nodes import (
     document_retrieval_node,
     tool_retrieval_node,
     route_query,
+    decide_after_tool_retrieval,
     decide_next_step,
     memory_extraction_node,
-    is_document_qa_query,
     is_workstation_setup_query,
     is_file_operation_query,
 )
@@ -202,10 +202,10 @@ def test_question_and_list_tool_queries_not_bypassed():
             assert expected_tool in names, f"Expected '{expected_tool}' for query {query!r}, got {names}"
 
 
-def test_document_qa_routing_and_setup_guards():
+def test_setup_guards_and_explicit_rag_only_bypass():
     """
-    Verifies that explicit document QA queries route cleanly to 'none' without
-    triggering setup_study or workspace file ops, while paraphrased setup commands still pass.
+    Verifies that setup/file safety guards block doc inquiries without needing a hardcoded
+    doc-QA keyword list, and that explicit rag_only mode bypasses both FAISS and LAYA.
     """
     for q in [
         "what are the must requirements?",
@@ -213,14 +213,14 @@ def test_document_qa_routing_and_setup_guards():
         "what does the thesis say about testing?",
         "read the uploaded PDF document",
     ]:
-        assert is_document_qa_query(q, [{"citation_id": 1}]) is True
         assert is_workstation_setup_query(q) is False
         assert is_file_operation_query(q) is False
-        assert tool_retrieval_node({"messages": [HumanMessage(content=q)], "retrieved_documents": [{"citation_id": 1}]}) == {"active_tools": []}
+        assert tool_retrieval_node({"messages": [HumanMessage(content=q)], "rag_only": True}) == {"active_tools": []}
 
-    # Mixed explicit action + doc noun must still allow the action tool
-    assert is_document_qa_query("add a task to review the SRS requirements", [{"citation_id": 1}]) is False
-    assert is_document_qa_query("search the web for SRS examples", [{"citation_id": 1}]) is False
+    # Graph short-circuit: rag_only or empty active_tools skips LAYA (route_query) completely
+    assert decide_after_tool_retrieval({"rag_only": True, "active_tools": [{"name": "weather_node"}]}) == "document_retrieval_node"
+    assert decide_after_tool_retrieval({"rag_only": False, "active_tools": []}) == "document_retrieval_node"
+    assert decide_after_tool_retrieval({"rag_only": False, "active_tools": [{"name": "weather_node"}]}) == "route_query"
 
     # Paraphrased workstation setup commands must remain allowed
     assert is_workstation_setup_query("bring up my study materials and Moodle page") is True
@@ -230,8 +230,8 @@ def test_document_qa_routing_and_setup_guards():
 
 def test_route_query_enriches_none_when_documents_retrieved():
     """
-    When retrieved_documents is non-empty and LAYA evaluates candidate tools,
-    verify 'none' criteria explicitly covers Document QA.
+    When LAYA evaluates candidate tools, verify 'none' criteria cleanly covers
+    uploaded document discussion without overpowering tool intents, and rag_only skips LAYA.
     """
     state = {
         "messages": [HumanMessage(content="Explain section 3 architecture")],
@@ -244,7 +244,29 @@ def test_route_query_enriches_none_when_documents_retrieved():
         assert res["next_route"] == "none"
         questions_arg = mock_laya.return_value.predict.call_args[0][1]
         none_desc = questions_arg["tool_selection"]["criteria"]["none"]
-        assert "uploaded documents" in none_desc.lower()
+        assert "uploaded document" in none_desc.lower()
+
+    with patch("core.routing.layer2.graph_nodes.get_laya_agent") as mock_laya:
+        bypass = route_query({
+            "messages": [HumanMessage(content="what is the weather?")],
+            "rag_only": True,
+            "active_tools": [{"name": "weather_node", "description": "Weather."}],
+        })
+        assert bypass == {"next_route": "none"}
+        mock_laya.assert_not_called()
+
+
+@patch("actions.digital.semantic_etl_client.is_semantic_etl_healthy", return_value=True)
+@patch("actions.digital.semantic_etl_client.retrieve_document_context")
+def test_document_retrieval_node_forwards_custom_namespace(mock_retrieve, mock_healthy):
+    mock_retrieve.return_value = {"answer": "", "sources": [{"citation_id": 1}], "has_context": True}
+    out = document_retrieval_node({
+        "messages": [HumanMessage(content="Who signed the contract?")],
+        "rag_only": True,
+        "document_namespace": "contracts",
+    })
+    assert len(out["retrieved_documents"]) == 1
+    mock_retrieve.assert_called_once_with("Who signed the contract?", namespace="contracts")
 
 
 @patch("actions.digital.semantic_etl_client.httpx.Client")

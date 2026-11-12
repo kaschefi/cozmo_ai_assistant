@@ -7,9 +7,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bac
 
 
 def main():
+    import threading
     from core.services.semantic_etl_launcher import start_semantic_etl_background, stop_semantic_etl
 
     start_semantic_etl_background()
+
+    # Synchronize long-term memory with user_profile.md
+    try:
+        from sync_memory import sync_memory_on_startup
+        threading.Thread(target=sync_memory_on_startup, daemon=True).start()
+    except Exception as e:
+        print(f"[Startup Notice] Memory sync notice: {e}")
 
     # THIS LOOP IS THE SECRET!
     # It ensures that whenever a mode finishes, the menu redraws itself.

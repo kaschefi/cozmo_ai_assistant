@@ -10,6 +10,8 @@ class AgentState(TypedDict):
     active_tools: List[dict]
     retrieved_memories: List[str] # LONG-TERM CONTEXT INJECTION
     retrieved_documents: List[dict] # GROUNDED DOCUMENT KNOWLEDGE
+    rag_only: bool
+    document_namespace: Optional[str]
     summary: str
     provider: str # "local" (Ollama) or "cloud" (Azure GPT-4.1 Nano)
     pending_interrupt: Optional[Dict[str, Any]]
@@ -86,6 +88,14 @@ class ChatRequest(BaseModel):
     provider: str = Field(
         default="local",
         description="Model execution provider: 'local' (Ollama) or 'cloud' (Azure GPT-4.1 Nano for Chat & Calendar/Todoist)."
+    )
+    rag_only: bool = Field(
+        default=False,
+        description="When True, bypasses tool retrieval/routing and answers directly via Document RAG."
+    )
+    document_namespace: Optional[str] = Field(
+        default=None,
+        description="Optional Semantic ETL namespace to scope document retrieval."
     )
 
 

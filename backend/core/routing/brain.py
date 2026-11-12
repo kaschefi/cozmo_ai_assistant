@@ -3,7 +3,14 @@ from datetime import datetime
 import asyncio
 from typing import Any, Dict, Optional
 
-async def process_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False, provider: str = "local") -> str:
+async def process_user_intent(
+    command: str,
+    session_id: str = "cozmo_default_session",
+    mute: bool = False,
+    provider: str = "local",
+    rag_only: bool = False,
+    document_namespace: Optional[str] = None,
+) -> str:
     """
     The Unified Brain (Union Brain) of Cozmo.
     Processes any user input (from terminal or speech) through a tiered pipeline:
@@ -17,9 +24,11 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
     command_clean = command.strip()
     if not command_clean:
         return ""
-    #  Tier 1: Check deterministic semantic reflexes
-    print(f"\n [Union Brain] Checking Tier 1 (Semantic Reflexes) for: '{command_clean}'")
-    layer_1_route = check_layer_1(command_clean)
+    #  Tier 1: Check deterministic semantic reflexes (skipped when user locks onto Document Q&A mode)
+    layer_1_route = None
+    if not rag_only:
+        print(f"\n [Union Brain] Checking Tier 1 (Semantic Reflexes) for: '{command_clean}'")
+        layer_1_route = check_layer_1(command_clean)
     
     if layer_1_route:
         print(f" [Union Brain] Tier 1 Triggered! Route: '{layer_1_route}'")
@@ -50,7 +59,14 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
     #  Tier 2: Heavy Cognitive Layer (LangGraph Router)
     print(f" [Union Brain] Tier 2 Triggered (LangGraph Router) for: '{command_clean}'")
     try:
-        final_answer = await asyncio.to_thread(run_cozmo_agent, command_clean, session_id, provider)
+        final_answer = await asyncio.to_thread(
+            run_cozmo_agent,
+            command_clean,
+            session_id,
+            provider,
+            bool(rag_only),
+            document_namespace or "documents",
+        )
         if isinstance(final_answer, dict) and final_answer.get("__interrupt__"):
             prompt_msg = final_answer.get("payload", {}).get("message", "Permission required.")
             if not mute:
@@ -68,7 +84,14 @@ async def process_user_intent(command: str, session_id: str = "cozmo_default_ses
         return err_msg
 
 
-async def stream_user_intent(command: str, session_id: str = "cozmo_default_session", mute: bool = False, provider: str = "local"):
+async def stream_user_intent(
+    command: str,
+    session_id: str = "cozmo_default_session",
+    mute: bool = False,
+    provider: str = "local",
+    rag_only: bool = False,
+    document_namespace: Optional[str] = None,
+):
     """
     Streaming generator for the Unified Brain.
     Yields Server-Sent Events data chunks:
@@ -88,10 +111,12 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
         return
 
     # Pipeline Init Event
-    yield f"data: {json.dumps({'type': 'status', 'stage': 'intent', 'title': 'INTENT ROUTER', 'text': 'Parsing user query & checking semantic reflexes...', 'step': 1, 'provider': provider})}\n\n"
+    init_title = 'DOCUMENT RAG' if rag_only else 'INTENT ROUTER'
+    init_text = 'Direct Document Q&A mode active (router bypassed)...' if rag_only else 'Parsing user query & checking semantic reflexes...'
+    yield f"data: {json.dumps({'type': 'status', 'stage': 'intent', 'title': init_title, 'text': init_text, 'step': 1, 'provider': provider})}\n\n"
 
-    # Tier 1: Check deterministic semantic reflexes
-    layer_1_route = check_layer_1(command_clean)
+    # Tier 1: Check deterministic semantic reflexes (skipped in explicit rag_only mode)
+    layer_1_route = None if rag_only else check_layer_1(command_clean)
     if layer_1_route:
         friendly_reflex = layer_1_route.replace('_', ' ').title()
         yield f"data: {json.dumps({'type': 'status', 'stage': 'reflex', 'title': 'FAST-PATH REFLEX', 'text': f'Triggered semantic reflex: {friendly_reflex}', 'step': 2, 'tool': layer_1_route, 'provider': 'reflex'})}\n\n"
@@ -134,6 +159,8 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
         "messages": [HumanMessage(content=command_clean)],
         "retrieved_memories": [],
         "retrieved_documents": [],
+        "rag_only": bool(rag_only),
+        "document_namespace": document_namespace or "documents",
         "provider": provider
     }
 
@@ -168,9 +195,14 @@ async def stream_user_intent(command: str, session_id: str = "cozmo_default_sess
                         elif node_name == "tool_retrieval_node":
                             tools = node_data.get("active_tools", [])
                             tool_names = [t.get("name", "") for t in tools if isinstance(t, dict)]
-                            txt = f"Identified candidates: {', '.join(tool_names)}" if tool_names else "Direct conversation route"
-                            yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'TOOL CANDIDATES', 'text': txt, 'step': 2, 'tools': tool_names})}\n\n"
-                            yield f"data: {json.dumps({'type': 'status', 'stage': 'router', 'title': 'INTENT ROUTER', 'text': 'Evaluating route with neural classifier...', 'step': 2})}\n\n"
+                            if tool_names:
+                                txt = f"Identified candidates: {', '.join(tool_names)}"
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'TOOL CANDIDATES', 'text': txt, 'step': 2, 'tools': tool_names})}\n\n"
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'router', 'title': 'INTENT ROUTER', 'text': 'Evaluating route with neural classifier...', 'step': 2})}\n\n"
+                            else:
+                                txt = "Document Q&A focus active (router bypassed)" if rag_only else "No tool matched — direct Document RAG & chat"
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'CHAT ROUTE', 'text': txt, 'step': 2, 'tools': []})}\n\n"
+                                yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3})}\n\n"
 
                         elif node_name == "route_query":
                             route = node_data.get("next_route", "none")

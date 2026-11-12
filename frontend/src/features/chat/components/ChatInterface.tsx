@@ -681,7 +681,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
 
   // Document RAG Upload & Ingestion State
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const uploadPollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const uploadPollIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const uploadAttemptIdRef = useRef(0);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [activeUpload, setActiveUpload] = useState<{
@@ -692,37 +692,27 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     error?: string;
     result?: any;
   } | null>(null);
+  const [isDocFocusEnabled, setIsDocFocusEnabled] = useState(false);
+  const isDocFocusActive = activeUpload?.status === 'completed' && isDocFocusEnabled;
+  const ragOnlyRef = useRef(false);
+
+  useEffect(() => {
+    ragOnlyRef.current = isDocFocusActive;
+  }, [isDocFocusActive]);
 
   const clearUploadPolling = useCallback(() => {
     if (uploadPollIntervalRef.current) {
-      clearInterval(uploadPollIntervalRef.current);
+      clearTimeout(uploadPollIntervalRef.current);
       uploadPollIntervalRef.current = null;
     }
   }, []);
 
   useEffect(() => {
     return () => {
+      uploadAttemptIdRef.current += 1;
       clearUploadPolling();
     };
   }, [clearUploadPolling]);
-
-  const addSystemDocumentMessage = useCallback((filename: string, result?: any) => {
-    const chunks = result?.chunks_processed || result?.upserted_count;
-    const chunkDetails = chunks ? ` (${chunks} semantic chunks indexed)` : '';
-    const docMessage: Message = {
-      id: `doc-${Date.now()}`,
-      sender: 'moka',
-      text: `📄 **${filename}** has been successfully ingested into your Semantic Knowledge Base${chunkDetails}!\n\nYou can now ask me questions about it (e.g. *"Summarize ${filename}"*, *"What are the core conclusions?"*, or ask about specific sections, formulas, and tables).`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      telemetry: {
-        tool: 'Semantic ETL Hybrid RAG',
-        provider: 'Pinecone + SQLite FTS5 + FlashRank',
-        steps: ['Docling Layout Extraction', 'semchunk Preservation', 'FlashRank Reranking']
-      }
-    };
-    setMessages(prev => [...prev, docMessage]);
-    setIsConversationStarted(true);
-  }, []);
 
   const handleUploadFile = useCallback(async (file: File) => {
     const validExtensions = ['.pdf', '.docx', '.doc', '.txt', '.md'];
@@ -749,6 +739,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     clearUploadPolling();
     const attemptId = ++uploadAttemptIdRef.current;
 
+    setIsDocFocusEnabled(false);
     setActiveUpload({
       file,
       status: 'uploading',
@@ -792,7 +783,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           progress: 100,
           result: data,
         });
-        addSystemDocumentMessage(file.name, data);
+        setIsDocFocusEnabled(true);
         return;
       }
 
@@ -807,7 +798,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       let pollCount = 0;
       const MAX_POLLS = 120; // 3 minutes at 1.5s interval
 
-      uploadPollIntervalRef.current = setInterval(async () => {
+      const scheduleNextPoll = () => {
+        if (attemptId !== uploadAttemptIdRef.current) return;
+        uploadPollIntervalRef.current = setTimeout(pollOnce, 1500);
+      };
+
+      const pollOnce = async () => {
         if (attemptId !== uploadAttemptIdRef.current) {
           clearUploadPolling();
           return;
@@ -834,9 +830,12 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           const jobRes = await fetch(`${getApiBaseUrl()}/api/documents/jobs/${jobId}`, {
             headers: pollHeaders,
           });
+          if (attemptId !== uploadAttemptIdRef.current) return;
+
           if (!jobRes.ok) {
             consecutiveErrors += 1;
             const errBody = await jobRes.json().catch(() => ({}));
+            if (attemptId !== uploadAttemptIdRef.current) return;
             if (jobRes.status >= 400 && jobRes.status < 500 || consecutiveErrors >= 3) {
               clearUploadPolling();
               setActiveUpload({
@@ -846,12 +845,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                 progress: 100,
                 error: errBody.detail || errBody.message || `Job status check failed (HTTP ${jobRes.status})`,
               });
+              return;
             }
+            scheduleNextPoll();
             return;
           }
 
           consecutiveErrors = 0;
           const jobData = await jobRes.json();
+          if (attemptId !== uploadAttemptIdRef.current) return;
 
           if (jobData.status === 'completed') {
             clearUploadPolling();
@@ -862,8 +864,10 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               progress: 100,
               result: jobData.result,
             });
-            addSystemDocumentMessage(file.name, jobData.result);
-          } else if (jobData.status === 'failed' || jobData.status === 'error') {
+            setIsDocFocusEnabled(true);
+            return;
+          }
+          if (jobData.status === 'failed' || jobData.status === 'error') {
             clearUploadPolling();
             setActiveUpload({
               file,
@@ -872,11 +876,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               progress: 100,
               error: jobData.error || jobData.message || 'Document indexing failed',
             });
-          } else {
-            const prog = Math.max(25, Math.min(95, Math.round(jobData.progress || 35)));
-            setActiveUpload(prev => (prev && prev.jobId === jobId ? { ...prev, progress: prog } : prev));
+            return;
           }
+
+          const prog = Math.max(25, Math.min(95, Math.round(jobData.progress || 35)));
+          setActiveUpload(prev => (prev && prev.jobId === jobId ? { ...prev, progress: prog } : prev));
+          scheduleNextPoll();
         } catch (pollErr) {
+          if (attemptId !== uploadAttemptIdRef.current) return;
           consecutiveErrors += 1;
           console.error('Job polling error:', pollErr);
           if (consecutiveErrors >= 3) {
@@ -888,9 +895,13 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
               progress: 100,
               error: 'Lost connection while tracking document indexing.',
             });
+            return;
           }
+          scheduleNextPoll();
         }
-      }, 1500);
+      };
+
+      scheduleNextPoll();
     } catch (err: any) {
       if (attemptId !== uploadAttemptIdRef.current) return;
       console.error('Document upload error:', err);
@@ -901,7 +912,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
         error: err.message || 'Failed to upload document. Please ensure Semantic-ETL-Pipeline is running.',
       });
     }
-  }, [token, addSystemDocumentMessage, clearUploadPolling]);
+  }, [token, clearUploadPolling]);
 
   // Auto-focus input when entering the chat page
   useEffect(() => {
@@ -1476,6 +1487,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     const fallbackTimeout2 = setTimeout(() => {
       setCognitiveTelemetry(prev => {
         if (prev.step <= 2 && prev.stage !== 'executing') {
+          if (ragOnlyRef.current) {
+            return {
+              ...prev,
+              stage: 'rag',
+              title: 'GROUNDED RAG',
+              text: 'Searching uploaded document knowledge base...',
+              step: 3,
+            };
+          }
           return {
             ...prev,
             stage: 'tools_rag',
@@ -1504,7 +1524,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
           session_id: sessionId,
           mute: isCozmoConnected ? false : isMuted,
           muted: isCozmoConnected ? false : isMuted,
-          provider: modelMode
+          provider: modelMode,
+          rag_only: ragOnlyRef.current,
+          document_namespace: 'documents',
         })
       });
 
@@ -2419,7 +2441,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                     </span>
                     <span className="text-[11px] font-mono text-slate-400 flex-shrink-0">
                       {activeUpload.status === 'completed'
-                        ? 'Ready for Q&A'
+                        ? (activeUpload.result?.chunks_processed || activeUpload.result?.upserted_count
+                            ? `Ready (${activeUpload.result.chunks_processed || activeUpload.result.upserted_count} chunks)`
+                            : 'Ready for Q&A')
                         : activeUpload.status === 'failed'
                         ? 'Failed'
                         : `${activeUpload.progress}%`}
@@ -2443,16 +2467,45 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
                   )}
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setActiveUpload(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
-                title="Dismiss"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {activeUpload.status === 'completed' && (
+                  <button
+                    type="button"
+                    aria-pressed={isDocFocusEnabled}
+                    onClick={() => setIsDocFocusEnabled(prev => !prev)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isDocFocusEnabled
+                        ? 'border-[var(--brand-primary)]/45 bg-[var(--brand-primary)]/15 text-[var(--brand-primary)] shadow-sm'
+                        : 'border-white/10 bg-white/5 text-slate-300 hover:text-white hover:border-white/25'
+                    }`}
+                    title={
+                      isDocFocusEnabled
+                        ? 'PDF Focus ON: Messages bypass tools and query this uploaded document directly'
+                        : 'PDF Focus OFF: Normal router decides between tools and document Q&A'
+                    }
+                  >
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isDocFocusEnabled ? 'bg-emerald-400' : 'bg-slate-500'
+                      }`}
+                    />
+                    <span>{isDocFocusEnabled ? 'PDF Focus: ON' : 'PDF Focus: OFF'}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveUpload(null);
+                    setIsDocFocusEnabled(false);
+                  }}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+                  title="Dismiss"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )}
 

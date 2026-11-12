@@ -72,8 +72,13 @@ async def _background_warmup():
 
         await loop.run_in_executor(None, _warmup_laya)
 
-        # 4. Warm up Long-Term Memory (Mem0 & pgvector pool)
+        # 4. Warm up Long-Term Memory (Mem0 & pgvector pool) and Sync with user_profile.md
         def _warmup_memory():
+            try:
+                from sync_memory import sync_memory_on_startup
+                sync_memory_on_startup()
+            except Exception as err:
+                print(f"[MoKa Warmup] Memory sync notice: {err}")
             try:
                 from schemas.memory_db import long_term_memory
                 _ = long_term_memory.client
@@ -338,7 +343,9 @@ async def chat_endpoint(req: ChatRequest):
             req.message,
             session_id=req.session_id,
             mute=True,
-            provider=active_provider
+            provider=active_provider,
+            rag_only=req.rag_only,
+            document_namespace=req.document_namespace,
         )
 
         # 3. Check if cognitive router paused on a Human-In-The-Loop interrupt
@@ -401,7 +408,9 @@ async def chat_stream_endpoint(req: ChatRequest):
             req.message,
             session_id=req.session_id,
             mute=req.mute,
-            provider=active_provider
+            provider=active_provider,
+            rag_only=req.rag_only,
+            document_namespace=req.document_namespace,
         ):
             if chunk.startswith("data: ") and not chunk.startswith("data: [DONE]"):
                 try:

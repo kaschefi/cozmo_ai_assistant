@@ -86,9 +86,51 @@ async def execute_reflex(route_name: str, mute: bool = False) -> tuple[bool, str
     return False, ""
 
 
-def check_layer_1(user_input: str) -> str:
+def validate_layer_1_reflex(layer_1_route: str | None, query: str) -> str | None:
+    """
+    Guards Layer 1 FastEmbed reflexes against cross-namespace false triggers:
+    1. Prevents robot docking reflexes from stealing desktop OS power commands (laptop/PC sleep).
+    2. Prevents robot panoramic arc sweeps from stealing vertical head tilts (look up/down).
+    3. Prevents chassis kinematic movement from stealing smart home lighting/climate commands.
+    4. Prevents clock time/date reflexes from stealing calendar appointments or countdown timers.
+    """
+    if not layer_1_route:
+        return None
+
+    query_lower = query.lower()
+    q_words = set(query_lower.split())
+
+    # Guard 1: dock_with_charger vs desktop OS sleep
+    if layer_1_route == "dock_with_charger":
+        desktop_cues = {"laptop", "pc", "computer", "mac", "desktop", "windows", "monitor", "screen", "suspend", "hibernate"}
+        if q_words & desktop_cues:
+            return None
+
+    # Guard 2: arc_sweep vs vertical head tilt
+    if layer_1_route == "arc_sweep":
+        vertical_cues = {"up", "upward", "upwards", "down", "downward", "downwards", "ceiling", "desk", "floor", "tracks"}
+        if q_words & vertical_cues:
+            return None
+
+    # Guard 3: Physical chassis kinematics vs Smart Home
+    if layer_1_route in {"move_forward", "move_backward", "turn_left", "turn_right", "turn_around", "stop_movement"}:
+        smart_home_cues = {"light", "lights", "lamp", "hue", "dim", "brightness", "color", "colour", "plug", "socket", "thermostat", "temperature"}
+        if q_words & smart_home_cues:
+            return None
+
+    # Guard 4: tell_time / get_date vs alarms & calendar
+    if layer_1_route in {"tell_time", "get_date"}:
+        time_event_cues = {"timer", "countdown", "alarm", "standup", "meeting", "sync", "schedule", "reschedule", "appointment", "pomodoro"}
+        if q_words & time_event_cues:
+            return None
+
+    return layer_1_route
+
+
+def check_layer_1(user_input: str) -> str | None:
     global layer_1_router
     if layer_1_router is None:
         initialize_router()
     route_choice = layer_1_router(user_input)
-    return route_choice.name
+    route_name = route_choice.name if route_choice else None
+    return validate_layer_1_reflex(route_name, user_input)

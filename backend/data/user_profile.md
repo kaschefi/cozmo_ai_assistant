@@ -7,4 +7,4 @@
 
 ## Active Memories
 
-- [id: 878241cb-cfc3-4a82-92d4-153b172bc071] User's persistent name is Mohammad.
+- [id: 45b34d3a-2c16-4c6b-b2a2-7bb12286d460] User's name is Mohammad

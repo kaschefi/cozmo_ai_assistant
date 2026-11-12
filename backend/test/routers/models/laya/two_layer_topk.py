@@ -189,6 +189,10 @@ def two_layer_laya_topk_predictor(inputs: dict, k: int = 5, head_max_len: int = 
             if tool_probs[best_tool] >= 0.25:
                 selected_route = best_tool
 
+    # Anti-hallucination gating: If a tool was selected with flat noise confidence (< 0.035) and weak FAISS match (> 0.85)
+    if selected_route != "none" and confidence < 0.035 and top_score > 0.85:
+        selected_route = "none"
+
     latency_ms = (time.perf_counter() - start_time) * 1000
 
     return {
@@ -305,6 +309,10 @@ def get_two_layer_laya_topk_predictor(
                 best_tool = max(tool_probs, key=tool_probs.get)
                 if tool_probs[best_tool] >= 0.25:
                     selected_route = best_tool
+
+        # Anti-hallucination gating: If a tool was selected with flat noise confidence (< 0.035) and weak FAISS match (> 0.85)
+        if selected_route != "none" and confidence < 0.035 and top_score > 0.85:
+            selected_route = "none"
 
         latency_ms = (time.perf_counter() - start_time) * 1000
 

@@ -69,6 +69,13 @@ async def lifespan(app: FastAPI):
     from core.services.semantic_etl_launcher import start_semantic_etl_background
     start_semantic_etl_background()
 
+    # Synchronize long-term memory with user_profile.md
+    try:
+        from sync_memory import sync_memory_on_startup
+        threading.Thread(target=sync_memory_on_startup, daemon=True).start()
+    except Exception as e:
+        print(f"[Cozmo Startup] Memory sync notice: {e}")
+
     print("Initializing Cozmo connection...")
     cozmo_manager.robot_mode = True
     cozmo_manager.start()

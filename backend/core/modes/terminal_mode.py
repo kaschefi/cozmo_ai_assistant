@@ -105,6 +105,13 @@ async def terminal_chat():
     from core.services.semantic_etl_launcher import start_semantic_etl_background
     start_semantic_etl_background()
 
+    # Synchronize long-term memory with user_profile.md
+    try:
+        from sync_memory import sync_memory_on_startup
+        threading.Thread(target=sync_memory_on_startup, daemon=True).start()
+    except Exception as e:
+        print(f"{GRAY}[Memory Sync Notice] {e}{RESET}")
+
     await asyncio.sleep(0.1)
 
     print("\n=======================================")

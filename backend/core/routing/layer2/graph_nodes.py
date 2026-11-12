@@ -15,6 +15,11 @@ from core.routing.layer2.tool_vector_db import tool_rag_registry
 from schemas.memory_db import long_term_memory
 from schemas.request_models import AgentState, RouteDecision
 
+try:
+    from test.routers.tools import TOOL_TO_DOMAIN
+except Exception:
+    TOOL_TO_DOMAIN = {}
+
 GRAY = "\033[90m"
 RESET = "\033[0m"
 
@@ -31,34 +36,6 @@ def get_laya_agent(model_id: str = "convaiinnovations/laya-typed-decisions"):
                 print("[LayaRouter] LAYA Decision Model initialized successfully.")
     return _LAYA_AGENT
 chat_llm = get_llm("CHAT_LLM_MODEL", "gemma4:e2b", temperature=0.6)
-
-
-def is_conversational_query(text: str) -> bool:
-    """
-    Detects whether user input is purely conversational greeting, acknowledgment, or chit-chat.
-    Ensures casual chat prompts bypass tool RAG matching and route straight to chat_node.
-    """
-    if not text:
-        return True
-    t = text.strip().lower()
-    t_clean = re.sub(r'[^\w\s]', '', t)
-    words = t_clean.split()
-    if not words:
-        return True
-
-    GREETINGS = {
-        "hi", "hello", "hey", "hiya", "howdy", "greetings", "yo", "sup",
-        "good morning", "good afternoon", "good evening", "good night",
-        "how are you", "how are you doing", "hows it going", "how are things",
-        "whats up", "what is up", "who are you", "what can you do", "introduce yourself",
-        "nice to meet you", "pleased to meet you",
-        "thanks", "thank you", "ok", "okay", "cool", "bye", "goodbye"
-    }
-    if t_clean in GREETINGS:
-        return True
-    if len(words) <= 2 and words[0] in {"hi", "hello", "hey", "hiya", "yo"}:
-        return True
-    return False
 
 
 _SETUP_EXCLUSION_NAMES = ("setup_gaming", "setup_study", "setup_coding")
@@ -133,52 +110,6 @@ def is_workstation_setup_query(text: str) -> bool:
     return any(re.search(p, t) for p in setup_patterns)
 
 
-def is_document_qa_query(text: str, retrieved_documents: Optional[List[dict]] = None) -> bool:
-    """
-    Detects queries specifically targeting uploaded/indexed RAG documents rather than
-    external action tools (weather, web search, calendar, todoist, code sandbox, or workspace files).
-    Avoids blocking general question words ('what', 'how', 'who', 'list', '?') so tool routing stays intact.
-    """
-    if not text or is_file_operation_query(text) or is_workstation_setup_query(text):
-        return False
-    t = text.strip().lower()
-
-    # Never hijack explicit action/tool requests even if document terms appear (e.g. "add a task to review the SRS")
-    explicit_tool_cues = [
-        r'\b(?:todo|to-do|task|tasks|checklist)\b',
-        r'\b(?:calendar|schedule|reschedule|meeting|appointment|event|standup|agenda)\b',
-        r'\b(?:weather|forecast|temperature|rain|raining|snow|snowing|wind|storm)\b',
-        r'\b(?:search\s+(?:the\s+)?web|google|web\s+search|breaking\s+news|stock\s+price|market\s+cap|champions\s+league)\b',
-        r'\b(?:run|execute)\b.*?\b(?:code|python|script)\b',
-        r'\b(?:calculate|compute|square\s+root|power\s+of)\b',
-        r'\b(?:move|drive|turn|dock|sweep|charger)\b',
-    ]
-    if any(re.search(p, t) for p in explicit_tool_cues):
-        return False
-
-    # Strong explicit uploaded-document / specification Q&A patterns
-    if re.search(
-        r'\b(?:uploaded|knowledge\s+base|srs|thesis|dissertation|manuscript|pdf|docx|must\s+requirements?|functional\s+requirements?|non-functional\s+requirements?)\b',
-        t
-    ):
-        return True
-    if re.match(
-        r'^(?:summarize|summarise)\b.*?\b(?:document|doc|pdf|paper|report|text|article|chapter|section)\b',
-        t
-    ):
-        return True
-    if re.search(
-        r'\b(?:in|from)\s+the\s+(?:uploaded\s+)?(?:document|doc|pdf|paper|report|thesis)\b|\bon\s+page\s+\d+\b|\b(?:citations?|conclusions?)\b',
-        t
-    ):
-        return True
-
-    if retrieved_documents and re.search(r'\b(?:summarize|summarise|in\s+the\s+file)\b', t):
-        return True
-
-    return False
-
-
 def _build_contextual_rag_query(messages: list) -> str:
     """
     Combines short follow-up queries with the previous user turn so RAG retrieval
@@ -222,8 +153,7 @@ def document_retrieval_node(state: AgentState):
     Stores retrieved context blocks in state['retrieved_documents'].
     """
     messages = state.get("messages", [])
-    last_message = messages[-1].content if messages else ""
-    if is_conversational_query(last_message):
+    if not messages:
         return {"retrieved_documents": []}
 
     try:
@@ -232,10 +162,11 @@ def document_retrieval_node(state: AgentState):
             return {"retrieved_documents": []}
 
         rag_query = _build_contextual_rag_query(messages)
-        res = retrieve_document_context(rag_query)
+        namespace = (state.get("document_namespace") or "documents").strip() or "documents"
+        res = retrieve_document_context(rag_query, namespace=namespace)
         sources = res.get("sources", [])
         if sources:
-            print(f"[document_retrieval_node] Injected {len(sources)} grounded document excerpts into state.")
+            print(f"[document_retrieval_node] Injected {len(sources)} grounded document excerpts into state (namespace='{namespace}').")
         return {"retrieved_documents": sources}
     except Exception as e:
         print(f"[document_retrieval_node Error]: Context retrieval warning: {e}")
@@ -244,16 +175,12 @@ def document_retrieval_node(state: AgentState):
 
 def tool_retrieval_node(state: AgentState):
     """
-    RAG LAYER STEP 1: Programmatically query our tool database vector space
-    to pull only the top 5 matching candidates.
+    RAG LAYER STEP 1: Two-Layer Top-K Tool Retrieval.
+    Programmatically query our tool database vector space with distance thresholding.
+    If no tools pass or the nearest tool is a weak match (> 1.10), fall back to conversational 'none'.
     """
-    if tool_rag_registry.db is None or not any(d.metadata.get("source_type") == "mcp_dormant" for d in tool_rag_registry._tools_source):
-        tool_rag_registry.load_dormant_catalog()
-        tool_rag_registry.build_index()
-
     last_message = state["messages"][-1].content
-    retrieved_docs = state.get("retrieved_documents", [])
-    if is_conversational_query(last_message) or is_document_qa_query(last_message, retrieved_docs):
+    if state.get("rag_only"):
         return {"active_tools": []}
 
     # If the user is asking to access external system folders outside MoKa's workspace,
@@ -262,26 +189,54 @@ def tool_retrieval_node(state: AgentState):
     if is_external_system_path_query(last_message):
         return {"active_tools": []}
 
-    # Pull top 5 most matching tools to keep the prompt absolutely razor sharp
-    matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=5)
+    if tool_rag_registry.db is None or not any(d.metadata.get("source_type") == "mcp_dormant" for d in tool_rag_registry._tools_source):
+        tool_rag_registry.load_dormant_catalog()
+        tool_rag_registry.build_index()
+
+    # Step 2 from Two-Layer Top-K: probe_k = 8, distance_threshold = 1.15
+    matched_tools = tool_rag_registry.search_relevant_tools(last_message, k=8, distance_threshold=1.15)
+
+    # If no tools pass or nearest tool is a weak match (> 1.10), fall back to conversational "none"
+    if not matched_tools or (matched_tools and matched_tools[0].get("score", 0.0) > 1.10):
+        return {"active_tools": []}
 
     # 1. Filter out workstation app launchers unless user explicitly issued a setup command
     matched_tools = _filter_setup_tools(matched_tools, last_message)
+    if not matched_tools:
+        return {"active_tools": []}
 
-    # 2. Prune far-off lexical distractors when a much closer semantic match exists
-    scored_tools = [t for t in matched_tools if isinstance(t.get("score"), (int, float))]
-    if scored_tools and len(matched_tools) == len(scored_tools):
-        top_score = scored_tools[0]["score"]
-        margin = 0.25 if top_score <= 0.75 else 0.28
-        pruned = [t for t in matched_tools if t["score"] <= top_score + margin]
-        if pruned:
-            matched_tools = pruned
+    top_score = matched_tools[0].get("score", 0.0)
+    top_tool = matched_tools[0]["name"]
+    primary_domain = TOOL_TO_DOMAIN.get(top_tool)
 
-    # 2. If the user is asking for a file operation, guarantee that filesystem tools or dormant pack are present
+    # Hierarchical Domain Selection (pruning cross-namespace lexical distractors):
+    top3_domains = [TOOL_TO_DOMAIN.get(m["name"]) for m in matched_tools[:3]]
+    if top_score <= 0.60 or top3_domains.count(primary_domain) >= 2:
+        allowed_domains = {primary_domain}
+    else:
+        allowed_domains = {primary_domain}
+        for m in matched_tools[1:4]:
+            if m.get("score", 0.0) <= top_score + 0.12:
+                d = TOOL_TO_DOMAIN.get(m["name"])
+                if d:
+                    allowed_domains.add(d)
+
+    active_tools = [
+        t for t in matched_tools
+        if (TOOL_TO_DOMAIN.get(t["name"]) in allowed_domains or not allowed_domains)
+        and t.get("score", 0.0) <= top_score + 0.16
+    ]
+    if not active_tools:
+        active_tools = [matched_tools[0]]
+
+    # Bound candidates to at most 4 tools to prevent ModernBERT softmax logit collapse
+    active_tools = active_tools[:4]
+
+    # If the user is asking for a file operation, guarantee that filesystem tools or dormant pack are present
     if is_file_operation_query(last_message):
         has_fs = any(
             t.get("name") == "mcp_pack_filesystem" or t.get("server_pack_id") == "mcp_pack_filesystem"
-            for t in matched_tools
+            for t in active_tools
         )
         if not has_fs:
             fs_doc = next(
@@ -290,7 +245,7 @@ def tool_retrieval_node(state: AgentState):
             )
             if fs_doc:
                 name = fs_doc.metadata["tool_name"]
-                matched_tools.insert(0, {
+                active_tools.insert(0, {
                     "name": name,
                     "description": fs_doc.page_content,
                     "score": 0.5,
@@ -299,9 +254,9 @@ def tool_retrieval_node(state: AgentState):
                     "input_schema": fs_doc.metadata.get("input_schema", {}),
                     "is_mutating": fs_doc.metadata.get("is_mutating", False)
                 })
-                matched_tools = matched_tools[:5]
+                active_tools = active_tools[:4]
 
-    return {"active_tools": matched_tools}
+    return {"active_tools": active_tools}
 
 
 def summarize_conversation_node(state: AgentState):
@@ -362,8 +317,16 @@ def memory_retrieval_node(state: AgentState):
     using the user's latest input string and the owner ID.
     Directly pulls all facts on broad meta-queries requesting profile summaries.
     """
-    last_message = state["messages"][-1].content
     user_id = "cozmo_owner"
+
+    # Synchronize any manual edits in user_profile.md before memory lookup
+    try:
+        from sync_memory import check_and_sync_memory_if_modified
+        check_and_sync_memory_if_modified(user_id=user_id)
+    except Exception:
+        pass
+
+    last_message = state["messages"][-1].content
 
     # 1. Identify meta-queries requesting profile summary
     q = last_message.lower()
@@ -419,6 +382,12 @@ def memory_extraction_node(state: AgentState):
         try:
             long_term_memory.add_dialogue(dialogue_turns, user_id=user_id)
             sys.stdout.flush()
+            try:
+                from sync_memory import notify_memory_updated
+                notify_memory_updated(user_id=user_id)
+            except Exception as se:
+                print(f"\n{GRAY} [LONG-TERM MEMORY SYNC NOTICE]: {se}{RESET}\n: ", end="")
+                sys.stdout.flush()
         except Exception as e:
             print(f"\n{GRAY} [LONG-TERM MEMORY ERROR]: Failed background extraction: {e}{RESET}\n: ", end="")
             sys.stdout.flush()
@@ -427,13 +396,22 @@ def memory_extraction_node(state: AgentState):
     return {}
 
 
+def decide_after_tool_retrieval(state: AgentState) -> str:
+    """
+    Short-circuits past LAYA (route_query) directly to document_retrieval_node whenever
+    explicit rag_only mode is active or tool_retrieval_node returned no candidate tools.
+    """
+    if state.get("rag_only") or not state.get("active_tools"):
+        return "document_retrieval_node"
+    return "route_query"
+
+
 def route_query(state: AgentState):
     last_message = state["messages"][-1].content
     active_tools = state.get("active_tools", [])
-    retrieved_docs = state.get("retrieved_documents", [])
 
-    # Fast-path for conversational greetings, explicit document Q&A, or when no tools passed the RAG gate
-    if is_conversational_query(last_message) or is_document_qa_query(last_message, retrieved_docs) or not active_tools:
+    # Fast-path for explicit document mode or empty tool candidates
+    if state.get("rag_only") or not active_tools:
         return {"next_route": "none"}
 
     # Strict rule: Filter out workstation setups if query is not an explicit setup command
@@ -447,6 +425,9 @@ def route_query(state: AgentState):
 
     if not active_tools:
         return {"next_route": "none"}
+
+    # Bound candidates to at most 4 tools to prevent ModernBERT softmax logit collapse
+    active_tools = active_tools[:4]
 
     # Formulate typed choice criteria dictionary from Top-K RAG selection.
     # Dynamically derive readable semantic labels for MCP tools from catalog display_name metadata
@@ -480,14 +461,16 @@ def route_query(state: AgentState):
             laya_key = f"{laya_key}_"
         tools_dict[laya_key] = tool["description"]
         laya_to_tool_name[laya_key] = t_name
+
     tools_dict["none"] = (
-        "Core conversational and Document QA channel. Select for casual chat, greetings, personal facts, "
-        "general discussion, or answering questions, summarizing, and explaining uploaded documents or specifications."
+        "Core conversational channel. Use for casual chat, greetings, social pleasantries, asking about "
+        "identity/personality, sharing personal facts or hobbies, philosophical discussion, small talk, "
+        "or uploaded document discussion."
     )
     instructions = (
-        "Select the appropriate tool or action to execute given the user's input/state. "
-        "If the user input is casual chat, greetings, personal facts, jokes, or a question/summary "
-        "about uploaded documents or general knowledge rather than executing an external tool, select 'none'."
+        "Select the appropriate tool or service to handle the user's request, question, or command. "
+        "Use 'web_search_node' whenever the user wants to look up information, search the web, check company market data, sports results, or news. "
+        "Select 'none' only if the user is simply chatting, greeting, sharing personal facts, asking about identity, or making casual small talk."
     )
 
     questions = {
@@ -504,9 +487,30 @@ def route_query(state: AgentState):
         answers = result.get("answers", result)
         decision = answers.get("tool_selection", {})
         raw_choice = decision.get("choice", "none")
+        confidence = decision.get("confidence", 0.0)
         selected_route = laya_to_tool_name.get(raw_choice, raw_choice)
     except Exception as e:
         print(f"[route_query Error] Laya prediction failed: {e}. Falling back to 'none'.")
+        selected_route = "none"
+        confidence = 0.0
+        decision = {}
+
+    # Confidence Gating for "none" from Two-Layer Top-K:
+    # If "none" is chosen with low confidence (< 0.12) but FAISS retrieved an extremely strong
+    # domain match (top_score <= 0.65), override "none" with the highest-probability tool candidate.
+    top_score = active_tools[0].get("score", 1.0) if active_tools else 1.0
+    if selected_route == "none" and confidence < 0.12 and top_score <= 0.65:
+        probs = decision.get("probabilities", {})
+        tool_probs = {laya_to_tool_name.get(k, k): v for k, v in probs.items() if k != "none"}
+        if tool_probs:
+            best_tool = max(tool_probs, key=tool_probs.get)
+            if tool_probs.get(best_tool, 0.0) >= 0.25:
+                selected_route = best_tool
+
+    # Anti-hallucination gating from Two-Layer Top-K:
+    # If LAYA picked a tool with flat noise confidence (< 0.05) and FAISS had only a weak match (> 0.82),
+    # treat the query as conversational and route to 'none'.
+    if selected_route != "none" and confidence < 0.05 and top_score > 0.82:
         selected_route = "none"
 
     # Strict Guard 1: If setup_coding was selected despite a file operation intent, redirect to filesystem

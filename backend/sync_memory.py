@@ -17,12 +17,15 @@ from schemas.memory_db import long_term_memory
 DEFAULT_PROFILE_PATH = os.path.join(backend_dir, "data", "user_profile.md")
 DEFAULT_USER_ID = "cozmo_owner"
 
+_last_synced_mtime: float = 0.0
+
 
 def export_profile_to_markdown(file_path: str = DEFAULT_PROFILE_PATH, user_id: str = DEFAULT_USER_ID) -> str:
     """
     Exports all active memory records from the vector database to a readable markdown file.
     Each item contains an explicit ID tag so updates and deletes can be tracked.
     """
+    global _last_synced_mtime
     os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
     records = long_term_memory.get_all_memories_with_details(user_id=user_id)
 
@@ -50,6 +53,9 @@ def export_profile_to_markdown(file_path: str = DEFAULT_PROFILE_PATH, user_id: s
     content = "\n".join(lines)
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(content)
+
+    if os.path.exists(file_path):
+        _last_synced_mtime = os.path.getmtime(file_path)
 
     print(f"[SyncMemory] Successfully exported {len(records)} memories to: {file_path}")
     return content
@@ -135,6 +141,69 @@ def import_profile_from_markdown(file_path: str = DEFAULT_PROFILE_PATH, user_id:
 
     # Re-export to update IDs for any newly added items
     export_profile_to_markdown(file_path=file_path, user_id=user_id)
+
+
+def sync_memory_on_startup(file_path: str = DEFAULT_PROFILE_PATH, user_id: str = DEFAULT_USER_ID) -> None:
+    """
+    Startup Pipeline:
+    Synchronizes memory with user_profile.md upon system startup.
+    - If user_profile.md exists: imports any manual edits made by the user into the database,
+      then re-exports the clean state with memory IDs so user_profile.md is always up-to-date.
+    - If user_profile.md does not exist: exports active memories from database to create it.
+    """
+    global _last_synced_mtime
+    try:
+        if os.path.exists(file_path):
+            print(f"[SyncMemory Pipeline] Synchronizing manual profile edits from {file_path} into database...")
+            import_profile_from_markdown(file_path=file_path, user_id=user_id)
+        else:
+            print(f"[SyncMemory Pipeline] Initializing {file_path} from active database memories...")
+            export_profile_to_markdown(file_path=file_path, user_id=user_id)
+        if os.path.exists(file_path):
+            _last_synced_mtime = os.path.getmtime(file_path)
+    except Exception as e:
+        print(f"[SyncMemory Pipeline Warning] Failed to sync memory on startup: {e}")
+
+
+def check_and_sync_memory_if_modified(file_path: str = DEFAULT_PROFILE_PATH, user_id: str = DEFAULT_USER_ID) -> bool:
+    """
+    Runtime Pipeline:
+    Checks if user_profile.md was edited on disk since the last sync.
+    If modified, syncs the new edits into the database immediately without requiring a restart.
+    """
+    global _last_synced_mtime
+    try:
+        if not os.path.exists(file_path):
+            return False
+        current_mtime = os.path.getmtime(file_path)
+        if _last_synced_mtime == 0.0:
+            sync_memory_on_startup(file_path=file_path, user_id=user_id)
+            return True
+        if current_mtime > _last_synced_mtime:
+            print(f"[SyncMemory Pipeline] Detected external modification in {file_path}. Synchronizing to database...")
+            import_profile_from_markdown(file_path=file_path, user_id=user_id)
+            _last_synced_mtime = os.path.getmtime(file_path)
+            return True
+        return False
+    except Exception as e:
+        print(f"[SyncMemory Pipeline Warning] Failed to check/sync modified memory: {e}")
+        return False
+
+
+def notify_memory_updated(file_path: str = DEFAULT_PROFILE_PATH, user_id: str = DEFAULT_USER_ID) -> None:
+    """
+    Export Pipeline:
+    Called whenever dialogue extraction adds or changes memories during conversation.
+    Re-exports the active database memories to user_profile.md so the user always sees
+    MoKa's fresh, live memory state.
+    """
+    global _last_synced_mtime
+    try:
+        export_profile_to_markdown(file_path=file_path, user_id=user_id)
+        if os.path.exists(file_path):
+            _last_synced_mtime = os.path.getmtime(file_path)
+    except Exception as e:
+        print(f"[SyncMemory Pipeline Warning] Failed to export updated memories to {file_path}: {e}")
 
 
 def main():

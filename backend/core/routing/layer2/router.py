@@ -18,6 +18,7 @@ from core.routing.layer2.graph_nodes import (
     memory_retrieval_node,
     document_retrieval_node,
     memory_extraction_node,
+    decide_after_tool_retrieval,
     decide_next_step,
     mcp_discovery_node,
     decide_discovery_step,
@@ -40,10 +41,17 @@ builder.add_node("chat_node", chat_node)
 builder.add_node("memory_extraction_node", memory_extraction_node)
 builder.add_node("mcp_discovery_node", mcp_discovery_node)
 
-# Wire the transitions: Memory -> Tool Routing -> Action or Document-Grounded Chat
+# Wire the transitions: Memory -> Tool Retrieval -> (bypass LAYA or route_query) -> Action or Document-Grounded Chat
 builder.add_edge(START, "memory_retrieval_node")
 builder.add_edge("memory_retrieval_node", "tool_retrieval_node")
-builder.add_edge("tool_retrieval_node", "route_query")
+builder.add_conditional_edges(
+    "tool_retrieval_node",
+    decide_after_tool_retrieval,
+    {
+        "document_retrieval_node": "document_retrieval_node",
+        "route_query": "route_query",
+    },
+)
 
 # Route decision: execute_tool_node, mcp_discovery_node, or document_retrieval_node -> chat_node
 builder.add_conditional_edges(
@@ -124,7 +132,13 @@ else:
 cozmo_graph = builder.compile(checkpointer=checkpointer)
 
 
-def run_cozmo_agent(user_input: str, thread_id: str = "cozmo_default_session", provider: str = "local") -> Any:
+def run_cozmo_agent(
+    user_input: str,
+    thread_id: str = "cozmo_default_session",
+    provider: str = "local",
+    rag_only: bool = False,
+    document_namespace: str = "documents",
+) -> Any:
     print(f" [run_cozmo_agent] Starting agent run for thread_id='{thread_id}', provider='{provider}'...")
     config = {
         "configurable": {"thread_id": thread_id},
@@ -137,6 +151,8 @@ def run_cozmo_agent(user_input: str, thread_id: str = "cozmo_default_session", p
         "messages": [HumanMessage(content=user_input)],
         "retrieved_memories": [],
         "retrieved_documents": [],
+        "rag_only": bool(rag_only),
+        "document_namespace": document_namespace or "documents",
         "provider": provider
     }
 
