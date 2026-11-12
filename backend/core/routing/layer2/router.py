@@ -50,10 +50,11 @@ builder.add_conditional_edges(
     {
         "document_retrieval_node": "document_retrieval_node",
         "route_query": "route_query",
+        "chat_node": "chat_node",
     },
 )
 
-# Route decision: execute_tool_node, mcp_discovery_node, or document_retrieval_node -> chat_node
+# Route decision: execute_tool_node, mcp_discovery_node, document_retrieval_node, or chat_node
 builder.add_conditional_edges(
     "route_query",
     decide_next_step,
@@ -61,6 +62,7 @@ builder.add_conditional_edges(
         "document_retrieval_node": "document_retrieval_node",
         "mcp_discovery_node": "mcp_discovery_node",
         "execute_tool_node": "execute_tool_node",
+        "chat_node": "chat_node",
     },
 )
 builder.add_edge("document_retrieval_node", "chat_node")

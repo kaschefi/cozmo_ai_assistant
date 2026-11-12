@@ -69,6 +69,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
   const isSessionLoadingRef = useRef(false);
+  const isStreamingRef = useRef(false);
+  const saveApiDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // MCP Tools Drawer State & Telemetry
   const [isMcpToolsOpen, setIsMcpToolsOpen] = useState(false);
@@ -251,7 +253,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       }
 
       saveChatSessions(nextSessions);
-      saveChatSessionToApi(nextSessions[0], token);
+
+      // Do NOT spam the backend API with save requests on every token while streaming!
+      // The backend stream endpoint automatically persists the completed conversation,
+      // and we debounce persistent API updates to prevent socket starvation.
+      if (!isStreamingRef.current) {
+        if (saveApiDebounceTimerRef.current) {
+          clearTimeout(saveApiDebounceTimerRef.current);
+        }
+        saveApiDebounceTimerRef.current = setTimeout(() => {
+          saveChatSessionToApi(nextSessions[0], token);
+        }, 800);
+      }
       return nextSessions;
     });
   }, [messages, sessionId, modelMode, token]);
@@ -1509,6 +1522,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     }, 1600);
 
     try {
+      isStreamingRef.current = true;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -1703,6 +1717,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       } else {
         await triggerMockMokaResponse(text);
       }
+    } finally {
+      isStreamingRef.current = false;
     }
   }, [token, sessionId, isMuted, isCozmoConnected, modelMode, triggerMockMokaResponse]);
 
@@ -1729,6 +1745,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
     }
 
     try {
+      isStreamingRef.current = true;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -1854,6 +1871,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBackToLanding })
       setIsResuming(false);
       setIsMokaThinking(false);
       setIsMokaTyping(false);
+      isStreamingRef.current = false;
     }
   };
 

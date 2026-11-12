@@ -200,9 +200,16 @@ async def stream_user_intent(
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'TOOL CANDIDATES', 'text': txt, 'step': 2, 'tools': tool_names})}\n\n"
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'router', 'title': 'INTENT ROUTER', 'text': 'Evaluating route with neural classifier...', 'step': 2})}\n\n"
                             else:
-                                txt = "Document Q&A focus active (router bypassed)" if rag_only else "No tool matched — direct Document RAG & chat"
-                                yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'CHAT ROUTE', 'text': txt, 'step': 2, 'tools': []})}\n\n"
-                                yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3})}\n\n"
+                                from core.routing.layer2.heuristics import is_document_inquiry_query
+                                is_doc_q = bool(rag_only or is_document_inquiry_query(command_clean))
+                                if is_doc_q:
+                                    txt = "Document Q&A focus active" if rag_only else "Document inquiry detected — searching knowledge base"
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'CHAT ROUTE', 'text': txt, 'step': 2, 'tools': []})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3})}\n\n"
+                                else:
+                                    txt = "No tool needed — direct conversational chat"
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'tools_matched', 'title': 'CHAT ROUTE', 'text': txt, 'step': 2, 'tools': []})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'synthesizing', 'title': 'CONVERSATIONAL CHAT', 'text': 'Generating conversational response...', 'step': 3})}\n\n"
 
                         elif node_name == "route_query":
                             route = node_data.get("next_route", "none")
@@ -211,8 +218,14 @@ async def stream_user_intent(
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'TOOL SELECTED', 'text': f'Dispatched to {friendly}', 'step': 2, 'tool': route})}\n\n"
                                 yield f"data: {json.dumps({'type': 'status', 'stage': 'executing', 'title': 'EXECUTING AGENT', 'text': f'Calling {friendly}...', 'step': 3, 'tool': route})}\n\n"
                             else:
-                                yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'CHAT ROUTE', 'text': 'Direct conversational & grounded QA route selected', 'step': 2, 'tool': 'none'})}\n\n"
-                                yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3})}\n\n"
+                                from core.routing.layer2.heuristics import is_document_inquiry_query
+                                is_doc_q = bool(rag_only or is_document_inquiry_query(command_clean))
+                                if is_doc_q:
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'DOCUMENT ROUTE', 'text': 'Grounded document inquiry selected', 'step': 2, 'tool': 'none'})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'rag', 'title': 'GROUNDED RAG', 'text': 'Searching uploaded document knowledge base...', 'step': 3})}\n\n"
+                                else:
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'routed', 'title': 'CHAT ROUTE', 'text': 'Conversational companion route selected', 'step': 2, 'tool': 'none'})}\n\n"
+                                    yield f"data: {json.dumps({'type': 'status', 'stage': 'synthesizing', 'title': 'CONVERSATIONAL CHAT', 'text': 'Generating conversational response...', 'step': 3})}\n\n"
 
                         elif node_name == "document_retrieval_node":
                             docs = node_data.get("retrieved_documents", [])
