@@ -176,16 +176,25 @@ async def handle_weather_node(command: str, **kwargs) -> str:
 
 async def handle_web_search_node(command: str, **kwargs) -> str:
     try:
-        from actions.digital.n8n_agents import call_web_search
-        reply = call_web_search(command)
-        if reply:
-            return reply
-    except Exception:
-        pass
+        from core.routing.layer2.mcp_manager import mcp_manager
+        pack_id = "mcp_pack_tavily"
+        if not mcp_manager.is_server_connected(pack_id):
+            await asyncio.to_thread(mcp_manager.connect_server_sync, pack_id)
 
-    try:
-        from actions.digital.MCPs import fetch_tavily_search
-        return await fetch_tavily_search(command)
+        server = mcp_manager._servers.get(pack_id)
+        if not server or not server.tools:
+            return "Web search MCP server connected, but no search tools were exposed."
+
+        tool_name = next(
+            (name for name in server.tools if "search" in name.lower()),
+            next(iter(server.tools))
+        )
+        return await asyncio.to_thread(
+            mcp_manager.call_mcp_tool_sync,
+            pack_id=pack_id,
+            tool_name=tool_name,
+            arguments={"query": command}
+        )
     except Exception as e:
         return f"Web search could not be completed: {e}"
 

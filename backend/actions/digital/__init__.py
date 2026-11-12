@@ -1,5 +1,5 @@
 # actions/digital/__init__.py
-from actions.digital.n8n_agents import call_n8n_calendar, call_web_search
+from actions.digital.n8n_agents import call_n8n_calendar
 from actions.digital.langchain.weather_agent import weather_worker
 from actions.digital.setups import setup_gaming, setup_study
 from actions.digital.langgraph.todolist_agent import run_todolist_agent, todolist_sub_agent
@@ -20,7 +20,6 @@ from actions.digital.semantic_etl_client import (
 
 __all__ = [
     "call_n8n_calendar",
-    "call_web_search",
     "weather_worker",
     "setup_gaming",
     "setup_study",

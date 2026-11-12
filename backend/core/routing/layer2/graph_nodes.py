@@ -268,6 +268,15 @@ def tool_retrieval_node(state: AgentState):
     # 1. Filter out workstation app launchers unless user explicitly issued a setup command
     matched_tools = _filter_setup_tools(matched_tools, last_message)
 
+    # 2. Prune far-off lexical distractors when a much closer semantic match exists
+    scored_tools = [t for t in matched_tools if isinstance(t.get("score"), (int, float))]
+    if scored_tools and len(matched_tools) == len(scored_tools):
+        top_score = scored_tools[0]["score"]
+        margin = 0.25 if top_score <= 0.75 else 0.28
+        pruned = [t for t in matched_tools if t["score"] <= top_score + margin]
+        if pruned:
+            matched_tools = pruned
+
     # 2. If the user is asking for a file operation, guarantee that filesystem tools or dormant pack are present
     if is_file_operation_query(last_message):
         has_fs = any(
@@ -439,8 +448,38 @@ def route_query(state: AgentState):
     if not active_tools:
         return {"next_route": "none"}
 
-    # Formulate typed choice criteria dictionary from Top-K RAG selection
-    tools_dict = {tool["name"]: tool["description"] for tool in active_tools}
+    # Formulate typed choice criteria dictionary from Top-K RAG selection.
+    # Dynamically derive readable semantic labels for MCP tools from catalog display_name metadata
+    # (avoiding opaque mcp_pack_* / vendor-prefixed keys in LAYA), then map back to exact tool names.
+    catalog = {}
+    try:
+        from core.routing.layer2.mcp_manager import mcp_manager
+        catalog = mcp_manager.get_catalog()
+    except Exception:
+        catalog = {}
+
+    def _slugify(text: str) -> str:
+        return re.sub(r"[^a-z0-9]+", "_", text.lower()).strip("_")
+
+    laya_to_tool_name = {}
+    tools_dict = {}
+    for tool in active_tools:
+        t_name = tool["name"]
+        laya_key = t_name
+        source_type = tool.get("source_type")
+        pack_id = tool.get("server_pack_id") or (t_name if source_type == "mcp_dormant" else None)
+        display_name = catalog.get(pack_id, {}).get("display_name") if pack_id else None
+        if display_name:
+            dn_slug = _slugify(display_name)
+            if dn_slug:
+                if source_type == "mcp_dormant":
+                    laya_key = dn_slug
+                elif source_type == "mcp_active":
+                    laya_key = f"{dn_slug}_{t_name}"
+        while laya_key in tools_dict:
+            laya_key = f"{laya_key}_"
+        tools_dict[laya_key] = tool["description"]
+        laya_to_tool_name[laya_key] = t_name
     tools_dict["none"] = (
         "Core conversational and Document QA channel. Select for casual chat, greetings, personal facts, "
         "general discussion, or answering questions, summarizing, and explaining uploaded documents or specifications."
@@ -464,7 +503,8 @@ def route_query(state: AgentState):
         result = agent.predict(last_message, questions)
         answers = result.get("answers", result)
         decision = answers.get("tool_selection", {})
-        selected_route = decision.get("choice", "none")
+        raw_choice = decision.get("choice", "none")
+        selected_route = laya_to_tool_name.get(raw_choice, raw_choice)
     except Exception as e:
         print(f"[route_query Error] Laya prediction failed: {e}. Falling back to 'none'.")
         selected_route = "none"

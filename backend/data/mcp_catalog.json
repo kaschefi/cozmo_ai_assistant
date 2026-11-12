@@ -59,7 +59,13 @@
     "mcp_pack_tavily": {
       "pack_id": "mcp_pack_tavily",
       "display_name": "Tavily Real-Time Web Search",
-      "description": "Search current news, deep research, stock prices, live documentation, and real-time facts on the web.",
+      "description": "Search current news, deep research, stock prices, sports scores, match winners, live documentation, and real-time facts on the web.",
+      "semantic_dimensions": [
+        "Searches the live web for breaking news headlines, recent world events, political developments, technology announcements, and space missions.",
+        "Looks up live sports scores, match winners, athletic competitions, tournament games, team standings, and championship results.",
+        "Retrieves online financial data, stock market ticker prices, corporate valuations, company market capitalization, and economic indicators.",
+        "Searches online sources to verify real-world facts, answer encyclopedic questions, historical events, scientific concepts, and general knowledge lookups."
+      ],
       "transport": "stdio",
       "command": "npx",
       "args": ["-y", "tavily-mcp@latest"],

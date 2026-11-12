@@ -454,6 +454,103 @@ def test_file_operation_vs_setup_coding_routing():
     assert "Coding setup launched" not in node_res["messages"][-1].content
 
 
+def test_dynamic_tavily_web_search_replaces_n8n_and_mcps():
+    """
+    Verifies that:
+    1. Legacy actions.digital.MCPs is removed and n8n web search is disconnected.
+    2. TOOL_REGISTRY no longer routes to n8n web_search_node.
+    3. Diverse web search queries retrieve dormant 'mcp_pack_tavily' from mcp_catalog.json.
+    4. After activating mcp_pack_tavily, dormant stubs are retired and active 'tavily_search'
+       executes as a read-only tool through execute_tool_node.
+    """
+    import importlib
+    from core.routing.layer2.worker_nodes import TOOL_REGISTRY, execute_tool_node
+    from core.routing.layer2.graph_nodes import decide_next_step
+    from langchain_core.messages import HumanMessage, AIMessage
+    import actions.digital.n8n_agents as n8n_agents
+
+    # 1. Verify legacy MCPs.py and n8n call_web_search are removed
+    try:
+        importlib.import_module("actions.digital.MCPs")
+        raise AssertionError("actions.digital.MCPs should have been deleted!")
+    except ModuleNotFoundError:
+        pass
+
+    assert not hasattr(n8n_agents, "call_web_search"), "call_web_search should be removed from n8n_agents.py!"
+    assert "web_search_node" not in TOOL_REGISTRY, "web_search_node should be removed from TOOL_REGISTRY!"
+
+    # 2. Verify dormant mcp_pack_tavily matches across news, sports, finance, and facts
+    registry = ToolVectorRegistry()
+    registry.load_dormant_catalog()
+    registry.build_index()
+
+    dormant_names_all = {d.metadata.get("tool_name") for d in registry._tools_source}
+    assert "web_search_node" not in dormant_names_all
+    assert "mcp_pack_tavily" in dormant_names_all
+
+    for q in [
+        "whats the news today",
+        "what is the top news globally for today",
+        "search the web for latest AI news",
+        "who won the Champions League final match?",
+        "what is the current stock price of Apple?",
+        "search online for Python 3.12 release notes",
+    ]:
+        matches = registry.search_relevant_tools(q, k=5)
+        names = [m["name"] for m in matches]
+        assert "mcp_pack_tavily" in names, f"Expected 'mcp_pack_tavily' for {q!r}, got {names}"
+        tavily_stub = next(m for m in matches if m["name"] == "mcp_pack_tavily")
+        assert tavily_stub["source_type"] == "mcp_dormant"
+        assert decide_next_step({
+            "next_route": "mcp_pack_tavily",
+            "active_tools": matches,
+        }) == "mcp_discovery_node"
+
+    # 3. Verify activation retires all dormant stubs and routes tavily_search to execute_tool_node
+    sample_tavily_tools = [
+        {
+            "name": "tavily_search",
+            "description": "Search the web for current information on any topic. Use for news, facts, or data beyond your knowledge cutoff.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+            "is_mutating": False,
+        }
+    ]
+    registry.register_mcp_tools_runtime(pack_id="mcp_pack_tavily", mcp_tools=sample_tavily_tools)
+    post_names_all = {d.metadata.get("tool_name") for d in registry._tools_source}
+    assert "mcp_pack_tavily" not in post_names_all, "All dormant stubs for mcp_pack_tavily must retire on activation!"
+    assert "tavily_search" in post_names_all
+
+    post_matches = registry.search_relevant_tools("search the web for latest AI news", k=3)
+    assert any(m["name"] == "tavily_search" and m["source_type"] == "mcp_active" for m in post_matches)
+
+    called = []
+    with patch(
+        "core.routing.layer2.mcp_manager.mcp_manager.call_mcp_tool_sync",
+        side_effect=lambda pack_id, tool_name, arguments: called.append((pack_id, tool_name, arguments)) or "Mock Tavily Result",
+    ):
+        with patch("core.routing.llm_factory.get_chat_companion_llm") as mock_get_llm:
+            mock_llm = MagicMock()
+            mock_llm.invoke.side_effect = [
+                AIMessage(content='{"query": "latest AI news"}'),
+                AIMessage(content="Here is the latest AI news from Tavily."),
+            ]
+            mock_get_llm.return_value = mock_llm
+
+            res = execute_tool_node({
+                "next_route": "tavily_search",
+                "messages": [HumanMessage(content="search the web for latest AI news")],
+                "active_tools": post_matches,
+                "provider": "local",
+            })
+            assert len(called) == 1
+            assert called[0] == ("mcp_pack_tavily", "tavily_search", {"query": "latest AI news"})
+            assert "Tavily" in res["messages"][-1].content
+
+
 if __name__ == "__main__":
     print("Running MCP Discovery & HITL Verification Suite...", flush=True)
     test_tool_vector_registry_dormant_and_runtime_mutation()
@@ -470,5 +567,7 @@ if __name__ == "__main__":
     print("[TEST 6 PASSED]: test_mutating_mcp_tool_hitl", flush=True)
     test_file_operation_vs_setup_coding_routing()
     print("[TEST 7 PASSED]: test_file_operation_vs_setup_coding_routing", flush=True)
-    print("\n>>> ALL 7 VERIFICATION TESTS PASSED SUCCESSFULLY! <<<", flush=True)
+    test_dynamic_tavily_web_search_replaces_n8n_and_mcps()
+    print("[TEST 8 PASSED]: test_dynamic_tavily_web_search_replaces_n8n_and_mcps", flush=True)
+    print("\n>>> ALL 8 VERIFICATION TESTS PASSED SUCCESSFULLY! <<<", flush=True)
 

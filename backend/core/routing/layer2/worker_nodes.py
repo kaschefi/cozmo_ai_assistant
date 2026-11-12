@@ -91,15 +91,6 @@ def calendar_node(state: AgentState):
     return {"messages": [AIMessage(content=reply)]}
 
 
-def web_search_node(state: AgentState):
-    from actions.digital.n8n_agents import call_web_search
-    last_message = state["messages"][-1].content
-    reply = call_web_search(last_message)
-    if not reply:
-        reply = "I tried searching, but couldn't reach the search service."
-    return {"messages": [AIMessage(content=reply)]}
-
-
 def weather_node(state: AgentState):
     """
     Direct single-turn Weather Node:
@@ -417,7 +408,6 @@ def get_date_node(state: AgentState):
 TOOL_REGISTRY = {
     # Cognitive agent tools
     "calendar_node": calendar_node,
-    "web_search_node": web_search_node,
     "weather_node": weather_node,
     "code_executor_node": code_executor_node,
     "todolist_node": todolist_node,
@@ -477,6 +467,14 @@ def execute_tool_node(state: AgentState):
             except Exception as parse_err:
                 print(f"[execute_tool_node Warning] Argument extraction fallback: {parse_err}")
                 arguments = {}
+
+        if not isinstance(arguments, dict):
+            arguments = {}
+        required_fields = input_schema.get("required", []) if isinstance(input_schema, dict) else []
+        if "query" in properties and not arguments.get("query"):
+            arguments["query"] = last_message
+        if "input" in required_fields and "input" in properties and not arguments.get("input"):
+            arguments["input"] = last_message
 
         # Strict Workspace Sandboxing: MoKa only accesses its own project directory
         project_root = get_project_root()

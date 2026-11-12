@@ -86,14 +86,18 @@ class ToolVectorRegistry:
             for pack_id, cfg in servers.items():
                 if pack_id in existing_names:
                     continue
-                self.register_tool_schema(
-                    name=pack_id,
-                    description=cfg.get("description", ""),
-                    source_type="mcp_dormant",
-                    server_pack_id=pack_id,
-                    input_schema={},
-                    is_mutating=False
-                )
+                dimensions = cfg.get("semantic_dimensions") or [cfg.get("description", "")]
+                for desc in dimensions:
+                    if not desc:
+                        continue
+                    self.register_tool_schema(
+                        name=pack_id,
+                        description=desc,
+                        source_type="mcp_dormant",
+                        server_pack_id=pack_id,
+                        input_schema={},
+                        is_mutating=False
+                    )
                 loaded_count += 1
             if loaded_count > 0:
                 print(f"[ToolVectorRegistry] Loaded {loaded_count} dormant MCP stubs from catalog.")
@@ -156,6 +160,23 @@ class ToolVectorRegistry:
             self._tools_embeddings = filtered_embeddings
 
             # 2. Prepare new granular active tools
+            catalog_dimensions = []
+            try:
+                current_dir = os.path.dirname(os.path.abspath(__file__))
+                backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+                catalog_path = os.path.join(backend_dir, "data", "mcp_catalog.json")
+                if os.path.exists(catalog_path):
+                    with open(catalog_path, "r", encoding="utf-8") as f:
+                        cfg = json.load(f).get("servers", {}).get(pack_id, {})
+                        catalog_dimensions = cfg.get("semantic_dimensions") or []
+            except Exception:
+                catalog_dimensions = []
+
+            primary_tool_name = next(
+                (t.get("name", "") for t in mcp_tools if "search" in t.get("name", "").lower()),
+                mcp_tools[0].get("name", "") if len(mcp_tools) == 1 else None
+            )
+
             new_docs = []
             for tool in mcp_tools:
                 tool_name = tool.get("name", "")
@@ -163,17 +184,22 @@ class ToolVectorRegistry:
                 is_mutating = tool.get("is_mutating", False)
                 input_schema = tool.get("inputSchema", {})
 
-                doc = Document(
-                    page_content=description,
-                    metadata={
-                        "tool_name": tool_name,
-                        "source_type": "mcp_active",
-                        "server_pack_id": pack_id,
-                        "input_schema": input_schema,
-                        "is_mutating": is_mutating
-                    }
-                )
-                new_docs.append(doc)
+                descriptions_to_index = [description]
+                if catalog_dimensions and tool_name == primary_tool_name:
+                    descriptions_to_index.extend(d for d in catalog_dimensions if d and d != description)
+
+                for desc in descriptions_to_index:
+                    doc = Document(
+                        page_content=desc,
+                        metadata={
+                            "tool_name": tool_name,
+                            "source_type": "mcp_active",
+                            "server_pack_id": pack_id,
+                            "input_schema": input_schema,
+                            "is_mutating": is_mutating
+                        }
+                    )
+                    new_docs.append(doc)
 
             if new_docs:
                 self._tools_source.extend(new_docs)
